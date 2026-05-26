@@ -1,10 +1,11 @@
-
-// Include theming for Angular Material with `mat.theme()`.
-// This Sass mixin will define CSS variables that are used for styling Angular Material
-// components according to the Material 3 design spec.
-// Learn more about theming and how to use it for your application's
-// custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
+@use 'sass:color';
+
+$primary: #0D6E8F;
+$on-primary: #FFFFFF;
+$danger: #B3261E;
+$on-danger: #FFFFFF;
+$body-color: #49454F;
 
 html {
   height: 100%;
@@ -18,21 +19,135 @@ html {
   ));
 }
 
-body {
-  // Default the application to a light color theme. This can be changed to
-  // `dark` to enable the dark color theme, or to `light dark` to defer to the
-  // user's system settings.
-  color-scheme: light;
+:root {
+  --mat-sys-primary: #{$primary};
+  --mat-sys-on-primary: #{$on-primary};
+  --mat-sys-primary-container: #{color.adjust($primary, $lightness: 45%)};
+  --mat-sys-on-primary-container: #{color.adjust($primary, $lightness: -10%)};
+  --mat-sys-secondary: #{$primary};
+  --mat-sys-on-secondary: #{$on-primary};
+  --mat-sys-surface: #FFFFFF;
+  --mat-sys-on-surface: #000000;
+  --mat-sys-error: #{$danger};
+  --mat-sys-on-error: #{$on-danger};
+  --mat-sys-outline: #{$primary};
 
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
+  --mdc-filled-button-container-shape: 16px;
+  --mdc-outlined-button-container-shape: 16px;
+  --mdc-text-button-container-shape: 16px;
+  --mdc-filled-button-container-color: #{$primary};
+  --mdc-filled-button-label-text-color: #{$on-primary};
+  --mdc-outlined-button-outline-color: #{$primary};
+  --mdc-outlined-button-label-text-color: #{$primary};
+  --mat-mdc-button-persistent-ripple-color: #{$primary};
+}
+
+body {
+  color-scheme: light;
   background-color: var(--mat-sys-surface);
   color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
-
-  // Reset the user agent margin.
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.5;
   margin: 0;
   height: 100%;
 }
-/* You can add global styles to this file, and also import other style files */
+
+* {
+  box-sizing: border-box;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500;
+  color: #000000;
+  margin: 0;
+}
+
+p {
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: $body-color;
+  margin: 0;
+}
+
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-outlined-button {
+  border-radius: 16px !important;
+  padding: 16px 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: auto !important;
+  line-height: normal !important;
+}
+
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary {
+  --mdc-filled-button-container-color: #{$primary};
+  --mdc-filled-button-label-text-color: #{$on-primary};
+}
+
+.mat-mdc-outlined-button:not(:disabled) {
+  border-color: #{$primary} !important;
+}
+
+.btn-secondary {
+  --mdc-outlined-button-label-text-color: #{$primary};
+  border: 1px solid #{$primary} !important;
+}
+
+.btn-tertiary {
+  background: transparent !important;
+  color: #{$primary} !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.btn-danger {
+  --mdc-filled-button-container-color: #{$danger};
+  --mdc-filled-button-label-text-color: #{$on-danger};
+}
+
+mat-footer-row, mat-header-row, mat-row, mat-cell, mat-footer-cell, mat-header-cell {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.title-large {
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  letter-spacing: 0;
+  color: #000000;
+}
+
+.title-small {
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  letter-spacing: 0;
+  color: #0D6E8F;
+}
+
+.body-large {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  letter-spacing: 0.5px;
+  color: #000000;
+}
+
+.body-small {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 0.8rem;
+  line-height: 1rem;
+  letter-spacing: 0.4px;
+  color: #49454F;
+}

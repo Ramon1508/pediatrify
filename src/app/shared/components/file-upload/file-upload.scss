@@ -1,0 +1,75 @@
+.upload-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 2px dashed #c0c0c0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+  min-height: 80px;
+
+  &:hover {
+    border-color: #0D6E8F;
+    background: rgba(13, 110, 143, 0.04);
+  }
+
+  mat-icon {
+    font-size: 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    color: #0D6E8F;
+  }
+
+  span {
+    color: #757575;
+    font-size: 0.9rem;
+  }
+}
+
+.preview-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.upload-preview {
+  max-width: 80px;
+  max-height: 80px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.file-name {
+  font-size: 0.85rem;
+  color: #49454F;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.uploading-indicator {
+  color: #0D6E8F;
+  font-weight: 500;
+}

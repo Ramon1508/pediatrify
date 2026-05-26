@@ -1,0 +1,13 @@
+@if (alert(); as a) {
+  <div class="alert-overlay" [class]="'alert-' + a.type" (@fadeSlide.done)="onDone()">
+    <div class="alert-body">
+      @if (a.title) {
+        <span class="alert-title">{{ a.title }}</span>
+      }
+      <span class="alert-message">{{ a.message }}</span>
+    </div>
+    <button class="alert-close" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+}

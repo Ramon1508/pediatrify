@@ -1,0 +1,51 @@
+<div class="sidebar-nav">
+  <a
+    class="nav-item"
+    routerLink="/app/calendar"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: false }"
+    (click)="closeSidenav.emit()"
+  >
+    <div class="icon-wrapper">
+      <mat-icon>access_time</mat-icon>
+    </div>
+    <span class="nav-label">Calendario</span>
+  </a>
+
+  <a
+    class="nav-item"
+    routerLink="/app/patients"
+    routerLinkActive="active"
+    [routerLinkActiveOptions]="{ exact: false }"
+    (click)="closeSidenav.emit()"
+  >
+    <div class="icon-wrapper">
+      <mat-icon>groups</mat-icon>
+    </div>
+    <span class="nav-label">Pacientes</span>
+  </a>
+
+  @if (showAdminItems) {
+    <a
+      class="nav-item"
+      routerLink="/app/doctors"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }"
+      (click)="closeSidenav.emit()"
+    >
+      <div class="icon-wrapper">
+        <mat-icon>call_end</mat-icon>
+      </div>
+      <span class="nav-label">Asistentes</span>
+    </a>
+  }
+</div>
+
+<div class="sidebar-footer">
+  <button class="nav-item logout-btn" (click)="logout()">
+    <div class="icon-wrapper">
+      <mat-icon>logout</mat-icon>
+    </div>
+    <span class="nav-label">Salir</span>
+  </button>
+</div>

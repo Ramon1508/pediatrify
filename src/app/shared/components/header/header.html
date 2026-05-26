@@ -1,0 +1,34 @@
+<mat-toolbar class="app-navbar">
+  <div class="nav-left">
+    @if (showMenuToggle) {
+      <button mat-icon-button (click)="menuToggle.emit()" class="menu-button">
+        <mat-icon>menu</mat-icon>
+      </button>
+    }
+  </div>
+
+  <div class="nav-center d-flex align-items-center gap-2">
+    <img ngSrc="images/Logo.jpg" alt="Logo" class="nav-logo" width="40" height="40" priority />
+    <span class="nav-brand">{{ brandName }}</span>
+  </div>
+
+  <div class="nav-right">
+    @if (authService.isAuthenticated) {
+      <span class="user-info">{{ displayName }}</span>
+      <button mat-icon-button [matMenuTriggerFor]="menu">
+        <mat-icon>account_circle</mat-icon>
+      </button>
+      <mat-menu #menu="matMenu">
+        <button mat-menu-item disabled>
+          <mat-icon>person</mat-icon>
+          {{ roleLabel }}
+        </button>
+        <mat-divider />
+        <button mat-menu-item (click)="logout()">
+          <mat-icon>logout</mat-icon>
+          Cerrar sesión
+        </button>
+      </mat-menu>
+    }
+  </div>
+</mat-toolbar>

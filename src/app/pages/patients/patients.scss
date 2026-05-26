@@ -1,0 +1,70 @@
+.patients-container {
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+
+  h2 {
+    margin: 0;
+    font-weight: 500;
+  }
+}
+
+.patients-table {
+  width: 100%;
+}
+
+.otp-password {
+  font-family: monospace;
+  font-size: 0.9rem;
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #757575;
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.dialog-card {
+  max-width: 500px;
+  width: 100%;
+  padding: 1rem;
+
+  .form-row {
+    display: flex;
+    gap: 1rem;
+
+    mat-form-field {
+      flex: 1;
+    }
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  .dialog-error {
+    display: block;
+    margin-top: 0.5rem;
+  }
+}

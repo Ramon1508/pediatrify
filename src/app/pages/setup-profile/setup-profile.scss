@@ -1,0 +1,105 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: url('/images/Fondo.svg') repeat;
+  background-size: auto;
+  background-color: #ffffff;
+}
+
+.setup-body {
+  padding: 40px 200px;
+
+  @media (max-width: 768px) {
+    padding: 23px 16px;
+  }
+}
+
+.setup-hero {
+  margin-bottom: 24px;
+}
+
+.setup-form {
+  h3 {
+    margin: 1rem 0 0.75rem;
+    font-weight: 500;
+    color: #000000;
+  }
+
+  .section-divider {
+    margin: 1.25rem 0;
+  }
+
+  .full-width {
+    width: 100%;
+    margin-bottom: 0.75rem;
+  }
+
+  .desktop-half {
+    width: calc(50% - 20px);
+    margin-bottom: 0.75rem;
+
+    @media (max-width: 768px) {
+      width: 100%;
+    }
+  }
+
+  .form-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+
+    &.form-gap-40 {
+      gap: 40px;
+    }
+
+    .flex-field {
+      flex: 1;
+    }
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 0;
+    }
+  }
+
+  .info-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .label-small {
+    font-family: Roboto, sans-serif;
+    font-weight: 400;
+    font-size: 0.8rem;
+    line-height: 1rem;
+    letter-spacing: 0.4px;
+    color: #49454F;
+  }
+
+  .info-value {
+    font-family: Roboto, sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    letter-spacing: 0.5px;
+    color: #000000;
+  }
+
+  .hint {
+    font-size: 0.85rem;
+    color: #757575;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .form-error {
+    display: block;
+    margin: 0.75rem 0;
+  }
+
+  .finish-btn {
+    margin-top: 0.5rem;
+  }
+}

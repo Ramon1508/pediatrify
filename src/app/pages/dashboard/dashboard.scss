@@ -1,0 +1,59 @@
+.dashboard-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+
+  mat-card-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .role-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    width: fit-content;
+
+    &.admin {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    &.employee {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+  }
+
+  .actions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    font-size: 1rem;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .restricted-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #757575;
+    padding: 1rem;
+    background: #fff3e0;
+    border-radius: 8px;
+    margin: 0;
+  }
+}

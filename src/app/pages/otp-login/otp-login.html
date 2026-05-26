@@ -1,0 +1,71 @@
+<div class="otp-container">
+  <mat-card class="otp-card">
+    <mat-card-header>
+      <mat-card-title>Lilcare</mat-card-title>
+      <mat-card-subtitle>Acceso paciente</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form (ngSubmit)="onSubmit()" #otpForm="ngForm">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Correo electrónico</mat-label>
+          <input
+            matInput
+            type="email"
+            [(ngModel)]="email"
+            name="email"
+            required
+            email
+            #emailModel="ngModel"
+          />
+          <mat-icon matPrefix>email</mat-icon>
+          @if (emailModel.invalid && emailModel.touched) {
+            <mat-error>Correo electrónico válido requerido</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Contraseña OTP</mat-label>
+          <input
+            matInput
+            type="password"
+            [(ngModel)]="password"
+            name="password"
+            required
+            #passwordModel="ngModel"
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+          @if (passwordModel.invalid && passwordModel.touched) {
+            <mat-error>Contraseña requerida</mat-error>
+          }
+        </mat-form-field>
+
+        <p class="hint">
+          Usa la contraseña que te proporcionó tu doctor.
+        </p>
+
+        @if (error) {
+          <mat-error class="error-message">{{ error }}</mat-error>
+        }
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          class="full-width"
+          [disabled]="otpForm.invalid || loading"
+        >
+          @if (loading) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Entrar
+          }
+        </button>
+      </form>
+    </mat-card-content>
+
+    <mat-card-actions class="card-actions">
+      <a mat-button routerLink="/login">Volver al inicio de sesión</a>
+    </mat-card-actions>
+  </mat-card>
+</div>

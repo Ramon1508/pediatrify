@@ -1,0 +1,53 @@
+<div class="dashboard-container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Panel Principal</mat-card-title>
+      <mat-card-subtitle>
+        Bienvenido, {{ doctor?.name }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="role-badge" [class.admin]="doctor?.role === 'admin'" [class.employee]="doctor?.role === 'employee'">
+        @if (doctor?.role === 'admin') {
+          <mat-icon>verified</mat-icon>
+          <span>Administrador</span>
+        } @else {
+          <mat-icon>medical_services</mat-icon>
+          <span>Doctor</span>
+        }
+      </div>
+
+      <mat-divider />
+
+      <div class="actions-grid">
+        @if (doctor?.role === 'admin') {
+          <button mat-raised-button class="action-btn" routerLink="/doctors">
+            <mat-icon>medical_services</mat-icon>
+            Gestionar doctores
+          </button>
+          <button mat-raised-button class="action-btn" routerLink="/patients">
+            <mat-icon>people</mat-icon>
+            Gestionar pacientes
+          </button>
+        }
+
+        <button mat-raised-button class="action-btn" routerLink="/appointments">
+          <mat-icon>calendar_today</mat-icon>
+          Agendar cita
+        </button>
+        <button mat-raised-button class="action-btn" routerLink="/patients">
+          <mat-icon>person_add</mat-icon>
+          Registrar paciente
+        </button>
+
+        @if (doctor?.role === 'employee') {
+          <p class="restricted-notice">
+            <mat-icon>lock</mat-icon>
+            Algunas funciones están restringidas para tu perfil. Contacta al administrador si necesitas acceso adicional.
+          </p>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,103 @@
+<div class="calendar-page">
+  <div class="calendar-toolbar">
+    <button mat-stroked-button (click)="goToToday()">Hoy</button>
+    <button mat-icon-button (click)="previousWeek()">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <button mat-icon-button (click)="nextWeek()">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+    <span class="week-label">
+      @for (day of weekDays(); track day.getTime(); let last = $last) {
+        {{ day.getDate() }} {{ dayNames[day.getDay()] }}@if (!last) { - }
+      }
+    </span>
+  </div>
+
+  <div class="calendar-scroll">
+    <div class="calendar-grid">
+      <div class="grid-cell corner-cell"></div>
+
+      @for (day of weekDays(); track day.getTime()) {
+        <div class="grid-cell day-header">
+          <span class="day-number">{{ day.getDate() }}</span>
+          <span class="day-name">{{ dayNames[day.getDay()] }}</span>
+        </div>
+      }
+
+      @for (slot of timeSlots; track slot.key) {
+        <div class="grid-cell time-label">
+          @if (slot.label) {
+            <span>{{ slot.label }}</span>
+          }
+        </div>
+
+        @for (day of weekDays(); track day.getTime()) {
+          <div
+            class="grid-cell data-cell"
+            (mouseenter)="onCellHover(day, slot)"
+            (mouseleave)="onCellLeave()"
+            (click)="openNewAppointment(day, slot)"
+          >
+            @for (apt of getAppointmentsForCell(day, slot); track apt.id) {
+              <div class="appointment-block" [class.attended]="apt.status === 'attended'">
+                {{ apt.patientName }}
+              </div>
+            }
+            @if (!getAppointmentsForCell(day, slot).length && isHovered(day, slot)) {
+              <button class="add-btn" mat-icon-button color="primary">
+                <mat-icon>add</mat-icon>
+              </button>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>
+
+@if (showDialog) {
+  <div class="dialog-overlay">
+    <mat-card class="dialog-card">
+      <mat-card-header>
+        <mat-card-title>Nueva cita</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Paciente</mat-label>
+          <mat-select [(ngModel)]="newAppointment.patientId">
+            @for (p of allPatients; track p.id) {
+              <mat-option [value]="p.id">{{ p.name }} {{ p.lastName }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Fecha</mat-label>
+            <input matInput type="date" [(ngModel)]="newAppointment.date" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Hora</mat-label>
+            <input matInput type="time" [(ngModel)]="newAppointment.time" />
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Notas</mat-label>
+          <textarea matInput [(ngModel)]="newAppointment.notes" rows="2"></textarea>
+        </mat-form-field>
+
+        @if (dialogError) {
+          <mat-error class="dialog-error">{{ dialogError }}</mat-error>
+        }
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-button (click)="closeDialog()">Cancelar</button>
+        <button mat-raised-button color="primary" (click)="saveAppointment()" [disabled]="!newAppointment.patientId || !newAppointment.date || !newAppointment.time">
+          Guardar
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+}

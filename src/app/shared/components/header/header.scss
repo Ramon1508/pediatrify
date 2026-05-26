@@ -1,0 +1,58 @@
+.app-navbar {
+  height: 56px;
+  background: #ffffff;
+  border-bottom: 2px solid #0D6E8F;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  position: relative;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+}
+
+.menu-button {
+  margin-left: 8px;
+}
+
+.nav-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: absolute;
+  left: 200px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  @media (max-width: 768px) {
+    left: 20px;
+  }
+}
+
+.nav-logo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.nav-brand {
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+  color: #0D6E8F;
+  white-space: nowrap;
+}
+
+.nav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  font-size: 0.9rem;
+  color: #49454F;
+  margin-right: 0.5rem;
+}

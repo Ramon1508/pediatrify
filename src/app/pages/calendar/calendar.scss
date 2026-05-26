@@ -1,0 +1,153 @@
+.calendar-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+}
+
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+
+  .week-label {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+    color: #1D1B20;
+  }
+}
+
+.calendar-scroll {
+  flex: 1;
+  overflow: auto;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  min-width: 700px;
+  background: #4CAF50;
+  border: 1px solid #CAC4D0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.grid-cell {
+  border: 1px solid #CAC4D0;
+  min-height: 28px;
+  position: relative;
+}
+
+.corner-cell {
+  background: #f5f5f5;
+  min-height: 48px;
+}
+
+.day-header {
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  min-height: 48px;
+
+  .day-number {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #1D1B20;
+  }
+
+  .day-name {
+    font-size: 0.75rem;
+    color: #625B71;
+  }
+}
+
+.time-label {
+  background: #f5f5f5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  color: #625B71;
+  min-height: 28px;
+}
+
+.data-cell {
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+  padding: 1px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.add-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.appointment-block {
+  background: #0D6E8F;
+  color: white;
+  font-size: 0.65rem;
+  padding: 1px 4px;
+  border-radius: 4px;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+
+  &.attended {
+    background: #4CAF50;
+  }
+}
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-card {
+  width: 450px;
+  max-width: 90vw;
+
+  .full-width {
+    width: 100%;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 1rem;
+
+    mat-form-field {
+      flex: 1;
+    }
+  }
+
+  .dialog-error {
+    display: block;
+    margin-top: 0.5rem;
+  }
+}

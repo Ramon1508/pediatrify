@@ -1,0 +1,31 @@
+<app-header />
+<div class="otp-dashboard-container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Mi Perfil</mat-card-title>
+      <mat-card-subtitle>
+        Bienvenido, {{ patient?.name }} {{ patient?.lastName }}
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="patient-info">
+        <div class="info-row">
+          <mat-icon>email</mat-icon>
+          <span>{{ patient?.email }}</span>
+        </div>
+        <div class="info-row">
+          <mat-icon>phone</mat-icon>
+          <span>{{ patient?.phone }}</span>
+        </div>
+      </div>
+
+      <mat-divider />
+
+      <div class="limited-notice">
+        <mat-icon>visibility</mat-icon>
+        <span>Este es tu perfil de paciente. Para cualquier cambio, contacta a tu doctor.</span>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

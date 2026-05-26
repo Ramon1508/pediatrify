@@ -1,0 +1,17 @@
+<div class="upload-area" (click)="fileInput.click()" role="button" tabindex="0">
+  @if (uploading()) {
+    <div class="uploading-indicator">Subiendo...</div>
+  } @else if (preview(); as img) {
+    <div class="preview-wrapper">
+      <img [src]="img" class="upload-preview" />
+      <span class="file-name">{{ fileName() }}</span>
+    </div>
+    <button class="remove-btn" (click)="remove(); $event.stopPropagation()" type="button">
+      <mat-icon>close</mat-icon>
+    </button>
+  } @else {
+    <mat-icon>cloud_upload</mat-icon>
+    <span>{{ label() }}</span>
+  }
+  <input #fileInput type="file" [accept]="accept()" (change)="onFileSelected($event)" hidden />
+</div>
