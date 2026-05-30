@@ -10,7 +10,7 @@
 
   @if (mode() !== 'invalid') {
     <div class="setup-form">
-      <div class="form-row desktop-2col">
+      <div class="form-row desktop-2col form-gap-40">
         <div class="info-block">
           <span class="label-small">Doctor(a)</span>
           <span class="body-large info-value">{{ displayName }}</span>
@@ -20,6 +20,7 @@
           <span class="body-large info-value">{{ displayEmail }}</span>
         </div>
       </div>
+
 
       <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
@@ -33,15 +34,19 @@
 
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Teléfono</mat-label>
-          <input matInput type="tel" [(ngModel)]="form.phone" name="phone" required minlength="10" maxlength="10" placeholder="5512345678" #phoneModel="ngModel" />
+          <input matInput type="tel" [(ngModel)]="form.phone" name="phone" required minlength="10" maxlength="10" pattern="[0-9]*" placeholder="5512345678" #phoneModel="ngModel" />
           <mat-icon matPrefix>phone</mat-icon>
           @if (phoneModel.invalid && phoneModel.touched) {
-            <mat-error>10 dígitos requeridos</mat-error>
+            @if (phoneModel.errors?.['pattern']) {
+              <mat-error>Solo se permiten dígitos</mat-error>
+            } @else {
+              <mat-error>10 dígitos requeridos</mat-error>
+            }
           }
         </mat-form-field>
       </div>
 
-      <div class="form-row desktop-2col">
+      <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Especialidad</mat-label>
           <input matInput [(ngModel)]="form.especialidad" name="especialidad" />
@@ -69,7 +74,7 @@
         }
       </mat-form-field>
 
-      <div class="form-row desktop-2col">
+      <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Contraseña</mat-label>
           <input matInput type="password" [(ngModel)]="password" name="password" required minlength="6" #pwdModel="ngModel" placeholder="Mínimo 6 caracteres" />
@@ -102,13 +107,15 @@
         <mat-error class="form-error">{{ error }}</mat-error>
       }
 
-      <button mat-raised-button color="primary" class="full-width finish-btn" (click)="finish()" [disabled]="!canFinish || finishing">
+      <div class="button-row">
+        <button mat-raised-button color="primary" class="finish-btn w-100-mobile" (click)="finish()" [disabled]="!canFinish || finishing">
         @if (finishing) {
           <mat-spinner diameter="18" />
         } @else {
           Crear mi cuenta
         }
       </button>
+      </div>
     </div>
   }
 </div>

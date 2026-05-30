@@ -1,7 +1,7 @@
 @use '@angular/material' as mat;
 @use 'sass:color';
 
-$primary: #0D6E8F;
+$primary: #01687D;
 $on-primary: #FFFFFF;
 $danger: #B3261E;
 $on-danger: #FFFFFF;
@@ -18,7 +18,6 @@ html {
     density: 0,
   ));
 }
-
 :root {
   --mat-sys-primary: #{$primary};
   --mat-sys-on-primary: #{$on-primary};
@@ -32,9 +31,9 @@ html {
   --mat-sys-on-error: #{$on-danger};
   --mat-sys-outline: #{$primary};
 
-  --mdc-filled-button-container-shape: 16px;
-  --mdc-outlined-button-container-shape: 16px;
-  --mdc-text-button-container-shape: 16px;
+  --mdc-filled-button-container-shape: 12px;
+  --mdc-outlined-button-container-shape: 12px;
+  --mdc-text-button-container-shape: 12px;
   --mdc-filled-button-container-color: #{$primary};
   --mdc-filled-button-label-text-color: #{$on-primary};
   --mdc-outlined-button-outline-color: #{$primary};
@@ -75,41 +74,108 @@ p {
 .mat-mdc-raised-button,
 .mat-mdc-unelevated-button,
 .mat-mdc-outlined-button {
-  border-radius: 16px !important;
-  padding: 16px 24px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  height: auto !important;
-  line-height: normal !important;
+  --mat-sys-corner-full: 12px;
+  --mat-button-protected-container-shape: 12px;
+  --mat-filled-button-container-shape: 12px;
+  border-radius: 12px;
+  padding: 16px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: auto;
+  line-height: 24px;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 0.15px;
+  vertical-align: middle;
+  width: fit-content;
 }
 
 .mat-mdc-raised-button.mat-primary,
 .mat-mdc-unelevated-button.mat-primary {
   --mdc-filled-button-container-color: #{$primary};
   --mdc-filled-button-label-text-color: #{$on-primary};
+  background-color: #{$primary};
+  color: #{$on-primary};
 }
 
 .mat-mdc-outlined-button:not(:disabled) {
-  border-color: #{$primary} !important;
+  border-color: #{$primary};
 }
 
 .btn-secondary {
-  --mdc-outlined-button-label-text-color: #{$primary};
-  border: 1px solid #{$primary} !important;
+  --mdc-outlined-button-label-text-color: #0D6E8F;
+  background: transparent;
+  border: 1px solid #0D6E8F;
+  color: #0D6E8F;
+  border-radius: 12px;
 }
 
 .btn-tertiary {
-  background: transparent !important;
-  color: #{$primary} !important;
-  border: none !important;
-  padding: 0 !important;
-  box-shadow: none !important;
+  background: transparent;
+  color: #0D6E8F;
+  border: none;
+  box-shadow: none;
+  border-radius: 12px;
 }
 
 .btn-danger {
   --mdc-filled-button-container-color: #{$danger};
   --mdc-filled-button-label-text-color: #{$on-danger};
+  background-color: #{$danger};
+  color: #{$on-danger};
+  border-radius: 12px;
+}
+
+.chip {
+  padding: 6px 16px;
+  width: fit-content;
+  height: fit-content;
+  background: transparent;
+  border: 1px solid #0D6E8F;
+  border-radius: 8px;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  text-align: center;
+  vertical-align: middle;
+  color: #49454F;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip-active {
+  padding: 6px 16px;
+  width: fit-content;
+  height: fit-content;
+  background: #0D6E8F;
+  border: 1px solid #0D6E8F;
+  border-radius: 8px;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  text-align: center;
+  vertical-align: middle;
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip-active mat-icon {
+  color: #FFFFFF;
+}
+
+@media (max-width: 768px) {
+  .w-100-mobile {
+    width: 100% !important;
+  }
 }
 
 mat-footer-row, mat-header-row, mat-row, mat-cell, mat-footer-cell, mat-header-cell {

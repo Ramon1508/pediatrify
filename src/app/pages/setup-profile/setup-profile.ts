@@ -66,7 +66,7 @@ export class SetupProfile implements OnInit {
       !!this.form.sexo &&
       !!this.form.cedula &&
       !!this.form.consultorios &&
-      !!this.form.phone &&
+      /^\d{10}$/.test(this.form.phone) &&
       !!this.password &&
       this.password.length >= 6 &&
       this.password === this.confirmPassword
