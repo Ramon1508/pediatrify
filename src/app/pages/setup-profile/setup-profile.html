@@ -25,76 +25,86 @@
       <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Sexo</mat-label>
-          <mat-select [(ngModel)]="form.sexo" required name="sexo">
+          <mat-select [(ngModel)]="form.sexo" required name="sexo" #sexoModel="ngModel">
             <mat-option value="masculino">Masculino</mat-option>
             <mat-option value="femenino">Femenino</mat-option>
             <mat-option value="otro">Otro</mat-option>
           </mat-select>
+          @if (sexoModel.invalid && (sexoModel.touched || submitted)) {
+            <mat-error>Este campo es obligatorio</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Teléfono</mat-label>
-          <input matInput type="tel" [(ngModel)]="form.phone" name="phone" required minlength="10" maxlength="10" pattern="[0-9]*" placeholder="5512345678" #phoneModel="ngModel" />
           <mat-icon matPrefix>phone</mat-icon>
-          @if (phoneModel.invalid && phoneModel.touched) {
-            @if (phoneModel.errors?.['pattern']) {
-              <mat-error>Solo se permiten dígitos</mat-error>
-            } @else {
-              <mat-error>10 dígitos requeridos</mat-error>
-            }
+          <input matInput type="tel" [(ngModel)]="form.phone" name="phone" required minlength="10" maxlength="10" pattern="[0-9]*" placeholder="5512345678" #phoneModel="ngModel" />
+          @if (phoneModel.errors?.['required'] && (phoneModel.touched || submitted)) {
+            <mat-error>Este campo es obligatorio</mat-error>
+          }
+          @if (phoneModel.errors?.['pattern'] && !phoneModel.errors?.['required'] && (phoneModel.touched || submitted)) {
+            <mat-error>Solo se permiten dígitos</mat-error>
+          }
+          @if (phoneModel.errors?.['minlength'] && !phoneModel.errors?.['required'] && (phoneModel.touched || submitted)) {
+            <mat-error>10 dígitos requeridos</mat-error>
           }
         </mat-form-field>
       </div>
 
       <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
-          <mat-label>Especialidad</mat-label>
+          <mat-label>Especialidad (opcional)</mat-label>
           <input matInput [(ngModel)]="form.especialidad" name="especialidad" />
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Cédula profesional</mat-label>
           <input matInput [(ngModel)]="form.cedula" name="cedula" required #cedulaModel="ngModel" />
-          @if (cedulaModel.invalid && cedulaModel.touched) {
-            <mat-error>Requerido</mat-error>
+          @if (cedulaModel.invalid && (cedulaModel.touched || submitted)) {
+            <mat-error>Este campo es obligatorio</mat-error>
           }
         </mat-form-field>
       </div>
 
       <mat-form-field appearance="outline" class="desktop-half">
-        <mat-label>Cédula de especialidad</mat-label>
+        <mat-label>Cédula de especialidad (opcional)</mat-label>
         <input matInput [(ngModel)]="form.cedulaEspecialidad" name="cedulaEspecialidad" />
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Consultorio(s)</mat-label>
         <textarea matInput [(ngModel)]="form.consultorios" name="consultorios" required rows="3" placeholder="Ej: Consultorio 1, Consultorio 2" #consModel="ngModel"></textarea>
-        @if (consModel.invalid && consModel.touched) {
-          <mat-error>Requerido</mat-error>
+        @if (consModel.invalid && (consModel.touched || submitted)) {
+          <mat-error>Este campo es obligatorio</mat-error>
         }
       </mat-form-field>
 
       <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Contraseña</mat-label>
-          <input matInput type="password" [(ngModel)]="password" name="password" required minlength="6" #pwdModel="ngModel" placeholder="Mínimo 6 caracteres" />
           <mat-icon matPrefix>lock</mat-icon>
-          @if (pwdModel.invalid && pwdModel.touched) {
+          <input matInput type="password" [(ngModel)]="password" name="password" required minlength="6" #pwdModel="ngModel" placeholder="Mínimo 6 caracteres" />
+          @if (pwdModel.errors?.['required'] && (pwdModel.touched || submitted)) {
+            <mat-error>Este campo es obligatorio</mat-error>
+          }
+          @if (pwdModel.errors?.['minlength'] && !pwdModel.errors?.['required'] && (pwdModel.touched || submitted)) {
             <mat-error>Mínimo 6 caracteres</mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Confirmar contraseña</mat-label>
-          <input matInput type="password" [(ngModel)]="confirmPassword" name="confirmPassword" required #confirmModel="ngModel" />
           <mat-icon matPrefix>lock</mat-icon>
-          @if (confirmModel.touched && password !== confirmPassword) {
+          <input matInput type="password" [(ngModel)]="confirmPassword" name="confirmPassword" required #confirmModel="ngModel" />
+          @if (confirmModel.errors?.['required'] && (confirmModel.touched || submitted)) {
+            <mat-error>Este campo es obligatorio</mat-error>
+          }
+          @if (password !== confirmPassword && confirmPassword && (confirmModel.touched || submitted)) {
             <mat-error>Las contraseñas no coinciden</mat-error>
           }
         </mat-form-field>
       </div>
 
-      <h3>Logo personalizado</h3>
       <p class="hint">Para una experiencia personalizada, puedes subir tu logotipo y éste sustituirá el logo de Lilcare en tu cuenta y la de los asistentes y pacientes que agregues. Sólo se aceptan archivos .png y .jpg, éste no debe superar los 200 KB.</p>
 
       <app-file-upload
@@ -108,7 +118,7 @@
       }
 
       <div class="button-row">
-        <button mat-raised-button color="primary" class="finish-btn w-100-mobile" (click)="finish()" [disabled]="!canFinish || finishing">
+        <button mat-unelevated-button class="btn-primary finish-btn w-100-mobile" (click)="finish()" [disabled]="finishing">
         @if (finishing) {
           <mat-spinner diameter="18" />
         } @else {

@@ -1,7 +1,7 @@
 <div class="doctors-container">
   <div class="header-actions">
     <h2>Doctores</h2>
-    <button mat-raised-button color="primary" (click)="openNewDoctor()">
+    <button mat-unelevated-button class="btn-primary" (click)="openNewDoctor()">
       <mat-icon>add</mat-icon>
       Invitar doctor
     </button>
@@ -124,7 +124,7 @@
           {{ invitationLink ? 'Cerrar' : 'Cancelar' }}
         </button>
         @if (!invitationLink) {
-          <button mat-raised-button color="primary" (click)="saveDoctor()" [disabled]="doctorForm.invalid || saving">
+          <button mat-unelevated-button class="btn-primary" (click)="saveDoctor()" [disabled]="doctorForm.invalid || saving">
             @if (saving) {
               <mat-spinner diameter="18" />
             } @else {

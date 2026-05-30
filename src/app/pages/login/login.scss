@@ -1,6 +1,8 @@
 .login-background {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: url('/images/Fondo.svg') repeat;
+  background-size: auto;
+  background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -8,68 +10,80 @@
 
 .login-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  padding: 1rem;
+  width: 100%;
+  max-width: 428px;
+  padding: 0 16px;
 }
 
-.login-card {
-  max-width: 400px;
+.login-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+}
+
+.login-title {
+  margin-top: 8px;
+  margin-bottom: 24px;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.15px;
+  text-align: center;
+  color: #0D6E8F;
+}
+
+.login-form {
   width: 100%;
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
 
-  mat-card-header {
-    display: flex;
+.full-width {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.login-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 0.5rem;
+}
+
+.login-actions button {
+  text-wrap-mode: nowrap;
+}
+
+.login-submit-btn {
+  width: 202px;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .login-actions {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding-bottom: 1.5rem;
-
-    mat-card-title {
-      font-size: 2rem;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-    }
-  }
-
-  .full-width {
     width: 100%;
-    margin-bottom: 0.75rem;
   }
 
-  .forgot-password {
-    text-align: right;
-    margin-bottom: 0.5rem;
-    margin-top: -0.25rem;
-
-    a {
-      font-size: 0.85rem;
-    }
+  .login-submit-btn {
+    width: 100%;
   }
+}
 
-  .error-message {
-    display: block;
-    margin-bottom: 0.75rem;
-    text-align: center;
-  }
+.form-error {
+  display: block;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
 
-  .success-message {
-    display: block;
-    margin-bottom: 0.75rem;
-    text-align: center;
-    color: #2e7d32;
-    font-size: 0.9rem;
-  }
-
-  .card-actions {
-    justify-content: center;
-    padding-top: 0.5rem;
-  }
-
-  button[type="submit"] {
-    margin-top: 0.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+.success-message {
+  display: block;
+  margin-bottom: 0.75rem;
+  text-align: center;
+  color: #2e7d32;
+  font-size: 0.9rem;
 }

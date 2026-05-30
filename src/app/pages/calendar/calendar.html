@@ -94,7 +94,7 @@
       </mat-card-content>
       <mat-card-actions align="end">
         <button mat-button (click)="closeDialog()">Cancelar</button>
-        <button mat-raised-button color="primary" (click)="saveAppointment()" [disabled]="!newAppointment.patientId || !newAppointment.date || !newAppointment.time">
+        <button mat-unelevated-button class="btn-primary" (click)="saveAppointment()" [disabled]="!newAppointment.patientId || !newAppointment.date || !newAppointment.time">
           Guardar
         </button>
       </mat-card-actions>

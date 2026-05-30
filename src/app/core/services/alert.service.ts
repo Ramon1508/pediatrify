@@ -1,48 +1,51 @@
-import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
 import { AlertDialog } from '../../shared/components/alert-dialog/alert-dialog';
-import { AlertConfig, AlertItem, AlertType, ConfirmOptions } from '../models/alert';
+import { AlertConfig, AlertItem, AlertType, ConfirmOptions, MAX_ALERTS } from '../models/alert';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AlertService {
-  private queue: AlertItem[] = [];
-  private showing = false;
+  readonly alerts = signal<AlertItem[]>([]);
 
-  private currentSubject = new BehaviorSubject<AlertItem | null>(null);
-  current$ = this.currentSubject.asObservable();
+  private timers = new Map<string, ReturnType<typeof setTimeout>>();
 
   private show(config: AlertConfig, type: AlertType): void {
     const item: AlertItem = {
       id: crypto.randomUUID(),
       message: config.message,
       title: config.title,
-      duration: config.duration ?? 1500,
+      duration: config.duration ?? 5000,
       type,
     };
-    this.queue.push(item);
-    this.processQueue();
+
+    this.alerts.update((list) => {
+      const next = [...list, item];
+      return next.length > MAX_ALERTS ? next.slice(next.length - MAX_ALERTS) : next;
+    });
+
+    if (item.duration > 0) {
+      this.timers.set(
+        item.id,
+        setTimeout(() => this.dismiss(item.id), item.duration)
+      );
+    }
   }
 
-  private processQueue(): void {
-    if (this.showing || this.queue.length === 0) return;
-    this.showing = true;
-    const item = this.queue.shift()!;
-    this.currentSubject.next(item);
-  }
-
-  next(): void {
-    this.currentSubject.next(null);
-    this.showing = false;
-    this.processQueue();
+  dismiss(id: string): void {
+    const timer = this.timers.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      this.timers.delete(id);
+    }
+    this.alerts.update((list) => list.filter((a) => a.id !== id));
   }
 
   clear(): void {
-    this.queue = [];
-    this.currentSubject.next(null);
-    this.showing = false;
+    this.timers.forEach((t) => clearTimeout(t));
+    this.timers.clear();
+    this.alerts.set([]);
   }
 
   success(config: AlertConfig): void {
@@ -51,14 +54,6 @@ export class AlertService {
 
   error(config: AlertConfig): void {
     this.show(config, 'error');
-  }
-
-  info(config: AlertConfig): void {
-    this.show(config, 'info');
-  }
-
-  warning(config: AlertConfig): void {
-    this.show(config, 'warning');
   }
 
   private dialog = inject(MatDialog);

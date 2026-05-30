@@ -1,7 +1,7 @@
 <div class="patients-container">
   <div class="header-actions">
     <h2>Pacientes</h2>
-    <button mat-raised-button color="primary" (click)="openNewPatient()">
+    <button mat-unelevated-button class="btn-primary" (click)="openNewPatient()">
       <mat-icon>add</mat-icon>
       Nuevo paciente
     </button>
@@ -118,7 +118,7 @@
 
       <mat-card-actions align="end">
         <button mat-button (click)="closeDialog()">Cancelar</button>
-        <button mat-raised-button color="primary" (click)="savePatient()" [disabled]="patientForm.invalid || saving">
+        <button mat-unelevated-button class="btn-primary" (click)="savePatient()" [disabled]="patientForm.invalid || saving">
           @if (saving) {
             <mat-spinner diameter="18" />
           } @else {

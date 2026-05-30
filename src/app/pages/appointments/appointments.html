@@ -2,11 +2,11 @@
   <div class="header-actions">
     <h2>Citas</h2>
     <div class="actions-right">
-      <button mat-raised-button (click)="showWalkIn = !showWalkIn">
+      <button mat-unelevated-button (click)="showWalkIn = !showWalkIn">
         <mat-icon>walk_in</mat-icon>
         {{ showWalkIn ? 'Agendar cita' : 'Atender sin cita' }}
       </button>
-      <button mat-raised-button color="primary" (click)="openNewAppointment()">
+      <button mat-unelevated-button class="btn-primary" (click)="openNewAppointment()">
         <mat-icon>add</mat-icon>
         Nueva cita
       </button>
@@ -44,7 +44,7 @@
           <textarea matInput [(ngModel)]="walkInNotes" rows="2"></textarea>
         </mat-form-field>
 
-        <button mat-raised-button color="primary" (click)="registerWalkIn()" [disabled]="!selectedPatientId">
+        <button mat-unelevated-button class="btn-primary" (click)="registerWalkIn()" [disabled]="!selectedPatientId">
           Registrar atención
         </button>
       </mat-card-content>
@@ -74,7 +74,7 @@
                   </div>
                 </mat-card-content>
                 <mat-card-actions>
-                  <button mat-raised-button color="primary" (click)="markAttended(a)">
+                  <button mat-unelevated-button class="btn-primary" (click)="markAttended(a)">
                     <mat-icon>check</mat-icon>
                     Atendido
                   </button>
@@ -150,7 +150,7 @@
       </mat-card-content>
       <mat-card-actions align="end">
         <button mat-button (click)="closeDialog()">Cancelar</button>
-        <button mat-raised-button color="primary" (click)="saveAppointment()" [disabled]="!newAppointment.patientId || !newAppointment.date || !newAppointment.time">
+        <button mat-unelevated-button class="btn-primary" (click)="saveAppointment()" [disabled]="!newAppointment.patientId || !newAppointment.date || !newAppointment.time">
           Guardar
         </button>
       </mat-card-actions>

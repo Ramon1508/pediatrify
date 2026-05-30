@@ -22,21 +22,21 @@
 
       <div class="actions-grid">
         @if (doctor?.role === 'admin') {
-          <button mat-raised-button class="action-btn" routerLink="/doctors">
+          <button mat-unelevated-button class="action-btn" routerLink="/doctors">
             <mat-icon>medical_services</mat-icon>
             Gestionar doctores
           </button>
-          <button mat-raised-button class="action-btn" routerLink="/patients">
+          <button mat-unelevated-button class="action-btn" routerLink="/patients">
             <mat-icon>people</mat-icon>
             Gestionar pacientes
           </button>
         }
 
-        <button mat-raised-button class="action-btn" routerLink="/appointments">
+        <button mat-unelevated-button class="action-btn" routerLink="/appointments">
           <mat-icon>calendar_today</mat-icon>
           Agendar cita
         </button>
-        <button mat-raised-button class="action-btn" routerLink="/patients">
+        <button mat-unelevated-button class="action-btn" routerLink="/patients">
           <mat-icon>person_add</mat-icon>
           Registrar paciente
         </button>

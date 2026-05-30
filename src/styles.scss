@@ -1,7 +1,7 @@
 @use '@angular/material' as mat;
 @use 'sass:color';
 
-$primary: #01687D;
+$primary: #0D6E8F;
 $on-primary: #FFFFFF;
 $danger: #B3261E;
 $on-danger: #FFFFFF;
@@ -92,16 +92,43 @@ p {
   width: fit-content;
 }
 
-.mat-mdc-raised-button.mat-primary,
 .mat-mdc-unelevated-button.mat-primary {
-  --mdc-filled-button-container-color: #{$primary};
-  --mdc-filled-button-label-text-color: #{$on-primary};
-  background-color: #{$primary};
-  color: #{$on-primary};
+  --mdc-filled-button-container-color: #{$primary} !important;
+  --mdc-filled-button-label-text-color: #{$on-primary} !important;
+  background-color: #{$primary} !important;
+  color: #{$on-primary} !important;
+  border: none !important;
 }
 
 .mat-mdc-outlined-button:not(:disabled) {
   border-color: #{$primary};
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-tertiary,
+.btn-danger {
+  padding: 16px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: auto;
+  line-height: 24px;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 0.15px;
+  vertical-align: middle;
+  width: fit-content;
+  border-radius: 12px;
+}
+
+.btn-primary {
+  --mdc-filled-button-container-color: #{$primary};
+  --mdc-filled-button-label-text-color: #{$on-primary};
+  background-color: #{$primary};
+  color: #{$on-primary};
+  border: none;
 }
 
 .btn-secondary {
@@ -109,7 +136,6 @@ p {
   background: transparent;
   border: 1px solid #0D6E8F;
   color: #0D6E8F;
-  border-radius: 12px;
 }
 
 .btn-tertiary {
@@ -117,7 +143,6 @@ p {
   color: #0D6E8F;
   border: none;
   box-shadow: none;
-  border-radius: 12px;
 }
 
 .btn-danger {
@@ -125,7 +150,6 @@ p {
   --mdc-filled-button-label-text-color: #{$on-danger};
   background-color: #{$danger};
   color: #{$on-danger};
-  border-radius: 12px;
 }
 
 .chip {

@@ -9,8 +9,8 @@
     {{ data.cancelText || 'Cancelar' }}
   </button>
   <button
-    mat-raised-button
-    [color]="data.type === 'error' ? 'warn' : 'primary'"
+    mat-unelevated-button
+    class="btn-primary"
     [mat-dialog-close]="true"
   >
     {{ data.confirmText || 'Aceptar' }}

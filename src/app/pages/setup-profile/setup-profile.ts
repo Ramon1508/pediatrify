@@ -60,18 +60,7 @@ export class SetupProfile implements OnInit {
   protected finishing = false;
   protected error = '';
   protected logoPath: string | null = null;
-
-  get canFinish(): boolean {
-    return (
-      !!this.form.sexo &&
-      !!this.form.cedula &&
-      !!this.form.consultorios &&
-      /^\d{10}$/.test(this.form.phone) &&
-      !!this.password &&
-      this.password.length >= 6 &&
-      this.password === this.confirmPassword
-    );
-  }
+  protected submitted = false;
 
   async ngOnInit() {
     try {
@@ -111,7 +100,9 @@ export class SetupProfile implements OnInit {
   }
 
   async finish() {
-    if (!this.canFinish) return;
+    this.submitted = true;
+
+    if (!this.areRequiredFieldsValid()) return;
 
     this.finishing = true;
     this.error = '';
@@ -160,6 +151,18 @@ export class SetupProfile implements OnInit {
     } finally {
       this.finishing = false;
     }
+  }
+
+  private areRequiredFieldsValid(): boolean {
+    return (
+      !!this.form.sexo &&
+      !!this.form.cedula &&
+      !!this.form.consultorios &&
+      /^\d{10}$/.test(this.form.phone) &&
+      !!this.password &&
+      this.password.length >= 6 &&
+      this.password === this.confirmPassword
+    );
   }
 
   private getReadableError(e: any): string {

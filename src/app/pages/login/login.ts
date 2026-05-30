@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { MatCardModule } from '@angular/material/card';
+import { NgOptimizedImage } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,7 +19,7 @@ import { AlertService } from '../../core/services/alert.service';
   standalone: true,
   imports: [
     FormsModule,
-    MatCardModule,
+    NgOptimizedImage,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
@@ -39,6 +39,7 @@ export class Login implements OnInit {
   protected error = '';
   protected successMsg = '';
   protected loading = false;
+  protected submitted = false;
 
   ngOnInit() {
     this.route.queryParams.subscribe((params) => {
@@ -49,6 +50,8 @@ export class Login implements OnInit {
   }
 
   async onSubmit() {
+    this.submitted = true;
+
     if (!this.email || !this.password) return;
 
     this.loading = true;
@@ -62,7 +65,11 @@ export class Login implements OnInit {
         this.router.navigate(['/app/calendar']);
       }
     } catch (e: any) {
-      this.error = e.message || 'Error al iniciar sesión';
+      if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+        this.error = 'Correo o contraseña incorrectos';
+      } else {
+        this.error = e.message || 'Error al iniciar sesión';
+      }
     } finally {
       this.loading = false;
     }

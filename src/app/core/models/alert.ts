@@ -1,10 +1,9 @@
-export type AlertType = 'success' | 'error' | 'info' | 'warning';
+export type AlertType = 'success' | 'error';
 
 export interface AlertConfig {
   message: string;
   title?: string;
   duration?: number;
-  type?: AlertType;
 }
 
 export interface AlertItem {
@@ -22,3 +21,5 @@ export interface ConfirmOptions {
   cancelText?: string;
   type?: AlertType;
 }
+
+export const MAX_ALERTS = 5;

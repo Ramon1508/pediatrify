@@ -1,74 +1,65 @@
 <div class="login-background">
   <div class="login-container">
-    <mat-card class="login-card">
-      <mat-card-header>
-        <mat-card-title>Lilcare</mat-card-title>
-        <mat-card-subtitle>Iniciar sesión</mat-card-subtitle>
-      </mat-card-header>
+    <img ngSrc="images/Logo.jpg" alt="Logo" class="login-logo" width="80" height="80" priority />
 
-      <mat-card-content>
-        <form (ngSubmit)="onSubmit()" #loginForm="ngForm">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Correo electrónico</mat-label>
-            <input
-              matInput
-              type="email"
-              [(ngModel)]="email"
-              name="email"
-              required
-              email
-              #emailModel="ngModel"
-            />
-            <mat-icon matPrefix>email</mat-icon>
-            @if (emailModel.invalid && emailModel.touched) {
-              <mat-error>Correo electrónico válido requerido</mat-error>
-            }
-          </mat-form-field>
+    <span class="login-title">Lilcare</span>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Contraseña</mat-label>
-            <input
-              matInput
-              type="password"
-              [(ngModel)]="password"
-              name="password"
-              required
-              #passwordModel="ngModel"
-            />
-            <mat-icon matPrefix>lock</mat-icon>
-            @if (passwordModel.invalid && passwordModel.touched) {
-              <mat-error>Contraseña requerida</mat-error>
-            }
-          </mat-form-field>
+    <form (ngSubmit)="onSubmit()" class="login-form">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Correo electrónico</mat-label>
+        <mat-icon matPrefix>email</mat-icon>
+        <input
+          matInput
+          type="email"
+          [(ngModel)]="email"
+          name="email"
+          required
+          email
+          #emailModel="ngModel"
+        />
+        @if (emailModel.errors?.['required'] && (emailModel.touched || submitted)) {
+          <mat-error>Este campo es obligatorio</mat-error>
+        }
+        @if (emailModel.errors?.['email'] && !emailModel.errors?.['required'] && (emailModel.touched || submitted)) {
+          <mat-error>Correo electrónico válido requerido</mat-error>
+        }
+      </mat-form-field>
 
-          <div class="forgot-password">
-            <a mat-button class="btn-tertiary" (click)="forgotPassword()">
-              ¿Olvidaste tu contraseña?
-            </a>
-          </div>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Contraseña</mat-label>
+        <mat-icon matPrefix>lock</mat-icon>
+        <input
+          matInput
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          required
+          #passwordModel="ngModel"
+        />
+        @if (passwordModel.invalid && (passwordModel.touched || submitted)) {
+          <mat-error>Este campo es obligatorio</mat-error>
+        }
+      </mat-form-field>
 
-          @if (error) {
-            <mat-error class="error-message">{{ error }}</mat-error>
+      @if (error) {
+        <mat-error class="form-error">{{ error }}</mat-error>
+      }
+      @if (successMsg) {
+        <span class="success-message">{{ successMsg }}</span>
+      }
+
+      <div class="login-actions">
+        <button mat-unelevated-button class="btn-secondary" type="button" (click)="forgotPassword()">
+          Olvidé mi contraseña
+        </button>
+        <button mat-unelevated-button class="btn-primary login-submit-btn" type="submit" [disabled]="loading">
+          @if (loading) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Iniciar sesión
           }
-          @if (successMsg) {
-            <span class="success-message">{{ successMsg }}</span>
-          }
-
-          <button
-            mat-raised-button
-            color="primary"
-            type="submit"
-            class="full-width"
-            [disabled]="loginForm.invalid || loading"
-          >
-            @if (loading) {
-              <mat-spinner diameter="20" />
-            } @else {
-              Entrar
-            }
-          </button>
-        </form>
-      </mat-card-content>
-    </mat-card>
+        </button>
+      </div>
+    </form>
   </div>
 </div>

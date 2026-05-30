@@ -38,13 +38,13 @@ export class FileUpload {
     const file = input.files[0];
 
     if (!['image/png', 'image/jpeg'].includes(file.type)) {
-      this.alert.error({ message: 'Solo se aceptan archivos .png y .jpg' });
+      this.alert.error({ message: 'Solo se aceptan archivos .png y .jpg', duration: 5000 });
       input.value = '';
       return;
     }
 
     if (file.size > this.maxSize()) {
-      this.alert.error({ message: `El archivo no debe superar los ${(this.maxSize() / 1024).toFixed(0)} KB` });
+      this.alert.error({ message: `El archivo no debe superar los ${(this.maxSize() / 1024).toFixed(0)} KB`, duration: 5000 });
       input.value = '';
       return;
     }
@@ -74,7 +74,7 @@ export class FileUpload {
 
       this.uploaded.emit({ url, path: bucket });
     } catch (e: any) {
-      this.alert.error({ message: 'Error al subir el archivo' });
+      this.alert.error({ message: 'Error al subir el archivo', duration: 5000 });
       this.preview.set(null);
       this.fileName.set('');
     } finally {

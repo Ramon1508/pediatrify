@@ -49,10 +49,9 @@
         }
 
         <button
-          mat-raised-button
-          color="primary"
+          mat-unelevated-button
+          class="btn-primary full-width"
           type="submit"
-          class="full-width"
           [disabled]="otpForm.invalid || loading"
         >
           @if (loading) {
