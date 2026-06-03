@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -14,6 +14,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { InvitationRepository } from '../../core/repositories/invitation.repository';
 import { AlertService } from '../../core/services/alert.service';
 import { UserRole } from '../../core/models/user';
+import { Sexo } from '../../core/models/sexo';
 
 @Component({
   selector: 'app-setup-profile',
@@ -21,7 +22,7 @@ import { UserRole } from '../../core/models/user';
   styleUrl: './setup-profile.scss',
   standalone: true,
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     Header,
     FileUpload,
     MatFormFieldModule,
@@ -39,6 +40,7 @@ export class SetupProfile implements OnInit {
   private alert = inject(AlertService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private fb = inject(FormBuilder);
 
   protected mode = signal<'invitation' | 'existing' | 'invalid'>('invalid');
   protected pendingUid = '';
@@ -46,19 +48,32 @@ export class SetupProfile implements OnInit {
   protected displayName = '';
   protected displayEmail = '';
 
-  protected form = {
-    sexo: '',
-    especialidad: '',
-    cedula: '',
-    cedulaEspecialidad: '',
-    consultorios: '',
-    phone: '',
-  };
+  protected readonly sexoOptions: { value: Sexo; label: string }[] = [
+    { value: Sexo.Masculino, label: 'Masculino' },
+    { value: Sexo.Femenino, label: 'Femenino' },
+    { value: Sexo.Otro, label: 'Otro' },
+  ];
 
-  protected password = '';
-  protected confirmPassword = '';
+  protected form = this.fb.group({
+    sexo: [null as Sexo | null, Validators.required],
+    phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
+    especialidad: [''],
+    cedula: ['', Validators.required],
+    cedulaEspecialidad: [''],
+    consultorios: ['', Validators.required],
+    password: ['', [
+      Validators.required,
+      Validators.minLength(8),
+      Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_]).{8,}$/),
+    ]],
+    confirmPassword: ['', Validators.required],
+  });
+
+  get passwordControl() { return this.form.get('password')!; }
+  get confirmPasswordControl() { return this.form.get('confirmPassword')!; }
+  protected hidePassword = true;
+  protected hideConfirmPassword = true;
   protected finishing = false;
-  protected error = '';
   protected logoPath: string | null = null;
   protected submitted = false;
 
@@ -95,6 +110,19 @@ export class SetupProfile implements OnInit {
     }
   }
 
+  constructor() {
+    this.confirmPasswordControl.setValidators([
+      Validators.required,
+      (control: AbstractControl) => {
+        if (!control.value) return null;
+        return control.value === this.passwordControl.value ? null : { mismatch: true };
+      },
+    ]);
+    this.passwordControl.valueChanges.subscribe(() => {
+      this.confirmPasswordControl.updateValueAndValidity({ onlySelf: true, emitEvent: false });
+    });
+  }
+
   onLogoUploaded(result: UploadResult | null) {
     this.logoPath = result?.path || null;
   }
@@ -102,24 +130,27 @@ export class SetupProfile implements OnInit {
   async finish() {
     this.submitted = true;
 
-    if (!this.areRequiredFieldsValid()) return;
+    if (this.form.invalid) return;
+
+    const password = this.passwordControl.value ?? '';
 
     this.finishing = true;
-    this.error = '';
+
+    const fv = this.form.value;
 
     try {
       if (this.mode() === 'invitation') {
         await this.authService.registerFromInvitation(
           this.displayEmail,
-          this.password,
+          password,
           {
             name: this.displayName,
-            sexo: this.form.sexo,
-            phone: this.form.phone,
-            especialidad: this.form.especialidad,
-            cedula: this.form.cedula,
-            cedulaEspecialidad: this.form.cedulaEspecialidad,
-            consultorios: this.form.consultorios,
+            sexo: fv.sexo!,
+            phone: fv.phone!,
+            especialidad: fv.especialidad ?? '',
+            cedula: fv.cedula!,
+            cedulaEspecialidad: fv.cedulaEspecialidad ?? '',
+            consultorios: fv.consultorios!,
             logoPath: this.logoPath || undefined,
             role: this.pendingRole,
           },
@@ -129,40 +160,24 @@ export class SetupProfile implements OnInit {
         await this.authService.completeProfile(
           {
             name: this.displayName,
-            sexo: this.form.sexo,
-            phone: this.form.phone,
-            especialidad: this.form.especialidad,
-            cedula: this.form.cedula,
-            cedulaEspecialidad: this.form.cedulaEspecialidad,
-            consultorios: this.form.consultorios,
+            sexo: fv.sexo!,
+            phone: fv.phone!,
+            especialidad: fv.especialidad ?? '',
+            cedula: fv.cedula!,
+            cedulaEspecialidad: fv.cedulaEspecialidad ?? '',
+            consultorios: fv.consultorios!,
             logoPath: this.logoPath || undefined,
           },
-          this.password
+          password
         );
       }
 
-      this.alert.success({
-        message: 'Tu cuenta ha sido creada',
-        duration: 5000,
-      });
       this.router.navigate(['/login'], { queryParams: { registered: 'true' } });
     } catch (e: any) {
-      this.error = this.getReadableError(e);
+      this.alert.error({ message: this.getReadableError(e), duration: 5000 });
     } finally {
       this.finishing = false;
     }
-  }
-
-  private areRequiredFieldsValid(): boolean {
-    return (
-      !!this.form.sexo &&
-      !!this.form.cedula &&
-      !!this.form.consultorios &&
-      /^\d{10}$/.test(this.form.phone) &&
-      !!this.password &&
-      this.password.length >= 6 &&
-      this.password === this.confirmPassword
-    );
   }
 
   private getReadableError(e: any): string {

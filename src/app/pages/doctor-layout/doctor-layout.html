@@ -1,3 +1,5 @@
+<app-header [showMenuToggle]="true" (menuToggle)="toggleSidenav()" />
+
 <mat-sidenav-container class="sidenav-container">
   <mat-sidenav
     [opened]="sidenavOpened()"
@@ -9,7 +11,6 @@
   </mat-sidenav>
 
   <mat-sidenav-content class="sidenav-content">
-    <app-header [showMenuToggle]="true" (menuToggle)="toggleSidenav()" />
     <main class="main-content">
       <router-outlet />
     </main>

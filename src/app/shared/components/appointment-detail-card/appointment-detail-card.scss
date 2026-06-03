@@ -1,0 +1,45 @@
+.detail-card {
+  border: 2px solid #0D6E8F;
+  padding: 16px;
+}
+
+.detail-title {
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  letter-spacing: 0;
+  color: #1B1B1B;
+  margin: 0 0 16px;
+}
+
+.detail-label {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  letter-spacing: 0;
+  color: #1B1B1B;
+  margin: 0 0 4px;
+}
+
+.detail-value {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 0.9rem;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: #474747;
+  margin: 0 0 16px;
+  height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 16px;
+}

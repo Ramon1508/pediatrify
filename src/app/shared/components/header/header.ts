@@ -31,6 +31,10 @@ export class Header {
   @Input() showMenuToggle = false;
   @Output() menuToggle = new EventEmitter<void>();
 
+  protected goHome() {
+    this.router.navigate(['/login']);
+  }
+
   get displayName(): string {
     if (this.authService.currentDoctor) return this.authService.currentDoctor.name;
     if (this.authService.currentPatient) {

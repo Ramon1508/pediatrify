@@ -9,6 +9,7 @@ import {
   linkWithPhoneNumber,
   ConfirmationResult,
   updatePassword,
+  deleteUser,
 } from 'firebase/auth';
 import { Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
@@ -16,10 +17,11 @@ import { FirebaseService } from '../firebase/firebase.service';
 import { UserRepository } from '../repositories/user.repository';
 import { PatientRepository } from '../repositories/patient.repository';
 import { AppUser, Patient, SessionUser, UserRole } from '../models/user';
+import { Sexo } from '../models/sexo';
 
 export interface ProfileData {
   name: string;
-  sexo: string;
+  sexo: Sexo;
   phone: string;
   especialidad: string;
   cedula: string;
@@ -42,18 +44,88 @@ export class AuthService {
   session$ = this.sessionSubject.asObservable();
 
   private confirmationResult: ConfirmationResult | null = null;
+  private readonly SESSION_KEY = 'pediatrify_session';
+  private readonly INACTIVITY_MS = 3_600_000;
+  private inactivityTimer: ReturnType<typeof setTimeout> | null = null;
+  private activityHandler: (() => void) | null = null;
 
   constructor() {
+    const cached = this.loadSessionFromCache();
+    if (cached) {
+      this.sessionSubject.next(cached);
+    }
+
     const auth = this.firebase.auth;
     onAuthStateChanged(auth, (firebaseUser) => {
       this.ngZone.run(() => {
         if (firebaseUser) {
           this.loadDoctorSession(firebaseUser.uid);
         } else if (!this.isPatientSession) {
-          this.sessionSubject.next(null);
+          this.setSession(null);
         }
       });
     });
+  }
+
+  private setSession(session: SessionUser): void {
+    this.sessionSubject.next(session);
+    this.saveSessionToCache(session);
+    if (session?.type === 'doctor') {
+      this.startInactivityTimer();
+    } else {
+      this.stopInactivityTimer();
+    }
+  }
+
+  private startInactivityTimer(): void {
+    this.stopInactivityTimer();
+    this.inactivityTimer = setTimeout(() => this.logout(), this.INACTIVITY_MS);
+    if (!this.activityHandler) {
+      this.activityHandler = () => {
+        if (this.inactivityTimer) {
+          clearTimeout(this.inactivityTimer);
+          this.inactivityTimer = setTimeout(() => this.logout(), this.INACTIVITY_MS);
+        }
+      };
+      document.addEventListener('click', this.activityHandler);
+      document.addEventListener('keydown', this.activityHandler);
+      document.addEventListener('mousemove', this.activityHandler);
+    }
+  }
+
+  private stopInactivityTimer(): void {
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+      this.inactivityTimer = null;
+    }
+    if (this.activityHandler) {
+      document.removeEventListener('click', this.activityHandler);
+      document.removeEventListener('keydown', this.activityHandler);
+      document.removeEventListener('mousemove', this.activityHandler);
+      this.activityHandler = null;
+    }
+  }
+
+  private saveSessionToCache(session: SessionUser): void {
+    if (!session) {
+      sessionStorage.removeItem(this.SESSION_KEY);
+      return;
+    }
+    try {
+      sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+    } catch {
+      sessionStorage.removeItem(this.SESSION_KEY);
+    }
+  }
+
+  private loadSessionFromCache(): SessionUser | null {
+    try {
+      const raw = sessionStorage.getItem(this.SESSION_KEY);
+      return raw ? (JSON.parse(raw) as SessionUser) : null;
+    } catch {
+      sessionStorage.removeItem(this.SESSION_KEY);
+      return null;
+    }
   }
 
   private get auth(): Auth {
@@ -62,27 +134,33 @@ export class AuthService {
 
   private async loadDoctorSession(uid: string): Promise<void> {
     try {
-      const user = await this.userRepo.getUser(uid);
+      let user = await this.userRepo.getUserByFirebaseUid(uid);
+      if (!user) {
+        user = await this.userRepo.getUser(uid);
+      }
       if (user) {
-        this.sessionSubject.next({ type: 'doctor', user });
+        this.setSession({ type: 'doctor', user });
         if (!user.profileComplete) {
           this.router.navigate(['/setup-profile']);
         }
       }
     } catch (error) {
       console.error('Error loading user data', error);
-      this.sessionSubject.next(null);
+      this.setSession(null);
     }
   }
 
   async loginDoctor(email: string, password: string): Promise<AppUser> {
     const credential = await signInWithEmailAndPassword(this.auth, email, password);
-    const user = await this.userRepo.getUser(credential.user.uid);
+    let user = await this.userRepo.getUserByFirebaseUid(credential.user.uid);
+    if (!user) {
+      user = await this.userRepo.getUser(credential.user.uid);
+    }
     if (!user) {
       await signOut(this.auth);
       throw new Error('Usuario no encontrado');
     }
-    this.sessionSubject.next({ type: 'doctor', user });
+    this.setSession({ type: 'doctor', user });
 
     if (!user.profileComplete) {
       this.router.navigate(['/setup-profile']);
@@ -97,7 +175,7 @@ export class AuthService {
     if (!patient) {
       throw new Error('Credenciales inválidas. Verifica tu correo y contraseña OTP.');
     }
-    this.sessionSubject.next({ type: 'patient', patient });
+    this.setSession({ type: 'patient', patient });
     return patient;
   }
 
@@ -105,7 +183,7 @@ export class AuthService {
     if (this.currentDoctor) {
       await signOut(this.auth);
     }
-    this.sessionSubject.next(null);
+    this.setSession(null);
   }
 
   async completeProfile(data: ProfileData, newPassword: string): Promise<void> {
@@ -121,7 +199,7 @@ export class AuthService {
       cedula: data.cedula,
       cedulaEspecialidad: data.cedulaEspecialidad,
       consultorios: data.consultorios,
-      logoPath: data.logoPath,
+      ...(data.logoPath ? { logoPath: data.logoPath } : {}),
       profileComplete: true,
     });
 
@@ -133,7 +211,7 @@ export class AuthService {
     }
 
     await signOut(this.auth);
-    this.sessionSubject.next(null);
+    this.setSession(null);
   }
 
   async sendPhoneCode(phoneNumber: string): Promise<void> {
@@ -215,13 +293,21 @@ export class AuthService {
     data: ProfileData & { role: UserRole },
     pendingUid: string
   ): Promise<void> {
-    const { deleteDoc, doc } = await import('firebase/firestore');
+    let credential;
+    try {
+      credential = await createUserWithEmailAndPassword(this.auth, email, password);
+    } catch (e: any) {
+      if (e.code === 'auth/email-already-in-use') {
+        const cred = await signInWithEmailAndPassword(this.auth, email, password);
+        await deleteUser(cred.user);
+        credential = await createUserWithEmailAndPassword(this.auth, email, password);
+      } else {
+        throw e;
+      }
+    }
 
-    const credential = await createUserWithEmailAndPassword(this.auth, email, password);
-    const uid = credential.user.uid;
-
-    await this.userRepo.createUser(uid, {
-      uid,
+    await this.userRepo.updateUser(pendingUid, {
+      firebaseUid: credential.user.uid,
       email,
       name: data.name,
       role: data.role,
@@ -232,13 +318,12 @@ export class AuthService {
       cedula: data.cedula,
       cedulaEspecialidad: data.cedulaEspecialidad,
       consultorios: data.consultorios,
-      logoPath: data.logoPath,
+      ...(data.logoPath ? { logoPath: data.logoPath } : {}),
       profileComplete: true,
+      pending: false,
     });
 
-    await deleteDoc(doc(this.firebase.firestore, 'users', pendingUid));
-
     await signOut(this.auth);
-    this.sessionSubject.next(null);
+    this.setSession(null);
   }
 }

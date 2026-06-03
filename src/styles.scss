@@ -44,6 +44,8 @@ html {
 body {
   color-scheme: light;
   background-color: var(--mat-sys-surface);
+  background-image: url('/images/Fondo.svg');
+  background-repeat: repeat;
   color: var(--mat-sys-on-surface);
   font-family: Roboto, sans-serif;
   font-weight: 400;
@@ -150,6 +152,18 @@ p {
   --mdc-filled-button-label-text-color: #{$on-danger};
   background-color: #{$danger};
   color: #{$on-danger};
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-tertiary:disabled,
+.btn-danger:disabled {
+  background-color: #9E9E9E !important;
+  color: #FFFFFF !important;
+  border: none;
+  --mdc-filled-button-container-color: #9E9E9E;
+  --mdc-filled-button-label-text-color: #FFFFFF;
+  --mdc-outlined-button-label-text-color: #FFFFFF;
 }
 
 .chip {

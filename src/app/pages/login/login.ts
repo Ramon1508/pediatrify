@@ -1,5 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { NgOptimizedImage } from '@angular/common';
@@ -18,7 +18,7 @@ import { AlertService } from '../../core/services/alert.service';
   styleUrl: './login.scss',
   standalone: true,
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     NgOptimizedImage,
     MatFormFieldModule,
     MatInputModule,
@@ -33,11 +33,13 @@ export class Login implements OnInit {
   private alert = inject(AlertService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private fb = inject(FormBuilder);
 
-  protected email = '';
-  protected password = '';
-  protected error = '';
-  protected successMsg = '';
+  protected loginForm = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required],
+  });
+  protected hidePassword = true;
   protected loading = false;
   protected submitted = false;
 
@@ -52,23 +54,23 @@ export class Login implements OnInit {
   async onSubmit() {
     this.submitted = true;
 
-    if (!this.email || !this.password) return;
+    if (this.loginForm.invalid) return;
+
+    const { email, password } = this.loginForm.value;
 
     this.loading = true;
-    this.error = '';
-    this.successMsg = '';
 
     try {
-      await this.authService.loginDoctor(this.email, this.password);
+      await this.authService.loginDoctor(email!, password!);
       const doctor = this.authService.currentDoctor;
       if (doctor?.profileComplete) {
         this.router.navigate(['/app/calendar']);
       }
     } catch (e: any) {
       if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
-        this.error = 'Correo o contraseña incorrectos';
+        this.alert.error({ message: 'Correo o contraseña incorrectos', duration: 5000 });
       } else {
-        this.error = e.message || 'Error al iniciar sesión';
+        this.alert.error({ message: e.message || 'Error al iniciar sesión', duration: 5000 });
       }
     } finally {
       this.loading = false;
@@ -76,17 +78,17 @@ export class Login implements OnInit {
   }
 
   async forgotPassword() {
-    if (!this.email) {
-      this.error = 'Ingresa tu correo electrónico primero';
+    const email = this.loginForm.get('email')?.value;
+    if (!email) {
+      this.alert.error({ message: 'Ingresa tu correo electrónico primero', duration: 5000 });
       return;
     }
 
     try {
-      await sendPasswordResetEmail(this.firebase.auth, this.email);
-      this.successMsg = 'Correo de recuperación enviado. Revisa tu bandeja de entrada.';
-      this.error = '';
+      await sendPasswordResetEmail(this.firebase.auth, email);
+      this.alert.success({ message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.', duration: 5000 });
     } catch (e: any) {
-      this.error = e.message || 'Error al enviar correo de recuperación';
+      this.alert.error({ message: e.message || 'Error al enviar correo de recuperación', duration: 5000 });
     }
   }
 }

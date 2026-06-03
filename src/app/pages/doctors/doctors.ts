@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Timestamp } from 'firebase/firestore';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
@@ -25,7 +25,7 @@ import { AlertService } from '../../core/services/alert.service';
   styleUrl: './doctors.scss',
   standalone: true,
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
     MatButtonModule,
@@ -40,6 +40,7 @@ import { AlertService } from '../../core/services/alert.service';
   ],
 })
 export class Doctors implements OnInit {
+  private fb = inject(FormBuilder);
   private userRepo = inject(UserRepository);
   private firebase = inject(FirebaseService);
   private alert = inject(AlertService);
@@ -53,7 +54,12 @@ export class Doctors implements OnInit {
   protected saving = false;
   protected dialogError = '';
   protected invitationLink = '';
-  protected form = { name: '', email: '', role: 'employee' as const };
+
+  protected form = this.fb.group({
+    name: ['', Validators.required],
+    email: ['', [Validators.required, Validators.email]],
+    role: ['employee' as const, Validators.required],
+  });
 
   async ngOnInit() {
     this.userRepo.watchAllUsers().subscribe((users) => {
@@ -63,7 +69,7 @@ export class Doctors implements OnInit {
   }
 
   openNewDoctor() {
-    this.form = { name: '', email: '', role: 'employee' };
+    this.form.reset({ name: '', email: '', role: 'employee' });
     this.dialogError = '';
     this.invitationLink = '';
     this.showDialog = true;
@@ -75,26 +81,27 @@ export class Doctors implements OnInit {
   }
 
   async saveDoctor() {
-    if (!this.form.name || !this.form.email) return;
+    if (this.form.invalid) return;
 
     this.saving = true;
     this.dialogError = '';
 
     try {
       const uid = crypto.randomUUID();
+      const { name, email, role } = this.form.value;
 
       await setDoc(doc(this.firebase.firestore, 'users', uid), {
         uid,
-        email: this.form.email,
-        name: this.form.name,
-        role: this.form.role,
+        email,
+        name,
+        role,
         pending: true,
         createdAt: Timestamp.now(),
       });
 
       const origin = window.location.origin;
-      this.invitationLink = `${origin}/setup-profile?email=${encodeURIComponent(this.form.email)}`;
-      this.alert.success({ message: `Invitación creada para ${this.form.name}`, duration: 3000 });
+      this.invitationLink = `${origin}/setup-profile?email=${encodeURIComponent(email!)}`;
+      this.alert.success({ message: `Invitación creada para ${name}`, duration: 3000 });
     } catch (e: any) {
       this.dialogError = e.message || 'Error al crear invitación';
     } finally {
@@ -116,4 +123,8 @@ export class Doctors implements OnInit {
       this.alert.error({ message: 'Error al eliminar doctor' });
     }
   }
+
+  protected get nameControl() { return this.form.get('name')!; }
+  protected get emailControl() { return this.form.get('email')!; }
+  protected get roleControl() { return this.form.get('role')!; }
 }

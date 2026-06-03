@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,7 +19,7 @@ import { AlertService } from '../../core/services/alert.service';
   styleUrl: './appointments.scss',
   standalone: true,
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -27,10 +27,10 @@ import { AlertService } from '../../core/services/alert.service';
     MatInputModule,
     MatSelectModule,
     MatTabsModule,
-
   ],
 })
 export class Appointments implements OnInit {
+  private fb = inject(FormBuilder);
   private appointmentRepo = inject(AppointmentRepository);
   private patientRepo = inject(PatientRepository);
   private authService = inject(AuthService);
@@ -43,12 +43,20 @@ export class Appointments implements OnInit {
   protected showDialog = false;
   protected showWalkIn = false;
   protected dialogError = '';
-  protected newAppointment = { patientId: '', date: '', time: '', notes: '' };
 
-  protected selectedPatientId = '';
-  protected walkInDate = '';
-  protected walkInTime = '';
-  protected walkInNotes = '';
+  protected appointmentForm = this.fb.group({
+    patientId: ['', Validators.required],
+    date: ['', Validators.required],
+    time: ['', Validators.required],
+    notes: [''],
+  });
+
+  protected walkInForm = this.fb.group({
+    patientId: ['', Validators.required],
+    date: [''],
+    time: [''],
+    notes: [''],
+  });
 
   pendingAppointments = computed(() =>
     this.allAppointments().filter((a) => a.status === 'scheduled')
@@ -70,7 +78,7 @@ export class Appointments implements OnInit {
   }
 
   openNewAppointment() {
-    this.newAppointment = { patientId: '', date: '', time: '', notes: '' };
+    this.appointmentForm.reset({ patientId: '', date: '', time: '', notes: '' });
     this.dialogError = '';
     this.showDialog = true;
   }
@@ -80,10 +88,11 @@ export class Appointments implements OnInit {
   }
 
   async saveAppointment() {
-    if (!this.newAppointment.patientId || !this.newAppointment.date || !this.newAppointment.time) return;
+    if (this.appointmentForm.invalid) return;
 
     const doctor = this.authService.currentDoctor;
-    const patient = this.allPatients.find((p) => p.id === this.newAppointment.patientId);
+    const { patientId, date, time, notes } = this.appointmentForm.value;
+    const patient = this.allPatients.find((p) => p.id === patientId);
     if (!doctor || !patient) return;
 
     const id = crypto.randomUUID();
@@ -93,11 +102,11 @@ export class Appointments implements OnInit {
       patientName: `${patient.name} ${patient.lastName}`,
       doctorId: doctor.uid,
       doctorName: doctor.name,
-      date: this.newAppointment.date,
-      time: this.newAppointment.time,
+      date: date!,
+      time: time!,
       status: 'scheduled',
       type: 'scheduled',
-      notes: this.newAppointment.notes,
+      notes: notes || '',
     });
 
     this.alert.success({ message: 'Cita agendada', duration: 3000 });
@@ -105,15 +114,16 @@ export class Appointments implements OnInit {
   }
 
   async registerWalkIn() {
-    if (!this.selectedPatientId) return;
+    if (this.walkInForm.invalid) return;
 
     const doctor = this.authService.currentDoctor;
-    const patient = this.allPatients.find((p) => p.id === this.selectedPatientId);
+    const { patientId, date, time, notes } = this.walkInForm.value;
+    const patient = this.allPatients.find((p) => p.id === patientId);
     if (!doctor || !patient) return;
 
     const id = crypto.randomUUID();
-    const date = this.walkInDate || new Date().toISOString().split('T')[0];
-    const time = this.walkInTime || new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    const finalDate = date || new Date().toISOString().split('T')[0];
+    const finalTime = time || new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
     await this.appointmentRepo.createAppointment(id, {
       id,
@@ -121,19 +131,16 @@ export class Appointments implements OnInit {
       patientName: `${patient.name} ${patient.lastName}`,
       doctorId: doctor.uid,
       doctorName: doctor.name,
-      date,
-      time,
+      date: finalDate,
+      time: finalTime,
       status: 'attended',
       type: 'walk-in',
-      notes: this.walkInNotes || 'Atención sin cita',
+      notes: notes || 'Atención sin cita',
     });
 
     this.alert.success({ message: 'Atención registrada', duration: 3000 });
     this.showWalkIn = false;
-    this.selectedPatientId = '';
-    this.walkInDate = '';
-    this.walkInTime = '';
-    this.walkInNotes = '';
+    this.walkInForm.reset({ patientId: '', date: '', time: '', notes: '' });
   }
 
   async markAttended(appointment: Appointment) {
@@ -145,4 +152,7 @@ export class Appointments implements OnInit {
     await this.appointmentRepo.updateAppointment(appointment.id, { status: 'cancelled' });
     this.alert.success({ message: 'Cita cancelada', duration: 3000 });
   }
+
+  protected get walkInPatientControl() { return this.walkInForm.get('patientId')!; }
+  protected get newPatientControl() { return this.appointmentForm.get('patientId')!; }
 }

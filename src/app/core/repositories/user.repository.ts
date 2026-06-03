@@ -3,10 +3,13 @@ import {
   Firestore,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   deleteDoc,
   collection,
+  query,
+  where,
   onSnapshot,
   Unsubscribe,
 } from 'firebase/firestore';
@@ -35,6 +38,12 @@ export class UserRepository {
   async getUser(uid: string): Promise<AppUser | null> {
     const snapshot = await getDoc(this.docRef(uid));
     return snapshot.exists() ? (snapshot.data() as AppUser) : null;
+  }
+
+  async getUserByFirebaseUid(firebaseUid: string): Promise<AppUser | null> {
+    const q = query(this.userRef, where('firebaseUid', '==', firebaseUid));
+    const snap = await getDocs(q);
+    return snap.empty ? null : (snap.docs[0].data() as AppUser);
   }
 
   async createUser(uid: string, data: Partial<AppUser>): Promise<void> {

@@ -4,24 +4,20 @@
 
     <span class="login-title">Lilcare</span>
 
-    <form (ngSubmit)="onSubmit()" class="login-form">
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Correo electrónico</mat-label>
         <mat-icon matPrefix>email</mat-icon>
         <input
           matInput
           type="email"
-          [(ngModel)]="email"
-          name="email"
-          required
-          email
-          #emailModel="ngModel"
+          formControlName="email"
         />
-        @if (emailModel.errors?.['required'] && (emailModel.touched || submitted)) {
-          <mat-error>Este campo es obligatorio</mat-error>
+        @if (loginForm.get('email')?.errors?.['required'] && (loginForm.get('email')?.touched || submitted)) {
+          <mat-error>Ingresa tu correo electrónico</mat-error>
         }
-        @if (emailModel.errors?.['email'] && !emailModel.errors?.['required'] && (emailModel.touched || submitted)) {
-          <mat-error>Correo electrónico válido requerido</mat-error>
+        @if (loginForm.get('email')?.errors?.['email'] && !loginForm.get('email')?.errors?.['required'] && (loginForm.get('email')?.touched || submitted)) {
+          <mat-error>Ingresa un correo electrónico válido</mat-error>
         }
       </mat-form-field>
 
@@ -30,23 +26,16 @@
         <mat-icon matPrefix>lock</mat-icon>
         <input
           matInput
-          type="password"
-          [(ngModel)]="password"
-          name="password"
-          required
-          #passwordModel="ngModel"
+          [type]="hidePassword ? 'password' : 'text'"
+          formControlName="password"
         />
-        @if (passwordModel.invalid && (passwordModel.touched || submitted)) {
-          <mat-error>Este campo es obligatorio</mat-error>
+        <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword = !hidePassword" [attr.aria-label]="hidePassword ? 'Mostrar contraseña' : 'Ocultar contraseña'">
+          <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        @if (loginForm.get('password')?.invalid && (loginForm.get('password')?.touched || submitted)) {
+          <mat-error>Ingresa tu contraseña</mat-error>
         }
       </mat-form-field>
-
-      @if (error) {
-        <mat-error class="form-error">{{ error }}</mat-error>
-      }
-      @if (successMsg) {
-        <span class="success-message">{{ successMsg }}</span>
-      }
 
       <div class="login-actions">
         <button mat-unelevated-button class="btn-secondary" type="button" (click)="forgotPassword()">

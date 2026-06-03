@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import { Sexo } from './sexo';
 
 export type UserRole = 'admin' | 'employee';
 
@@ -7,7 +8,9 @@ export interface AppUser {
   email: string;
   name: string;
   role: UserRole;
-  sexo?: string;
+  firebaseUid?: string;
+  pending?: boolean;
+  sexo?: Sexo;
   phone?: string;
   phoneVerified?: boolean;
   especialidad?: string;

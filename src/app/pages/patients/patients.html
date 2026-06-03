@@ -45,7 +45,7 @@
             <button mat-icon-button (click)="regenerateOtp(p)" matTooltip="Regenerar OTP">
               <mat-icon>refresh</mat-icon>
             </button>
-            <button mat-icon-button (click)="deletePatient(p)" color="warn" matTooltip="Eliminar">
+            <button mat-icon-button (click)="deletePatient(p)" matTooltip="Eliminar">
               <mat-icon>delete</mat-icon>
             </button>
           </td>
@@ -66,7 +66,6 @@
   </mat-card>
 </div>
 
-<!-- Dialog for new/edit patient -->
 @if (showDialog) {
   <div class="dialog-overlay">
     <mat-card class="dialog-card">
@@ -75,38 +74,38 @@
       </mat-card-header>
 
       <mat-card-content>
-        <form #patientForm="ngForm">
+        <form [formGroup]="form">
           <div class="form-row">
             <mat-form-field appearance="outline">
               <mat-label>Nombre</mat-label>
-              <input matInput [(ngModel)]="formData.name" name="name" required #nameModel="ngModel" />
-              @if (nameModel.invalid && nameModel.touched) {
-                <mat-error>Requerido</mat-error>
+              <input matInput formControlName="name" />
+              @if (nameControl.invalid && (nameControl.touched || nameControl.dirty)) {
+                <mat-error>Ingresa el nombre</mat-error>
               }
             </mat-form-field>
 
             <mat-form-field appearance="outline">
               <mat-label>Apellidos</mat-label>
-              <input matInput [(ngModel)]="formData.lastName" name="lastName" required #lastNameModel="ngModel" />
-              @if (lastNameModel.invalid && lastNameModel.touched) {
-                <mat-error>Requerido</mat-error>
+              <input matInput formControlName="lastName" />
+              @if (lastNameControl.invalid && (lastNameControl.touched || lastNameControl.dirty)) {
+                <mat-error>Ingresa los apellidos</mat-error>
               }
             </mat-form-field>
           </div>
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Correo electrónico</mat-label>
-            <input matInput type="email" [(ngModel)]="formData.email" name="email" required email #emailModel="ngModel" />
-            @if (emailModel.invalid && emailModel.touched) {
-              <mat-error>Correo válido requerido</mat-error>
+            <input matInput type="email" formControlName="email" />
+            @if (emailControl.invalid && (emailControl.touched || emailControl.dirty)) {
+              <mat-error>Ingresa un correo electrónico válido</mat-error>
             }
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Teléfono</mat-label>
-            <input matInput type="tel" [(ngModel)]="formData.phone" name="phone" required #phoneModel="ngModel" />
-            @if (phoneModel.invalid && phoneModel.touched) {
-              <mat-error>Requerido</mat-error>
+            <input matInput type="tel" formControlName="phone" />
+            @if (phoneControl.invalid && (phoneControl.touched || phoneControl.dirty)) {
+              <mat-error>Ingresa el teléfono</mat-error>
             }
           </mat-form-field>
 
@@ -118,7 +117,7 @@
 
       <mat-card-actions align="end">
         <button mat-button (click)="closeDialog()">Cancelar</button>
-        <button mat-unelevated-button class="btn-primary" (click)="savePatient()" [disabled]="patientForm.invalid || saving">
+        <button mat-unelevated-button class="btn-primary" (click)="savePatient()" [disabled]="form.invalid || saving">
           @if (saving) {
             <mat-spinner diameter="18" />
           } @else {

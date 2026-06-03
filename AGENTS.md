@@ -15,13 +15,16 @@
 - Login layout: logo + "Lilcare" title + email + password + row of buttons (`btn-secondary` "Olvidé mi contraseña" left, primary "Iniciar sesión" right); desktop `max-width 428px`, mobile `100%`; mobile buttons stack vertically `width 100%` with `gap 24px`; "Iniciar sesión" width `202px` desktop
 - Setup-profile container: `max-width 880px` desktop, `100%` mobile
 - Optional fields get "(opcional)" in label
-- Submit validation: empty required fields show `mat-error` "Este campo es obligatorio"; password min 6 chars on blur; confirm password match on blur
+- Error messages in `mat-error` must be clear, descriptive, and phrased as instructions starting with a verb (e.g. "Ingresa una contraseña de al menos 8 caracteres."). Avoid generic messages like "Este campo es obligatorio" or "Requerido". Each message should tell the user what action to take.
 - File upload errors use alert service with `duration: 5000`
 - After account creation: redirect to login with success alert "Tu cuenta ha sido creada" 5s
-- Use reactive forms (`FormBuilder`, `Validators`) instead of template-driven (`ngModel`) for form validation
+- Use reactive forms (`FormBuilder`, `Validators`) instead of template-driven (`ngModel`). All form controls (including passwords) must be defined inside a single `FormGroup` so that `form.invalid` validates every field at once. Never use separate `FormControl` fields outside the group.
 - `matPrefix` must be placed BEFORE `matInput` in DOM order for proper form field layout
 - `$primary: #0D6E8F` in styles.scss
 - `.gitignore` includes `/src/environments/`; env files removed from git history via `git filter-branch`
+- Use `@if` / `@for` (Angular 17+ control flow) instead of `*ngIf` / `*ngFor`
+- Use semantic HTML elements for accessibility (`<button>` for buttons, `<nav>` for navigation, `<label>` for labels, etc.)
+- All `<img>` and `ngSrc` images must have descriptive `alt` attributes
 
 ## Progress
 ### Done
@@ -33,20 +36,33 @@
 - Global `--mdc-*-container-shape: 12px` and `--mat-sys-corner-full: 12px` for consistent radius
 - All `mat-raised-button` replaced with `mat-unelevated-button` across 9 template files
 - Alert system refactored: model (success/error types, `MAX_ALERTS=5`), service (`signal<AlertItem[]>`, `dismiss(id)`), overlay (multi-alert, animations, responsive positioning)
-- Setup-profile: "(opcional)" labels, `submitted` flag for submit validation, password length and confirm match validation on blur, button validates on click; `max-width 880px` on inner content (`.setup-hero`, `.setup-form`) with `padding: 40px 200px` as outer spacing, `< 768px` `padding: 23px 16px`
-- Login: redesigned without card, `Fondo.svg` background, logo + "Lilcare" title, `428px` max-width, button row with `justify-content space-between gap 24px` desktop, stacked `100%` mobile; "Iniciar sesión" button `width 202px` desktop
+- Setup-profile: "(opcional)" labels, `submitted` flag, reactive forms, Sexo enum pattern, `max-width 880px`, padding `40px 200px` desktop / `23px 16px` mobile
+- Login: redesigned without card, `Fondo.svg` background, reactive forms, `428px` max-width, button row, `202px` submit button
 - File upload alerts with `duration: 5000`
 - Login auth error messages unified to "Correo o contraseña incorrectos"
-- Alert dialog button changed from dynamic `[color]` to static `color="primary"` → later changed to `class="btn-primary"`
+- Alert dialog button changed from dynamic `[color]` to static `class="btn-primary"`
 - `$primary` reverted from `#01687D` back to `#0D6E8F`
 - Environment files removed from git history via `git filter-branch --index-filter` and force-pushed to GitHub
-- Fixed `matPrefix` position: moved before `matInput` in login and setup-profile fields to correct form field layout when errors display
+- Fixed `matPrefix` position: moved before `matInput` in login, setup-profile, and otp-login fields
+- Created `Sexo` enum in `core/models/sexo.ts` and migrated setup-profile to numeric DB values
+- Fixed accessibility: added missing `alt` to file-upload preview image
+- Removed `color="warn"` from icon buttons (doctors, patients); `mat-button color="warn"` → `mat-unelevated-button class="btn-danger"` (appointments)
+- Added `btn-secondary` class to toggle button in appointments; removed `color="primary"` from calendar add-btn
+- Fixed otp-login validation: removed `[disabled]="otpForm.invalid"`, uses `submitted` flag pattern
+- Updated AGENTS.md with Angular 17+ control flow, semantic HTML, alt attributes rules
 
-### In Progress
-- (none)
+### Done (continued)
+- Replaced inline `form-error` display in login and setup-profile with the global alert service; removed `error` and `successMsg` class properties; cleaned up unused CSS
+- Created `SpanishDateAdapter` (`core/adapters/spanish-date-adapter.ts`): extends `NativeDateAdapter`, overrides `getFirstDayOfWeek()` to return `0` (Sunday); configured in `app.config.ts` with `MAT_DATE_LOCALE: 'es-MX'`
+- Changed `getMonday` → `getWeekStart` in calendar so grid starts on Sunday (`d.setDate(d.getDate() - d.getDay())`), matching the Material datepicker mini calendar
+- Migrated **otp-login**, **doctors**, **patients**, **calendar** (dialog), and **appointments** (walk-in + dialog) from template-driven (`ngModel`/`FormsModule`) to reactive forms (`FormBuilder`/`ReactiveFormsModule`)
+- Removed `FormsModule` imports from all 5 migrated pages
 
 ### Blocked
 - (none)
+
+## Next Steps
+- (none — all pending migrations completed)
 
 ## Key Decisions
 - `$primary` set to `#0D6E8F` (not `#01687D`) as the app-wide primary color; secondary uses same `#0D6E8F` hardcoded
@@ -54,9 +70,8 @@
 - Alert service rewritten from queue-based single-item to `signal<AlertItem[]>` supporting up to 5 concurrent alerts with individual timers and dismiss-by-ID
 - Login validation: removed `[disabled]="loginForm.invalid"` so submit always validates; `submitted` flag triggers field errors
 - Setup-profile button: removed `[disabled]="!canFinish"` dependency, now only `[disabled]="finishing"`; validation runs on click via `finish()`
-
-## Next Steps
-- Migrate login and setup-profile from template-driven (`ngModel`) to reactive forms (`FormBuilder`, `Validators`)
+- **DB Enum pattern**: For multiple-choice fields (e.g. `Sexo`), store only a number in the DB; frontend uses a TypeScript enum to map number ↔ label. This keeps DB portable and avoids string storage.
+- **Registration vs update flow**: New records are created ONLY in two places: (1) `AdminInitService.ensureAdminExists()` creates the initial admin pending document, (2) admin invitation creates pending documents for doctors. `registerFromInvitation` UPDATES the existing pending document in-place (never creates a new one). `completeProfile` also UPDATES the existing user document. Both use `updateUser` on the pending/existing document ID. User documents store `firebaseUid` for login lookup and `pending: false` to prevent `ensureAdminExists` from creating duplicates.
 
 ## Critical Context
 - `NG8002` error in `alert-dialog.html` from `[color]` binding on `mat-unelevated-button` — fixed by using static `color="primary"` instead of dynamic expression
@@ -66,6 +81,82 @@
 - Setup-profile container `max-width: 880px` desktop with `margin: 0 auto`; mobile `100%`; padding `40px 200px` desktop (outer spacing), `23px 16px` mobile
 - Primary button has `border: none` to prevent MDC default borders
 - All primary buttons use `class="btn-primary"` (not `color="primary"`) for consistent styling; `.btn-primary` is self-contained with all button properties
+
+## Typography
+
+| Class | Usage | Size | Weight | Line height | Letter spacing |
+|-------|-------|------|--------|-------------|----------------|
+| `.title-large` | Page titles, calendar date label | 22px | 500 | 28px | 0 |
+| `.title-small` | Subtitles | 1.25rem (20px) | 500 | 1.75rem | - |
+| `.title-medium` | Detail card patient name | 1.5rem | 500 | 2rem | 0 |
+| `.body-large` | Paragraphs / values, "Motivo de la consulta" label | 1rem (16px) | 400 | 1.5rem | 0 |
+| `.body-medium` | Motivo value text | 0.9rem | 400 | 20px | 0 |
+| `.body-small` | Labels / metadata | 0.8rem | 400 | 1rem | - |
+| `.label-large` | Mobile appointment cards | 14px | 500 | 20px | 0.1px |
+| `.label-small` | Field labels | 0.8rem | 400 | 1rem | - |
+| `.info-value` | Info value | 1rem | 400 | 1.5rem | - |
+
+## Form layout patterns
+
+| Element | Spacing |
+|---------|---------|
+| `.setup-body` padding (desktop) | `40px 200px` |
+| `.setup-body` padding (mobile <768px) | `23px 16px` |
+| `.setup-hero` margin-bottom | `24px` |
+| `.form-row` gap (desktop) | `40px` |
+| `.form-row` gap (mobile) | `0` |
+| `.form-row` margin-bottom | `0.75rem` |
+| `.full-width` margin-bottom | `0.75rem` |
+| `.desktop-half` width | `calc(50% - 20px)` |
+| Labels above value | `gap: 4px` between label and value |
+| `.button-row` | `display: flex; justify-content: flex-end` |
+| Section spacing | `0.75rem` to `1.25rem` |
+
+### 2-column grid
+```html
+<div class="form-row desktop-2col form-gap-40">
+  <mat-form-field appearance="outline" class="flex-field">...</mat-form-field>
+  <mat-form-field appearance="outline" class="flex-field">...</mat-form-field>
+</div>
+```
+
+### Validation with pattern
+Use `pattern` to validate format without blocking typing. Mark field invalid and show `mat-error`:
+```html
+<mat-form-field appearance="outline">
+  <mat-label>Phone</mat-label>
+  <input matInput type="tel" [(ngModel)]="form.phone" name="phone" required
+         minlength="10" maxlength="10" pattern="[0-9]*" #phoneModel="ngModel" />
+  <mat-icon matPrefix>phone</mat-icon>
+  @if (phoneModel.invalid && phoneModel.touched) {
+    @if (phoneModel.errors?.['pattern']) {
+      <mat-error>Only digits allowed</mat-error>
+    } @else {
+      <mat-error>10 digits required</mat-error>
+    }
+  }
+</mat-form-field>
+```
+
+### Media query standard
+```scss
+@media (max-width: 768px) {
+  flex-direction: column;
+  gap: 0;
+}
+```
+
+## Patrones clave de arquitectura
+
+- **Standalone components**: Sin NgModules. Cada componente declara sus propios imports.
+- **Lazy loading**: Cada página se carga con `loadComponent`.
+- **Repositories**: Capa de acceso a datos. Los componentes llaman repositorios, no Firebase directamente.
+- **Alert system**: `alertService.show()` dispara un overlay modal global.
+- **Guards**: `authGuard` (autenticación), `roleGuard(['admin','employee'])` (roles), `profileGuard` (perfil completo).
+
+## Firebase
+
+Firestore rules en `firestore.rules` (abierto en desarrollo, restringir antes de producción).
 
 ## Relevant Files
 - `src/styles.scss`: Global button styles, chip styles, `$primary: #0D6E8F`, `$danger: #B3261E`, MDC shape variables, `.w-100-mobile`, `.btn-secondary/tertiary/danger`

@@ -1,0 +1,12 @@
+<div class="detail-card">
+  <h3 class="detail-title">{{ appointment().patientName }}</h3>
+
+  <p class="detail-label">Motivo de la consulta:</p>
+  <p class="detail-value">{{ appointment().notes }}</p>
+
+  <div class="detail-actions">
+    <button mat-stroked-button class="btn-tertiary" (click)="onReagendar()">Reagendar</button>
+    <button mat-stroked-button class="btn-secondary" (click)="onCancelar()">Cancelar</button>
+    <button mat-unelevated-button class="btn-primary" (click)="onVerHistorial()">Ver historial</button>
+  </div>
+</div>

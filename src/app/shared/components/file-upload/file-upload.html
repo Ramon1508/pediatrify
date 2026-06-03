@@ -3,7 +3,7 @@
     <div class="uploading-indicator">Subiendo...</div>
   } @else if (preview(); as img) {
     <div class="preview-wrapper">
-      <img [src]="img" class="upload-preview" />
+      <img [src]="img" class="upload-preview" alt="Vista previa del logotipo" />
       <span class="file-name">{{ fileName() }}</span>
     </div>
     <button class="remove-btn" (click)="remove(); $event.stopPropagation()" type="button">

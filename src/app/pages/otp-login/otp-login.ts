@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -15,7 +15,7 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrl: './otp-login.scss',
   standalone: true,
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     RouterLink,
     MatCardModule,
     MatFormFieldModule,
@@ -26,22 +26,32 @@ import { AuthService } from '../../core/services/auth.service';
   ],
 })
 export class OtpLogin {
+  private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  protected email = '';
-  protected password = '';
+  protected form = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', Validators.required],
+  });
+
+  protected hidePassword = true;
   protected error = '';
   protected loading = false;
+  protected submitted = false;
+
+  protected get emailControl() { return this.form.get('email')!; }
+  protected get passwordControl() { return this.form.get('password')!; }
 
   async onSubmit() {
-    if (!this.email || !this.password) return;
+    this.submitted = true;
+    if (this.form.invalid) return;
 
     this.loading = true;
     this.error = '';
 
     try {
-      await this.authService.loginPatient(this.email, this.password);
+      await this.authService.loginPatient(this.form.value.email!, this.form.value.password!);
       this.router.navigate(['/otp-dashboard']);
     } catch (e: any) {
       this.error = e.message || 'Error al verificar credenciales';

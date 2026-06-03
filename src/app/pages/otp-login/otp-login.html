@@ -6,37 +6,33 @@
     </mat-card-header>
 
     <mat-card-content>
-      <form (ngSubmit)="onSubmit()" #otpForm="ngForm">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Correo electrónico</mat-label>
+          <mat-icon matPrefix>email</mat-icon>
           <input
             matInput
             type="email"
-            [(ngModel)]="email"
-            name="email"
-            required
-            email
-            #emailModel="ngModel"
+            formControlName="email"
           />
-          <mat-icon matPrefix>email</mat-icon>
-          @if (emailModel.invalid && emailModel.touched) {
-            <mat-error>Correo electrónico válido requerido</mat-error>
+          @if (emailControl.invalid && (emailControl.touched || submitted)) {
+            <mat-error>Ingresa un correo electrónico válido</mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Contraseña OTP</mat-label>
+          <mat-icon matPrefix>lock</mat-icon>
           <input
             matInput
-            type="password"
-            [(ngModel)]="password"
-            name="password"
-            required
-            #passwordModel="ngModel"
+            [type]="hidePassword ? 'password' : 'text'"
+            formControlName="password"
           />
-          <mat-icon matPrefix>lock</mat-icon>
-          @if (passwordModel.invalid && passwordModel.touched) {
-            <mat-error>Contraseña requerida</mat-error>
+          <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword = !hidePassword" [attr.aria-label]="hidePassword ? 'Mostrar contraseña' : 'Ocultar contraseña'">
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (passwordControl.invalid && (passwordControl.touched || submitted)) {
+            <mat-error>Ingresa tu contraseña OTP</mat-error>
           }
         </mat-form-field>
 
@@ -52,7 +48,7 @@
           mat-unelevated-button
           class="btn-primary full-width"
           type="submit"
-          [disabled]="otpForm.invalid || loading"
+          [disabled]="loading"
         >
           @if (loading) {
             <mat-spinner diameter="20" />

@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,7 +20,7 @@ import { Clipboard } from '@angular/cdk/clipboard';
   styleUrl: './patients.scss',
   standalone: true,
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     MatCardModule,
     MatTableModule,
     MatButtonModule,
@@ -33,6 +33,7 @@ import { Clipboard } from '@angular/cdk/clipboard';
   ],
 })
 export class Patients implements OnInit {
+  private fb = inject(FormBuilder);
   private patientRepo = inject(PatientRepository);
   private alert = inject(AlertService);
   private clipboard = inject(Clipboard);
@@ -45,7 +46,13 @@ export class Patients implements OnInit {
   protected editingPatient: Patient | null = null;
   protected saving = false;
   protected dialogError = '';
-  protected formData = { name: '', lastName: '', email: '', phone: '' };
+
+  protected form = this.fb.group({
+    name: ['', Validators.required],
+    lastName: ['', Validators.required],
+    email: ['', [Validators.required, Validators.email]],
+    phone: ['', [Validators.required, Validators.minLength(10)]],
+  });
 
   private idCounter = 0;
 
@@ -58,7 +65,7 @@ export class Patients implements OnInit {
 
   openNewPatient() {
     this.editingPatient = null;
-    this.formData = { name: '', lastName: '', email: '', phone: '' };
+    this.form.reset({ name: '', lastName: '', email: '', phone: '' });
     this.dialogError = '';
     this.showDialog = true;
   }
@@ -68,23 +75,21 @@ export class Patients implements OnInit {
   }
 
   async savePatient() {
-    if (!this.formData.name || !this.formData.lastName || !this.formData.email || !this.formData.phone) {
-      return;
-    }
+    if (this.form.invalid) return;
 
     this.saving = true;
     this.dialogError = '';
 
     try {
       if (this.editingPatient) {
-        await this.patientRepo.updatePatient(this.editingPatient.id, this.formData);
+        await this.patientRepo.updatePatient(this.editingPatient.id, this.form.value as any);
         this.alert.success({ message: 'Paciente actualizado', duration: 3000 });
       } else {
         const id = crypto.randomUUID();
         const otpPassword = this.generateOtpPassword();
         await this.patientRepo.createPatient(id, {
           id,
-          ...this.formData,
+          ...this.form.value as any,
           otpPassword,
         });
         this.alert.success({ message: `Paciente creado. Contraseña OTP: ${otpPassword}`, duration: 5000 });
@@ -123,4 +128,9 @@ export class Patients implements OnInit {
     }
     return pwd;
   }
+
+  protected get nameControl() { return this.form.get('name')!; }
+  protected get lastNameControl() { return this.form.get('lastName')!; }
+  protected get emailControl() { return this.form.get('email')!; }
+  protected get phoneControl() { return this.form.get('phone')!; }
 }
