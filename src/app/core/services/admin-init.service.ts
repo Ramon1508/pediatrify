@@ -23,21 +23,12 @@ export class AdminInitService {
     try {
       const firestore = this.firebase.firestore;
 
-      const activeAdmins = query(
+      const existing = query(
         collection(firestore, 'users'),
-        where('role', '==', 'admin'),
-        where('pending', '==', false)
+        where('email', '==', ADMIN_EMAIL)
       );
-      const activeSnap = await getDocs(activeAdmins);
-      if (!activeSnap.empty) return;
-
-      const pendingAdmins = query(
-        collection(firestore, 'users'),
-        where('email', '==', ADMIN_EMAIL),
-        where('pending', '==', true)
-      );
-      const pendingSnap = await getDocs(pendingAdmins);
-      if (!pendingSnap.empty) return;
+      const snap = await getDocs(existing);
+      if (!snap.empty) return;
 
       const uid = crypto.randomUUID();
       await setDoc(doc(firestore, 'users', uid), {

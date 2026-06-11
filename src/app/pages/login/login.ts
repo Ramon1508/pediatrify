@@ -1,7 +1,6 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import { NgOptimizedImage } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,7 +8,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/services/auth.service';
-import { FirebaseService } from '../../core/firebase/firebase.service';
 import { AlertService } from '../../core/services/alert.service';
 
 @Component({
@@ -17,6 +15,7 @@ import { AlertService } from '../../core/services/alert.service';
   templateUrl: './login.html',
   styleUrl: './login.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     NgOptimizedImage,
@@ -29,11 +28,11 @@ import { AlertService } from '../../core/services/alert.service';
 })
 export class Login implements OnInit {
   private authService = inject(AuthService);
-  private firebase = inject(FirebaseService);
   private alert = inject(AlertService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
+  private cdr = inject(ChangeDetectorRef);
 
   protected loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -74,21 +73,11 @@ export class Login implements OnInit {
       }
     } finally {
       this.loading = false;
+      this.cdr.markForCheck();
     }
   }
 
-  async forgotPassword() {
-    const email = this.loginForm.get('email')?.value;
-    if (!email) {
-      this.alert.error({ message: 'Ingresa tu correo electrónico primero', duration: 5000 });
-      return;
-    }
-
-    try {
-      await sendPasswordResetEmail(this.firebase.auth, email);
-      this.alert.success({ message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.', duration: 5000 });
-    } catch (e: any) {
-      this.alert.error({ message: e.message || 'Error al enviar correo de recuperación', duration: 5000 });
-    }
+  goToResetPassword() {
+    this.router.navigate(['/reset-password']);
   }
 }

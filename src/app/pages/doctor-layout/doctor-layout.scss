@@ -4,23 +4,10 @@
   height: 100%;
 }
 
-.sidenav-container {
-  flex: 1;
-  background: transparent;
-}
-
-.sidenav {
-  width: 72px;
-  border: none;
-  background: transparent;
-  overflow: hidden;
-}
-
-.sidenav-content {
+.layout-body {
   display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: transparent;
+  flex: 1;
+  overflow: hidden;
 }
 
 .main-content {

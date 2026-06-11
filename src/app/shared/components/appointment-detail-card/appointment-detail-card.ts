@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { Appointment } from '../../../core/models/user';
 
@@ -7,18 +7,20 @@ import { Appointment } from '../../../core/models/user';
   templateUrl: './appointment-detail-card.html',
   styleUrl: './appointment-detail-card.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatButtonModule],
 })
 export class AppointmentDetailCard {
   readonly appointment = input.required<Appointment>();
-  readonly close = output<void>();
+  readonly edit = output<Appointment>();
+  readonly cancel = output<void>();
 
   onReagendar() {
-    console.log('Reagendar');
+    this.edit.emit(this.appointment());
   }
 
   onCancelar() {
-    this.close.emit();
+    this.cancel.emit();
   }
 
   onVerHistorial() {

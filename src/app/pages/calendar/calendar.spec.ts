@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideNativeDateAdapter, MAT_DATE_LOCALE, DateAdapter } from '@angular/material/core';
+import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 import { Calendar } from './calendar';
 import { AppointmentRepository } from '../../core/repositories/appointment.repository';
@@ -14,8 +15,6 @@ const TODAY = '2026-06-01';
 describe('Calendar', () => {
   let fixture: ComponentFixture<Calendar>;
   let component: Calendar;
-  let appointmentRepo: AppointmentRepository;
-  let alertService: AlertService;
 
   const mockPatients = [
     { id: 'p1', name: 'Ana', lastName: 'López', email: 'ana@test.com', phone: '5512345678', otpPassword: 'ABC123' },
@@ -43,6 +42,7 @@ describe('Calendar', () => {
     const patientSpy = { getAllPatients: vi.fn().mockResolvedValue(mockPatients) } as any;
     const authSpy = { currentDoctor: { uid: 'd1', name: 'Dr. Y' } as any };
     const alertSpy = { success: vi.fn() } as any;
+    const dialogSpy = { open: vi.fn().mockReturnValue({ afterClosed: () => of(true) }) } as any;
 
     await TestBed.configureTestingModule({
       imports: [Calendar, NoopAnimationsModule],
@@ -54,13 +54,12 @@ describe('Calendar', () => {
         { provide: PatientRepository, useValue: patientSpy },
         { provide: AuthService, useValue: authSpy },
         { provide: AlertService, useValue: alertSpy },
+        { provide: MatDialog, useValue: dialogSpy },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Calendar);
     component = fixture.componentInstance;
-    appointmentRepo = TestBed.inject(AppointmentRepository);
-    alertService = TestBed.inject(AlertService);
     fixture.detectChanges();
   });
 
@@ -68,13 +67,15 @@ describe('Calendar', () => {
     expect(component).toBeTruthy();
   });
 
-  it('has 32 time slots (6:00 to 21:30)', () => {
-    expect((component as any).timeSlots.length).toBe(32);
-    expect((component as any).timeSlots[0].label).toBe('6:00');
-    expect((component as any).timeSlots[31].key).toBe('21:30');
+  it('has 36 time slots (06:00 to 23:30) from default segment', () => {
+    fixture.detectChanges();
+    expect((component as any).timeSlots.length).toBe(36);
+    expect((component as any).timeSlots[0].label).toBe('6:00 AM');
+    expect((component as any).timeSlots[35].key).toBe('23:30');
   });
 
-  it('generates 7 week days', () => {
+  it('shows all 7 days in the week', () => {
+    fixture.detectChanges();
     expect((component as any).weekDays().length).toBe(7);
   });
 
@@ -97,41 +98,10 @@ describe('Calendar', () => {
     expect((component as any).weekStart().getTime()).toBe(sunday.getTime());
   });
 
-  it('opens new appointment dialog with pre-filled date/time', () => {
-    const date = new Date(2026, 5, 1);
-    const slot = (component as any).timeSlots[16]; // 14:00
-    (component as any).openNewAppointment(date, slot);
-
-    expect((component as any).showDialog).toBe(true);
-    expect((component as any).appointmentForm.get('date')?.value).toBe('2026-06-01');
-    expect((component as any).appointmentForm.get('time')?.value).toBe('14:00');
-  });
-
-  it('closes dialog', () => {
-    (component as any).showDialog = true;
-    (component as any).closeDialog();
-    expect((component as any).showDialog).toBe(false);
-  });
-
-  it('saves a new appointment', async () => {
-    (component as any).appointmentForm.setValue({ patientId: 'p1', date: '2026-06-05', time: '11:00', notes: '' });
-    (appointmentRepo.createAppointment as any).mockResolvedValue(undefined);
-
-    await (component as any).saveAppointment();
-
-    expect(appointmentRepo.createAppointment).toHaveBeenCalled();
-    expect(alertService.success).toHaveBeenCalledWith({ message: 'Cita agendada', duration: 3000 });
-    expect((component as any).showDialog).toBe(false);
-  });
-
-  it('does not save without required fields', async () => {
-    await (component as any).saveAppointment();
-    expect(appointmentRepo.createAppointment).not.toHaveBeenCalled();
-  });
-
   it('tracks hovered cell', () => {
+    fixture.detectChanges();
     const date = new Date(2026, 5, 1);
-    const slot = (component as any).timeSlots[4]; // 10:00
+    const slot = (component as any).timeSlots[4];
     (component as any).onCellHover(date, slot);
 
     expect((component as any).isHovered(date, slot)).toBe(true);

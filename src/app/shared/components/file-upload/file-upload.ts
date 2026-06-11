@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { FirebaseService } from '../../../core/firebase/firebase.service';
@@ -14,6 +14,7 @@ export interface UploadResult {
   templateUrl: './file-upload.html',
   styleUrl: './file-upload.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatIconModule],
 })
 export class FileUpload {

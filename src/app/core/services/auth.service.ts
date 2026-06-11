@@ -170,8 +170,9 @@ export class AuthService {
   }
 
   async loginPatient(email: string, password: string): Promise<Patient> {
+    const normalizedEmail = email.trim().toLowerCase();
     const patients = await this.patientRepo.getAllPatients();
-    const patient = patients.find((p) => p.email === email && p.otpPassword === password);
+    const patient = patients.find((p) => p.email === normalizedEmail && p.otpPassword === password);
     if (!patient) {
       throw new Error('Credenciales inválidas. Verifica tu correo y contraseña OTP.');
     }
@@ -190,6 +191,7 @@ export class AuthService {
     const user = this.currentDoctor;
     if (!user) throw new Error('No hay sesión activa');
 
+    const fbUser = this.auth.currentUser;
     await this.userRepo.updateUser(user.uid, {
       name: data.name,
       sexo: data.sexo,
@@ -201,6 +203,8 @@ export class AuthService {
       consultorios: data.consultorios,
       ...(data.logoPath ? { logoPath: data.logoPath } : {}),
       profileComplete: true,
+      pending: false,
+      ...(fbUser?.uid ? { firebaseUid: fbUser.uid } : {}),
     });
 
     if (newPassword) {

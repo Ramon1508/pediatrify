@@ -1,0 +1,13 @@
+.form-row {
+  display: flex;
+  gap: 1rem;
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+.dialog-error {
+  display: block;
+  margin-top: 0.5rem;
+}

@@ -1,0 +1,42 @@
+:host {
+  display: block;
+  background: #FFFFFF;
+  border: 2px solid #0D6E8F;
+  padding: 24px;
+  border-radius: 12px;
+}
+
+.cancel-title {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: 0;
+  vertical-align: middle;
+  margin: 0 0 16px;
+  color: inherit;
+}
+
+.cancel-subtitle {
+  color: #49454F;
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+  vertical-align: middle;
+  margin: 0 0 20px;
+}
+
+.cancel-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .btn-tertiary,
+  .btn-danger {
+    padding: 10px 16px;
+  }
+}

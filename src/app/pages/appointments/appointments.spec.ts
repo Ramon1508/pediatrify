@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 import { Appointments } from './appointments';
 import { AppointmentRepository } from '../../core/repositories/appointment.repository';
@@ -11,9 +12,9 @@ describe('Appointments', () => {
   let fixture: ComponentFixture<Appointments>;
   let component: Appointments;
   let appointmentRepo: AppointmentRepository;
-  let patientRepo: PatientRepository;
   let authService: AuthService;
   let alertService: AlertService;
+  let dialog: MatDialog;
 
   const mockPatients = [
     { id: 'p1', name: 'Juan', lastName: 'Pérez', email: 'juan@test.com', phone: '5512345678', otpPassword: 'ABC123' },
@@ -33,6 +34,15 @@ describe('Appointments', () => {
     const patientSpy = { getAllPatients: vi.fn().mockResolvedValue(mockPatients) } as any;
     const authSpy = { currentDoctor: { uid: 'd1', name: 'Dr. X' } as any };
     const alertSpy = { success: vi.fn() } as any;
+    const dialogSpy = {
+      open: vi.fn().mockReturnValue({
+        afterClosed: vi.fn().mockReturnValue(of(true)),
+        componentInstance: { setPatients: vi.fn(), setEditData: vi.fn() },
+      }),
+      _openDialogs: [],
+      _afterAllClosed: { subscribe: vi.fn() },
+      afterOpened: { subscribe: vi.fn(), pipe: vi.fn().mockReturnThis() },
+    } as any;
 
     await TestBed.configureTestingModule({
       imports: [Appointments, NoopAnimationsModule],
@@ -42,14 +52,16 @@ describe('Appointments', () => {
         { provide: AuthService, useValue: authSpy },
         { provide: AlertService, useValue: alertSpy },
       ],
+    }).overrideProvider(MatDialog, {
+      useValue: dialogSpy,
     }).compileComponents();
 
     fixture = TestBed.createComponent(Appointments);
     component = fixture.componentInstance;
     appointmentRepo = TestBed.inject(AppointmentRepository);
-    patientRepo = TestBed.inject(PatientRepository);
     authService = TestBed.inject(AuthService);
     alertService = TestBed.inject(AlertService);
+    dialog = TestBed.inject(MatDialog);
     fixture.detectChanges();
   });
 
@@ -76,29 +88,7 @@ describe('Appointments', () => {
 
   it('opens new appointment dialog', () => {
     (component as any).openNewAppointment();
-    expect((component as any).showDialog).toBe(true);
-  });
-
-  it('closes dialog', () => {
-    (component as any).showDialog = true;
-    (component as any).closeDialog();
-    expect((component as any).showDialog).toBe(false);
-  });
-
-  it('creates a new appointment', async () => {
-    (component as any).appointmentForm.setValue({ patientId: 'p1', date: '2026-06-05', time: '09:00', notes: 'Test' });
-    (appointmentRepo.createAppointment as any).mockResolvedValue(undefined);
-
-    await (component as any).saveAppointment();
-
-    expect(appointmentRepo.createAppointment).toHaveBeenCalled();
-    expect(alertService.success).toHaveBeenCalledWith({ message: 'Cita agendada', duration: 3000 });
-    expect((component as any).showDialog).toBe(false);
-  });
-
-  it('does not save appointment without required fields', async () => {
-    await (component as any).saveAppointment();
-    expect(appointmentRepo.createAppointment).not.toHaveBeenCalled();
+    expect(dialog.open).toHaveBeenCalled();
   });
 
   it('marks appointment as attended', async () => {

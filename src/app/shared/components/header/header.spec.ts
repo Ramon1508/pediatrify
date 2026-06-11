@@ -58,28 +58,6 @@ describe('Header', () => {
     expect(component.roleLabel).toBe('Paciente');
   });
 
-  it('shows menu toggle button when showMenuToggle is true', () => {
-    fixture.detectChanges();
-    fixture.componentRef.setInput('showMenuToggle', true);
-    fixture.detectChanges();
-
-    const menuBtn = fixture.nativeElement.querySelector('.menu-button');
-    expect(menuBtn).toBeTruthy();
-  });
-
-  it('emits menuToggle on menu button click', () => {
-    fixture.componentRef.setInput('showMenuToggle', true);
-    fixture.detectChanges();
-
-    let emitted = false;
-    component.menuToggle.subscribe(() => (emitted = true));
-
-    const menuBtn = fixture.nativeElement.querySelector('.menu-button');
-    menuBtn.click();
-
-    expect(emitted).toBe(true);
-  });
-
   it('logs out and navigates to login', () => {
     fixture.detectChanges();
     component.logout();

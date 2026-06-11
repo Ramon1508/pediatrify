@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AlertOverlay } from './shared/components/alert-overlay/alert-overlay';
 
@@ -7,5 +7,6 @@ import { AlertOverlay } from './shared/components/alert-overlay/alert-overlay';
   imports: [RouterOutlet, AlertOverlay],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {}

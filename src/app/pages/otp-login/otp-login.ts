@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -14,6 +14,7 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './otp-login.html',
   styleUrl: './otp-login.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     RouterLink,
@@ -29,6 +30,7 @@ export class OtpLogin {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   protected form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -55,8 +57,10 @@ export class OtpLogin {
       this.router.navigate(['/otp-dashboard']);
     } catch (e: any) {
       this.error = e.message || 'Error al verificar credenciales';
+      this.cdr.markForCheck();
     } finally {
       this.loading = false;
+      this.cdr.markForCheck();
     }
   }
 }

@@ -62,17 +62,6 @@ describe('Sidebar', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Asistentes');
   });
 
-  it('emits closeSidenav on nav item click', () => {
-    fixture.detectChanges();
-    let emitted = false;
-    component.closeSidenav.subscribe(() => (emitted = true));
-
-    const link = fixture.nativeElement.querySelector('.nav-item');
-    link.click();
-
-    expect(emitted).toBe(true);
-  });
-
   it('logs out and navigates to /login on logout click', () => {
     fixture.detectChanges();
     const logoutBtn = fixture.nativeElement.querySelector('.logout-btn');

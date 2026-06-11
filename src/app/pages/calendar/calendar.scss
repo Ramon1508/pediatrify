@@ -3,6 +3,7 @@
   flex-direction: column;
   height: 100%;
   padding: 1rem;
+  position: relative;
 }
 
 .calendar-toolbar {
@@ -18,54 +19,56 @@
   gap: 8px;
 }
 
-.settings-btn {
-  color: #49454F;
-}
-
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  position: relative;
+  gap: 16px;
 
-  .datepicker-trigger {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
+  .date-picker-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     cursor: pointer;
-    border: none;
-    padding: 0;
-    margin: 0;
-  }
+    position: relative;
 
-  .date-input {
-    width: 0;
-    height: 0;
-    opacity: 0;
-    margin: 0;
-    padding: 0;
-    border: none;
-  }
+    .datepicker-trigger {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
 
-  .date-label {
-    font-family: Roboto, sans-serif;
-    font-weight: 500;
-    font-size: 22px;
-    line-height: 28px;
-    letter-spacing: 0;
-    color: #000000;
-    white-space: nowrap;
-  }
+    .date-input {
+      width: 0;
+      height: 0;
+      opacity: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
 
-  .dropdown-icon {
-    color: #0D6E8F;
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
+    .date-label {
+      font-family: Roboto, sans-serif;
+      font-weight: 500;
+      font-size: 22px;
+      line-height: 28px;
+      letter-spacing: 0;
+      color: #000000;
+      white-space: nowrap;
+    }
+
+    .dropdown-icon {
+      color: #0D6E8F;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
   }
 }
 
@@ -76,7 +79,6 @@
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: 60px repeat(7, 1fr);
   min-width: 700px;
   background: transparent;
   border: 1px solid #CAC4D0;
@@ -108,8 +110,8 @@
   .day-number {
     font-family: Roboto, sans-serif;
     font-weight: 500;
-    font-size: 1.75rem;
-    line-height: 2.25rem;
+    font-size: 22px;
+    line-height: 28px;
     color: #0D6E8F;
   }
 
@@ -130,18 +132,26 @@
       font-weight: 700;
     }
   }
+
+  &.disabled-header {
+    opacity: 0.38;
+
+    .day-number {
+      color: #49454F;
+    }
+  }
 }
 
 .time-label {
-  font-family: Static/Body Large/Font;
-  font-weight: 500;
-  font-style: Medium;
-  font-size: Static/Body Large/Size;
-  line-height: Static/Body Large/Line Height;
-  letter-spacing: Static/Body Large/Tracking;
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  letter-spacing: 0.5px;
   color: #000000;
   padding: 8px;
   min-height: 41.6px;
+  white-space: nowrap;
 
   &.current-hour {
     background: rgba(0, 0, 0, 0.1);
@@ -156,8 +166,11 @@
   transition: background 0.15s;
   padding: 1px;
   display: flex;
+  align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 1px;
+  min-width: 0;
 
   &:hover {
     background: rgba(255, 255, 255, 0.15);
@@ -170,6 +183,14 @@
   &.current-hour {
     background: rgba(0, 0, 0, 0.1);
   }
+
+  &.disabled-cell {
+    background: rgba(0, 0, 0, 0.04);
+
+    .appointment-block {
+      opacity: 0.5;
+    }
+  }
 }
 
 .add-btn {
@@ -181,100 +202,22 @@
 }
 
 .appointment-block {
-  background: #0D6E8F;
-  color: white;
-  font-size: 0.65rem;
-  padding: 1px 4px;
+  background: #FFBAD9;
+  color: #000000;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.4px;
+  padding: 4px 7.5px;
   border-radius: 4px;
-  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.4;
-
-  &.attended {
-    background: #B3261E;
-  }
-}
-
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog-card {
-  width: 450px;
-  max-width: 90vw;
-
-  .full-width {
-    width: 100%;
-  }
-
-  .form-row {
-    display: flex;
-    gap: 1rem;
-
-    mat-form-field {
-      flex: 1;
-    }
-  }
-
-  .dialog-error {
-    display: block;
-    margin-top: 0.5rem;
-  }
-}
-
-.settings-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 999;
-}
-
-.settings-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 360px;
-  max-width: 90vw;
-  background: #fff;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  animation: slideInRight 0.2s ease-out;
-}
-
-@keyframes slideInRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
-
-.settings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #CAC4D0;
-}
-
-.settings-body {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
+  cursor: pointer;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Mobile view */
@@ -291,7 +234,11 @@
     display: initial;
   }
 
-  .calendar-scroll {
+.btn-hoy {
+  padding: 10px 16px !important;
+}
+
+.calendar-scroll {
     display: none;
   }
 
@@ -333,6 +280,15 @@
   box-sizing: border-box;
 }
 
+.no-days-message {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  color: #49454F;
+  text-align: center;
+  padding: 4rem 0;
+}
+
 .no-appointments {
   font-family: Roboto, sans-serif;
   font-weight: 400;
@@ -341,3 +297,10 @@
   text-align: center;
   padding: 2rem 0;
 }
+
+.detail-overlay {
+  position: fixed;
+  z-index: 1000;
+}
+
+

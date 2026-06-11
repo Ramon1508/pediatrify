@@ -1,138 +1,66 @@
 <div class="doctors-container">
   <div class="header-actions">
-    <h2>Doctores</h2>
+    <span class="page-title">Asistentes</span>
     <button mat-unelevated-button class="btn-primary" (click)="openNewDoctor()">
       <mat-icon>add</mat-icon>
-      Invitar doctor
+      Agregar asistente
     </button>
   </div>
 
-  <mat-card>
-    <mat-card-content>
-      @if (loading) {
-        <mat-progress-bar mode="indeterminate" />
-      }
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" />
+  }
 
-      <table mat-table [dataSource]="doctors()" class="doctors-table">
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Nombre</th>
-          <td mat-cell *matCellDef="let d">{{ d.name }}</td>
-        </ng-container>
+  @if (doctors().length === 0 && !loading) {
+    <div class="empty-state-wrapper">
+      <div class="empty-state-content">
+        <span class="empty-text">No has agregado ningún asistente</span>
+        <button mat-unelevated-button class="btn-primary" (click)="openNewDoctor()">
+          <mat-icon>add</mat-icon>
+          Agregar asistente
+        </button>
+      </div>
+    </div>
+  } @else {
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar por nombre</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput [formControl]="searchControl" />
+    </mat-form-field>
 
-        <ng-container matColumnDef="email">
-          <th mat-header-cell *matHeaderCellDef>Correo</th>
-          <td mat-cell *matCellDef="let d">{{ d.email }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="role">
-          <th mat-header-cell *matHeaderCellDef>Rol</th>
-          <td mat-cell *matCellDef="let d">
-            <span class="role-badge" [class.admin]="d.role === 'admin'" [class.employee]="d.role === 'employee'">
-              {{ d.role === 'admin' ? 'Admin' : 'Doctor' }}
-            </span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Estado</th>
-          <td mat-cell *matCellDef="let d">
-            <span class="status-badge" [class.complete]="d.profileComplete">
-              {{ d.profileComplete ? 'Activo' : 'Pendiente' }}
-            </span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Acciones</th>
-          <td mat-cell *matCellDef="let d">
-            <button mat-icon-button (click)="deleteDoctor(d)" matTooltip="Eliminar" [disabled]="d.role === 'admin'">
-              <mat-icon>delete</mat-icon>
+    <div class="doctors-grid">
+      @for (doctor of filteredDoctors(); track doctor.uid) {
+        <mat-card class="doctor-card" [class.empty]="filteredDoctors().length === 0">
+          <div class="card-header">
+            <span class="card-name" [matTooltip]="doctor.name">{{ doctor.name }}</span>
+            <button mat-icon-button [matMenuTriggerFor]="doctorMenu" class="card-menu-btn">
+              <mat-icon>more_vert</mat-icon>
             </button>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-
-        @if (doctors().length === 0) {
-          <tr class="mat-row">
-            <td class="mat-cell" [attr.colspan]="displayedColumns.length">
-              <div class="empty-state">No hay doctores registrados</div>
-            </td>
-          </tr>
-        }
-      </table>
-    </mat-card-content>
-  </mat-card>
+            <mat-menu #doctorMenu="matMenu">
+              <button mat-menu-item (click)="openEditDoctor(doctor)">
+                <mat-icon>edit</mat-icon>
+                <span>Editar asistente</span>
+              </button>
+              @if (!doctor.profileComplete) {
+                <button mat-menu-item (click)="resendInvitation(doctor)">
+                  <mat-icon>email</mat-icon>
+                  <span>Reenviar invitaci&oacute;n</span>
+                </button>
+              }
+              <button mat-menu-item (click)="deleteDoctor(doctor)">
+                <mat-icon>delete</mat-icon>
+                <span>Eliminar asistente</span>
+              </button>
+            </mat-menu>
+          </div>
+          <div class="card-body">
+            <span class="card-label">Correo:</span>
+            <span class="card-email">{{ doctor.email }}</span>
+          </div>
+        </mat-card>
+      }
+    </div>
+  }
 </div>
 
-@if (showDialog) {
-  <div class="dialog-overlay">
-    <mat-card class="dialog-card">
-      <mat-card-header>
-        <mat-card-title>Invitar doctor</mat-card-title>
-      </mat-card-header>
 
-      <mat-card-content>
-        <form [formGroup]="form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Nombre completo</mat-label>
-            <input matInput formControlName="name" />
-            @if (nameControl.invalid && (nameControl.touched || nameControl.dirty)) {
-              <mat-error>Ingresa el nombre completo</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Correo electrónico</mat-label>
-            <input matInput type="email" formControlName="email" />
-            @if (emailControl.invalid && (emailControl.touched || emailControl.dirty)) {
-              <mat-error>Ingresa un correo electrónico válido</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Rol</mat-label>
-            <mat-select formControlName="role">
-              <mat-option value="employee">Doctor</mat-option>
-              <mat-option value="admin">Administrador</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          @if (dialogError) {
-            <mat-error class="dialog-error">{{ dialogError }}</mat-error>
-          }
-        </form>
-
-        @if (invitationLink) {
-          <mat-divider />
-          <div class="invitation-box">
-            <p class="invitation-label">Enlace de invitación (un solo uso):</p>
-            <div class="invitation-row">
-              <code class="invitation-link">{{ invitationLink }}</code>
-              <button mat-icon-button (click)="copyLink()" matTooltip="Copiar">
-                <mat-icon>content_copy</mat-icon>
-              </button>
-            </div>
-            <p class="invitation-hint">Comparte este enlace con {{ form.value.name }}. Al abrirlo podrá crear su cuenta.</p>
-          </div>
-        }
-      </mat-card-content>
-
-      <mat-card-actions align="end">
-        <button mat-button (click)="closeDialog()">
-          {{ invitationLink ? 'Cerrar' : 'Cancelar' }}
-        </button>
-        @if (!invitationLink) {
-          <button mat-unelevated-button class="btn-primary" (click)="saveDoctor()" [disabled]="form.invalid || saving">
-            @if (saving) {
-              <mat-spinner diameter="18" />
-            } @else {
-              Crear invitación
-            }
-          </button>
-        }
-      </mat-card-actions>
-    </mat-card>
-  </div>
-}

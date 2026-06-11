@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { MatIconModule } from '@angular/material/icon';
 import { AlertService } from '../../../core/services/alert.service';
@@ -8,6 +8,7 @@ import { AlertService } from '../../../core/services/alert.service';
   templateUrl: './alert-overlay.html',
   styleUrl: './alert-overlay.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatIconModule],
   animations: [
     trigger('fadeSlide', [

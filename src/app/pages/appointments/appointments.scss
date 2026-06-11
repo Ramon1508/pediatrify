@@ -95,37 +95,4 @@
   color: #757575;
 }
 
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
 
-.dialog-card {
-  max-width: 450px;
-  width: 100%;
-  padding: 1rem;
-
-  .full-width {
-    width: 100%;
-  }
-
-  .form-row {
-    display: flex;
-    gap: 1rem;
-
-    mat-form-field {
-      flex: 1;
-    }
-  }
-
-  .dialog-error {
-    display: block;
-    margin-top: 0.5rem;
-  }
-}

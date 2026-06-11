@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -21,6 +21,7 @@ import { Sexo } from '../../core/models/sexo';
   templateUrl: './setup-profile.html',
   styleUrl: './setup-profile.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
     Header,
@@ -41,6 +42,7 @@ export class SetupProfile implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
+  private cdr = inject(ChangeDetectorRef);
 
   protected mode = signal<'invitation' | 'existing' | 'invalid'>('invalid');
   protected pendingUid = '';
@@ -177,6 +179,7 @@ export class SetupProfile implements OnInit {
       this.alert.error({ message: this.getReadableError(e), duration: 5000 });
     } finally {
       this.finishing = false;
+      this.cdr.markForCheck();
     }
   }
 

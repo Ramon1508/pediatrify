@@ -1,0 +1,41 @@
+.invitation-box {
+  margin-top: 16px;
+}
+
+.invitation-label {
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 16px 0 8px;
+}
+
+.invitation-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5f5f5;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.invitation-link {
+  font-family: monospace;
+  font-size: 12px;
+  word-break: break-all;
+  flex: 1;
+}
+
+.invitation-hint {
+  font-family: Roboto, sans-serif;
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+.dialog-error {
+  margin-top: 8px;
+}
+
+mat-dialog-actions {
+  padding: 10px 16px !important;
+}

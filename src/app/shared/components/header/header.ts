@@ -1,4 +1,4 @@
-import { Component, inject, Input, Output, EventEmitter } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgOptimizedImage } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -14,6 +14,7 @@ import { BRAND_NAME } from '../../../core/config/brand';
   templateUrl: './header.html',
   styleUrl: './header.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgOptimizedImage,
     MatToolbarModule,
@@ -27,9 +28,6 @@ export class Header {
   protected authService = inject(AuthService);
   private router = inject(Router);
   protected brandName = inject(BRAND_NAME);
-
-  @Input() showMenuToggle = false;
-  @Output() menuToggle = new EventEmitter<void>();
 
   protected goHome() {
     this.router.navigate(['/login']);

@@ -1,0 +1,94 @@
+<div class="dialog-title-container">
+    <h2 class="dialog-title">{{ editingPatient ? 'Editar paciente' : 'Añadir nuevo paciente' }}</h2>
+    <button mat-icon-button class="btn-close-dialog" [mat-dialog-close]="false" aria-label="Cerrar">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content>
+  <span class="panel-subtitle">Mediante los correos electrónicos proporcionados, se crearán el o los usuarios de consulta de los padres o tutores.</span>
+
+  @if (alertMsg) {
+    <div class="new-patient-alert">
+      {{ alertMsg }}
+      <button type="button" class="alert-continue-btn" (click)="continueWithExisting()">Continuar</button>
+    </div>
+  }
+
+  <form [formGroup]="form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre(s)</mat-label>
+      <input matInput formControlName="name" />
+      @if (form.get('name')?.invalid && (form.get('name')?.touched || submitted)) {
+        <mat-error>Ingresa el nombre del paciente</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Apellidos</mat-label>
+      <input matInput formControlName="lastName" />
+      @if (form.get('lastName')?.invalid && (form.get('lastName')?.touched || submitted)) {
+        <mat-error>Ingresa los apellidos del paciente</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Fecha de nacimiento</mat-label>
+      <input matInput [matDatepicker]="dp" formControlName="birthDate" placeholder="DD/MM/AAAA" (click)="dp.open()" />
+      <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
+      <mat-datepicker #dp></mat-datepicker>
+      <mat-hint>DD/MM/AAAA</mat-hint>
+      @if (form.get('birthDate')?.invalid && (form.get('birthDate')?.touched || submitted)) {
+        <mat-error>Selecciona la fecha de nacimiento</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Teléfono</mat-label>
+      <input matInput type="tel" formControlName="phone" />
+      @if (form.get('phone')?.invalid && (form.get('phone')?.touched || submitted)) {
+        <mat-error>Ingresa el teléfono del paciente</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Correo electrónico</mat-label>
+      <input matInput type="email" formControlName="email" />
+      @if (form.get('email')?.invalid && (form.get('email')?.touched || submitted)) {
+        <mat-error>Ingresa un correo electrónico válido</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Correo secundario (opcional)</mat-label>
+      <input matInput type="email" formControlName="secondaryEmail" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre del padre</mat-label>
+      <input matInput formControlName="fatherName" />
+      @if (form.get('fatherName')?.invalid && (form.get('fatherName')?.touched || submitted)) {
+        <mat-error>Ingresa el nombre del padre</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre de la madre</mat-label>
+      <input matInput formControlName="motherName" />
+      @if (form.get('motherName')?.invalid && (form.get('motherName')?.touched || submitted)) {
+        <mat-error>Ingresa el nombre de la madre</mat-error>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button class="btn-secondary" [mat-dialog-close]="false">Cancelar</button>
+  <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+    @if (saving) {
+      <mat-spinner diameter="18" />
+    } @else {
+      {{ editingPatient ? 'Actualizar' : 'Añadir paciente' }}
+    }
+  </button>
+</mat-dialog-actions>

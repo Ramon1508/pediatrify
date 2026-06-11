@@ -1,13 +1,5 @@
 <mat-toolbar class="app-navbar">
-  <div class="nav-left">
-    @if (showMenuToggle) {
-      <button mat-icon-button (click)="menuToggle.emit()" class="menu-button">
-        <mat-icon>menu</mat-icon>
-      </button>
-    }
-  </div>
-
-  <div class="nav-center d-flex align-items-center gap-2" (click)="goHome()" style="cursor: pointer;">
+  <div class="nav-center" (click)="goHome()" style="cursor: pointer;">
     <img ngSrc="images/Logo.jpg" alt="Logo" class="nav-logo" width="40" height="40" priority />
     <span class="nav-brand">{{ brandName }}</span>
   </div>

@@ -1,0 +1,22 @@
+.password-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.password-hint {
+  font-family: Roboto, sans-serif;
+  font-size: 13px;
+  color: #666;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.dialog-error {
+  margin-top: 8px;
+}
+
+mat-dialog-actions {
+  padding: 10px 16px !important;
+}

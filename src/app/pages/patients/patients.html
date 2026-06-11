@@ -1,130 +1,105 @@
 <div class="patients-container">
   <div class="header-actions">
-    <h2>Pacientes</h2>
+    <span class="page-title">Pacientes</span>
     <button mat-unelevated-button class="btn-primary" (click)="openNewPatient()">
       <mat-icon>add</mat-icon>
       Nuevo paciente
     </button>
   </div>
 
-  <mat-card>
-    <mat-card-content>
-      @if (loading) {
-        <mat-progress-bar mode="indeterminate" />
-      }
+  @if (loading) {
+    <mat-progress-bar mode="indeterminate" />
+  }
 
-      <table mat-table [dataSource]="patients()" class="patients-table">
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Nombre</th>
-          <td mat-cell *matCellDef="let p">{{ p.name }} {{ p.lastName }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="email">
-          <th mat-header-cell *matHeaderCellDef>Correo</th>
-          <td mat-cell *matCellDef="let p">{{ p.email }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="phone">
-          <th mat-header-cell *matHeaderCellDef>Teléfono</th>
-          <td mat-cell *matCellDef="let p">{{ p.phone }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="otpPassword">
-          <th mat-header-cell *matHeaderCellDef>Contraseña OTP</th>
-          <td mat-cell *matCellDef="let p">
-            <span class="otp-password">{{ p.otpPassword }}</span>
-            <button mat-icon-button (click)="copyOtp(p.otpPassword)">
-              <mat-icon>content_copy</mat-icon>
-            </button>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Acciones</th>
-          <td mat-cell *matCellDef="let p">
-            <button mat-icon-button (click)="regenerateOtp(p)" matTooltip="Regenerar OTP">
-              <mat-icon>refresh</mat-icon>
-            </button>
-            <button mat-icon-button (click)="deletePatient(p)" matTooltip="Eliminar">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-
-        @if (patients().length === 0) {
-          <tr class="mat-row">
-            <td class="mat-cell" [attr.colspan]="displayedColumns.length">
-              <div class="empty-state">No hay pacientes registrados</div>
-            </td>
-          </tr>
+  @if (todayAppointments().length > 0) {
+    <div class="carousel-section">
+      <span class="carousel-label">Consultas del d&iacute;a de hoy ({{ todayDateLabel }})</span>
+      <div class="carousel-scroll">
+        @for (appt of todayAppointments(); track appt.id) {
+          <mat-card class="appointment-card">
+            <span class="appt-name">{{ appt.patientName }}</span>
+            <span class="appt-time">{{ appt.time }}</span>
+            <span class="appt-motive">{{ appt.notes || 'Sin motivo registrado' }}</span>
+            <div class="appt-actions">
+              <button mat-stroked-button class="btn-tertiary" (click)="cancelAppointment(appt)">Cancelar</button>
+              <button mat-stroked-button class="btn-secondary" (click)="viewHistory(appt)">Ver historial</button>
+            </div>
+          </mat-card>
         }
-      </table>
-    </mat-card-content>
-  </mat-card>
+      </div>
+    </div>
+  }
+
+  @if (patients().length === 0 && !loading) {
+    <div class="empty-state-wrapper">
+      <div class="empty-state-content">
+        <span class="empty-text">No hay pacientes registrados</span>
+        <button mat-unelevated-button class="btn-primary" (click)="openNewPatient()">
+          <mat-icon>add</mat-icon>
+          Nuevo paciente
+        </button>
+      </div>
+    </div>
+  } @else {
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar por nombre</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input matInput [formControl]="searchControl" />
+    </mat-form-field>
+
+    <div class="patients-grid">
+      @for (patient of filteredPatients(); track patient.id) {
+        <mat-card class="patient-card">
+          <div class="card-header">
+            <span class="card-name" [matTooltip]="patient.name + ' ' + patient.lastName">{{ patient.name }} {{ patient.lastName }}</span>
+            <button mat-icon-button [matMenuTriggerFor]="patientMenu" class="card-menu-btn">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #patientMenu="matMenu">
+              <button mat-menu-item (click)="openEditPatient(patient)">
+                <mat-icon>edit</mat-icon>
+                <span>Editar paciente</span>
+              </button>
+              <button mat-menu-item (click)="openEditPatient(patient)">
+                <mat-icon>history</mat-icon>
+                <span>Ver historial</span>
+              </button>
+              @if (isAdmin) {
+                <button mat-menu-item (click)="setCustomOtp(patient)">
+                  <mat-icon>lock_reset</mat-icon>
+                  <span>Cambiar contrase&ntilde;a OTP</span>
+                </button>
+              } @else {
+                <button mat-menu-item (click)="regenerateOtp(patient)">
+                  <mat-icon>refresh</mat-icon>
+                  <span>Regenerar OTP</span>
+                </button>
+              }
+              <button mat-menu-item (click)="deletePatient(patient)">
+                <mat-icon>delete</mat-icon>
+                <span>Eliminar paciente</span>
+              </button>
+            </mat-menu>
+          </div>
+          <div class="card-body">
+            <span class="card-label">Correo:</span>
+            <span class="card-value">{{ patient.email }}</span>
+            <span class="card-label">Tel&eacute;fono:</span>
+            <span class="card-value">{{ patient.phone }}</span>
+            <span class="card-label">Padre:</span>
+            <span class="card-value">{{ patient.fatherName }}</span>
+            <span class="card-label">Madre:</span>
+            <span class="card-value">{{ patient.motherName }}</span>
+            <span class="card-label">Contrase&ntilde;a OTP:</span>
+            <span class="card-value otp-value">{{ patient.otpPassword }}
+              <button mat-icon-button (click)="copyOtp(patient.otpPassword)" matTooltip="Copiar OTP" class="otp-copy-btn">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+            </span>
+          </div>
+        </mat-card>
+      }
+    </div>
+  }
 </div>
 
-@if (showDialog) {
-  <div class="dialog-overlay">
-    <mat-card class="dialog-card">
-      <mat-card-header>
-        <mat-card-title>{{ editingPatient ? 'Editar paciente' : 'Nuevo paciente' }}</mat-card-title>
-      </mat-card-header>
-
-      <mat-card-content>
-        <form [formGroup]="form">
-          <div class="form-row">
-            <mat-form-field appearance="outline">
-              <mat-label>Nombre</mat-label>
-              <input matInput formControlName="name" />
-              @if (nameControl.invalid && (nameControl.touched || nameControl.dirty)) {
-                <mat-error>Ingresa el nombre</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Apellidos</mat-label>
-              <input matInput formControlName="lastName" />
-              @if (lastNameControl.invalid && (lastNameControl.touched || lastNameControl.dirty)) {
-                <mat-error>Ingresa los apellidos</mat-error>
-              }
-            </mat-form-field>
-          </div>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Correo electrónico</mat-label>
-            <input matInput type="email" formControlName="email" />
-            @if (emailControl.invalid && (emailControl.touched || emailControl.dirty)) {
-              <mat-error>Ingresa un correo electrónico válido</mat-error>
-            }
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Teléfono</mat-label>
-            <input matInput type="tel" formControlName="phone" />
-            @if (phoneControl.invalid && (phoneControl.touched || phoneControl.dirty)) {
-              <mat-error>Ingresa el teléfono</mat-error>
-            }
-          </mat-form-field>
-
-          @if (dialogError) {
-            <mat-error class="dialog-error">{{ dialogError }}</mat-error>
-          }
-        </form>
-      </mat-card-content>
-
-      <mat-card-actions align="end">
-        <button mat-button (click)="closeDialog()">Cancelar</button>
-        <button mat-unelevated-button class="btn-primary" (click)="savePatient()" [disabled]="form.invalid || saving">
-          @if (saving) {
-            <mat-spinner diameter="18" />
-          } @else {
-            {{ editingPatient ? 'Actualizar' : 'Guardar' }}
-          }
-        </button>
-      </mat-card-actions>
-    </mat-card>
-  </div>
-}

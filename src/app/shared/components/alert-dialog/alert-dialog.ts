@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { ConfirmOptions } from '../../../core/models/alert';
@@ -7,6 +7,7 @@ import { ConfirmOptions } from '../../../core/models/alert';
   selector: 'app-alert-dialog',
   templateUrl: './alert-dialog.html',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatDialogModule, MatButtonModule],
 })
 export class AlertDialog {

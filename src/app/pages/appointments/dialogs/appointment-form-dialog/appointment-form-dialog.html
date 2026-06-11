@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>{{ editingAppointment ? 'Editar cita' : 'Nueva cita' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Paciente</mat-label>
+      <mat-select formControlName="patientId">
+        @for (p of allPatients; track p.id) {
+          <mat-option [value]="p.id">{{ p.name }} {{ p.lastName }}</mat-option>
+        }
+      </mat-select>
+      @if (form.get('patientId')?.invalid && (form.get('patientId')?.touched || submitted)) {
+        <mat-error>Selecciona un paciente</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Fecha</mat-label>
+        <input matInput type="date" formControlName="date" />
+        @if (form.get('date')?.invalid && (form.get('date')?.touched || submitted)) {
+          <mat-error>Selecciona una fecha</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Hora</mat-label>
+        <input matInput type="time" formControlName="time" />
+        @if (form.get('time')?.invalid && (form.get('time')?.touched || submitted)) {
+          <mat-error>Selecciona una hora</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Notas (opcional)</mat-label>
+      <textarea matInput formControlName="notes" rows="2"></textarea>
+    </mat-form-field>
+
+    @if (error) {
+      <mat-error class="dialog-error">{{ error }}</mat-error>
+    }
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button class="btn-tertiary" [mat-dialog-close]="false">Cancelar</button>
+  <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+    @if (saving) {
+      <mat-spinner diameter="18" />
+    } @else {
+      Guardar
+    }
+  </button>
+</mat-dialog-actions>

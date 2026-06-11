@@ -61,14 +61,19 @@ export class AppointmentRepository {
   }
 
   async getAppointmentsByDoctor(doctorId: string): Promise<Appointment[]> {
-    const q = query(this.appointmentRef, where('doctorId', '==', doctorId));
+    const q = query(
+      this.appointmentRef,
+      where('doctorId', '==', doctorId),
+      where('disabled', '==', false),
+    );
     const docsSnap = await getDocs(q);
     return docsSnap.docs.map((d) => d.data() as Appointment);
   }
 
   watchAllAppointments(): Observable<Appointment[]> {
     return new Observable((subscriber) => {
-      const unsubscribe = onSnapshot(this.appointmentRef, (snapshot) => {
+      const q = query(this.appointmentRef, where('disabled', '==', false));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
         const items = snapshot.docs.map((doc) => doc.data() as Appointment);
         subscriber.next(items);
       });
@@ -78,7 +83,11 @@ export class AppointmentRepository {
 
   watchAppointmentsByDoctor(doctorId: string): Observable<Appointment[]> {
     return new Observable((subscriber) => {
-      const q = query(this.appointmentRef, where('doctorId', '==', doctorId));
+      const q = query(
+        this.appointmentRef,
+        where('doctorId', '==', doctorId),
+        where('disabled', '==', false),
+      );
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const items = snapshot.docs.map((doc) => doc.data() as Appointment);
         subscriber.next(items);

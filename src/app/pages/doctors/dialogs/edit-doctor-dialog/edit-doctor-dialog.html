@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>Editar asistente</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre completo</mat-label>
+      <input matInput formControlName="name" />
+      @if (form.get('name')?.invalid && (form.get('name')?.touched || submitted)) {
+        <mat-error>Ingresa el nombre completo</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Correo electrónico</mat-label>
+      <input matInput type="email" formControlName="email" (input)="onEmailChange()" />
+      @if (form.get('email')?.invalid && (form.get('email')?.touched || submitted)) {
+        <mat-error>Ingresa un correo electrónico válido</mat-error>
+      }
+    </mat-form-field>
+
+    @if (showPasswordSection) {
+      <div class="password-section">
+        <span class="password-hint">Al cambiar el correo, ingresa una nueva contraseña para el asistente.</span>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nueva contraseña</mat-label>
+          <input matInput type="password" formControlName="newPassword" />
+          @if (passwordForm.get('newPassword')?.invalid && (passwordForm.get('newPassword')?.touched || submitted)) {
+            <mat-error>Ingresa una contraseña de al menos 8 caracteres.</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Confirmar contraseña</mat-label>
+          <input matInput type="password" formControlName="confirmPassword" />
+          @if (passwordForm.get('confirmPassword')?.invalid && (passwordForm.get('confirmPassword')?.touched || submitted)) {
+            <mat-error>Confirma la contraseña.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+    }
+
+    @if (error) {
+      <mat-error class="dialog-error">{{ error }}</mat-error>
+    }
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button class="btn-tertiary" [mat-dialog-close]="false">Cancelar</button>
+  <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+    @if (saving) {
+      <mat-spinner diameter="18" />
+    } @else {
+      Guardar cambios
+    }
+  </button>
+</mat-dialog-actions>

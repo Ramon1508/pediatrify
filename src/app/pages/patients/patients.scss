@@ -1,70 +1,218 @@
 .patients-container {
-  max-width: 1000px;
-  margin: 2rem auto;
+  width: auto;
+  margin: 2rem 40px;
   padding: 0 1rem;
-}
 
-.header-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-
-  h2 {
-    margin: 0;
-    font-weight: 500;
+  .header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
   }
 }
 
-.patients-table {
-  width: 100%;
+.page-title {
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 28px;
+  letter-spacing: 0;
+  color: #000000;
 }
 
-.otp-password {
-  font-family: monospace;
-  font-size: 0.9rem;
-  background: #f5f5f5;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: #757575;
-}
-
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+.empty-state-wrapper {
+  margin-top: 40px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
 }
 
-.dialog-card {
-  max-width: 500px;
+.empty-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.empty-text {
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+  text-align: center;
+  color: #49454F;
+}
+
+.search-field {
   width: 100%;
-  padding: 1rem;
+  margin-bottom: 24px;
+}
 
-  .form-row {
+.patients-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.patient-card {
+  width: 360px;
+  flex: none;
+  border: 2px solid #0D6E8F;
+  box-shadow: 0px 2px 6px 2px #00000026, 0px 1px 2px 0px #0000004D;
+  margin: 0 !important;
+  border-radius: 12px;
+  padding: 16px 24px;
+  box-sizing: border-box;
+
+  .card-header {
     display: flex;
-    gap: 1rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
 
-    mat-form-field {
-      flex: 1;
+  .card-name {
+    font-family: Roboto, sans-serif;
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 32px;
+    letter-spacing: 0;
+    color: #1B1B1B;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .card-menu-btn {
+    flex-shrink: 0;
+  }
+
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .card-label {
+    font-family: Roboto, sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0.15px;
+    color: #1B1B1B;
+  }
+
+  .card-value {
+    font-family: Roboto, sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0.15px;
+    color: #474747;
+  }
+
+  .otp-value {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .otp-copy-btn {
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      line-height: 16px;
     }
   }
+}
 
-  .full-width {
-    width: 100%;
+.carousel-section {
+  margin-bottom: 24px;
+
+  .carousel-label {
+    display: block;
+    font-family: Roboto, sans-serif;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0.5px;
+    color: #000000;
+    margin-bottom: 12px;
   }
 
-  .dialog-error {
-    display: block;
-    margin-top: 0.5rem;
+  .carousel-scroll {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+.appointment-card {
+  min-width: 280px;
+  flex: none;
+  scroll-snap-align: start;
+  border: 1px solid #CAC4D0;
+  border-radius: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .appt-name {
+    font-family: Roboto, sans-serif;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 24px;
+    letter-spacing: 0;
+    color: #1B1B1B;
+  }
+
+  .appt-time {
+    font-family: Roboto, sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.25px;
+    color: #0D6E8F;
+  }
+
+  .appt-motive {
+    font-family: Roboto, sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.25px;
+    color: #49454F;
+  }
+
+  .appt-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+}
+
+@media (max-width: 768px) {
+  .patients-container {
+    margin: 1rem 16px;
+  }
+
+  .appointment-card {
+    min-width: 240px;
+
+    .appt-actions {
+      flex-direction: column;
+    }
   }
 }

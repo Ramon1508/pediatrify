@@ -20,6 +20,12 @@ export interface AppUser {
   logoPath?: string;
   profileComplete?: boolean;
   photoURL?: string;
+  consultationDuration?: number;
+  allowPatientScheduling?: boolean;
+  availableDays?: string[];
+  startTime?: string;
+  endTime?: string;
+  timeSegments?: TimeSegment[];
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -28,11 +34,32 @@ export interface Patient {
   id: string;
   name: string;
   lastName: string;
+  birthDate: string;
   email: string;
+  secondaryEmail?: string;
+  fatherName: string;
+  motherName: string;
   phone: string;
   otpPassword: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+}
+
+export interface TimeSegment {
+  startTime: string;
+  endTime: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  performedBy: string;
+  performedByUid: string;
+  timestamp: Timestamp;
+  oldValues?: Record<string, any>;
+  newValues?: Record<string, any>;
 }
 
 export interface Appointment {
@@ -47,6 +74,9 @@ export interface Appointment {
   type: 'scheduled' | 'walk-in';
   notes?: string;
   createdAt?: Timestamp;
+  updatedBy?: string;
+  updatedAt?: Timestamp;
+  disabled?: boolean;
 }
 
 export type SessionUser =

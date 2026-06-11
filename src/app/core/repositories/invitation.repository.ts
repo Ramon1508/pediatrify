@@ -16,13 +16,13 @@ export class InvitationRepository {
   async findPendingUserByEmail(email: string) {
     const q = query(
       collection(this.firestore, 'users'),
-      where('email', '==', email),
-      where('pending', '==', true)
+      where('email', '==', email)
     );
     const snap = await getDocs(q);
     if (snap.empty) return null;
-    const doc = snap.docs[0];
-    return { id: doc.id, ...doc.data() } as any;
+    const pendingDoc = snap.docs.find(d => d.data()['pending'] === true);
+    if (!pendingDoc) return null;
+    return { id: pendingDoc.id, ...pendingDoc.data() } as any;
   }
 
   async deletePendingUser(uid: string) {

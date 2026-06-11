@@ -1,64 +1,103 @@
 <div class="calendar-page">
   <div class="calendar-toolbar">
-    <div class="toolbar-left" (click)="openDatePicker()">
-      <input matInput [matDatepicker]="picker" class="datepicker-trigger" (dateChange)="onDateSelected($event)">
-      <mat-datepicker #picker></mat-datepicker>
-      <input #dayPicker type="date" class="date-input mobile-only" [value]="formatDate(selectedDay())" (change)="onMobileDateChange(dayPicker.value)" />
-      <span class="date-label desktop-only">{{ dateLabel() }}</span>
-      <span class="date-label mobile-only">{{ mobileDateLabel() }}</span>
-      <mat-icon class="dropdown-icon">keyboard_arrow_down</mat-icon>
+    <div class="toolbar-left">
+      <div class="date-picker-area" (click)="openDatePicker()">
+        <input matInput [matDatepicker]="picker" class="datepicker-trigger" (dateChange)="onDateSelected($event)">
+        <mat-datepicker #picker></mat-datepicker>
+        <input #dayPicker type="date" class="date-input mobile-only" [value]="formatDate(selectedDay())" (change)="onMobileDateChange(dayPicker.value)" />
+        <span class="date-label desktop-only">{{ dateLabel() }}</span>
+        <span class="date-label mobile-only">{{ mobileDateLabel() }}</span>
+        <mat-icon class="dropdown-icon">keyboard_arrow_down</mat-icon>
+      </div>
+      <button mat-stroked-button class="btn-secondary btn-hoy" (click)="goToToday()">Hoy</button>
+      @if (false) {
+        <mat-form-field appearance="outline" class="doctor-selector">
+          <mat-select [value]="selectedDoctorId()" (selectionChange)="onDoctorSelected($event.value)">
+            @for (doc of allDoctors; track doc.uid) {
+              <mat-option [value]="doc.uid">{{ doc.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
     </div>
 
     <div class="toolbar-right">
-      <button mat-stroked-button class="btn-secondary" (click)="goToToday()">Hoy</button>
-      <button mat-icon-button class="settings-btn" (click)="toggleSettings()">
+      <button mat-stroked-button class="btn-secondary" (click)="openSettingsDialog()">
         <mat-icon>settings</mat-icon>
+        Configuración
+      </button>
+      <button mat-unelevated-button class="btn-primary" (click)="openSideAppointment()">
+        <mat-icon>add</mat-icon>
+        Agendar consulta
       </button>
     </div>
   </div>
 
   <div class="calendar-scroll">
-    <div class="calendar-grid">
-      <div class="grid-cell corner-cell"></div>
-
-      @for (day of weekDays(); track day.getTime()) {
-        <div class="grid-cell day-header" [class.today]="isToday(day)">
-          <span class="day-number">{{ day.getDate() }}</span>
-          <span class="day-name">{{ dayNames[day.getDay()] }}</span>
-        </div>
-      }
-
-      @for (slot of timeSlots; track slot.key) {
-        <div class="grid-cell time-label">
-          @if (slot.label) {
-            <span>{{ slot.label }}</span>
-          }
-        </div>
+    @if (availableDaysSignal().length) {
+      <div class="calendar-grid" [style.grid-template-columns]="gridTemplateColumns">
+        <div class="grid-cell corner-cell"></div>
 
         @for (day of weekDays(); track day.getTime()) {
-          <div
-            class="grid-cell data-cell"
-            [class.today-cell]="isToday(day)"
-            [class.current-hour]="isToday(day) && isCurrentHour(slot)"
-            (mouseenter)="onCellHover(day, slot)"
-            (mouseleave)="onCellLeave()"
-            (click)="openNewAppointment(day, slot)"
-          >
-            @for (apt of getAppointmentsForCell(day, slot); track apt.id) {
-              <div class="appointment-block" [class.attended]="apt.status === 'attended'">
-                {{ apt.patientName }}
-              </div>
-            }
-            @if (!getAppointmentsForCell(day, slot).length && isHovered(day, slot)) {
-              <button class="add-btn" mat-icon-button>
-                <mat-icon>add</mat-icon>
-              </button>
-            }
+          <div class="grid-cell day-header" [class.today]="isToday(day)" [class.disabled-header]="!isDayAvailable(day)">
+            <span class="day-number">{{ day.getDate() }}</span>
+            <span class="day-name">{{ dayNames[day.getDay()] }}</span>
           </div>
         }
-      }
-    </div>
+
+        @for (slot of timeSlots; track slot.key) {
+          <div class="grid-cell time-label">
+            @if (slot.label) {
+              <span>{{ slot.label }}</span>
+            }
+          </div>
+
+          @for (day of weekDays(); track day.getTime()) {
+            <div
+              class="grid-cell data-cell"
+              [class.today-cell]="isToday(day)"
+              [class.current-hour]="isToday(day) && isCurrentHour(slot)"
+              [class.disabled-cell]="!isDayAvailable(day)"
+              (mouseenter)="canInteractWithCell(day) && onCellHover(day, slot)"
+              (mouseleave)="onCellLeave()"
+              (click)="canInteractWithCell(day) && openNewAppointment(day, slot)"
+            >
+              @for (apt of getAppointmentsForCell(day, slot); track apt.id) {
+                <div class="appointment-block"
+                     [class.attended]="apt.status === 'attended'"
+                     [matTooltip]="apt.patientName"
+                     (click)="$event.stopPropagation(); selectAppointment(apt, $event)"
+                >
+                  {{ apt.patientName }}
+                </div>
+              }
+              @if (canInteractWithCell(day) && !getAppointmentsForCell(day, slot).length && isHovered(day, slot)) {
+                <button class="add-btn" mat-icon-button>
+                  <mat-icon>add</mat-icon>
+                </button>
+              }
+            </div> 
+          }
+        }
+      </div>
+    } @else {
+      <p class="no-days-message">Selecciona días disponibles en Configuración para ver el calendario.</p>
+    }
   </div>
+
+  @if (selectedAppointment(); as apt) {
+    @if (overlayPosition(); as pos) {
+      <div class="detail-overlay" [style.top.px]="pos.top" [style.left.px]="pos.left" (click)="selectedAppointment.set(null); overlayPosition.set(null)">
+        <div class="detail-overlay-inner" (click)="$event.stopPropagation()">
+          <app-appointment-detail-card
+            [appointment]="apt"
+            (edit)="editAppointment($event); selectedAppointment.set(null); overlayPosition.set(null)"
+            (cancel)="cancelAppointment(apt)"
+          />
+        </div>
+      </div>
+    }
+  }
 </div>
 
 <div class="mobile-view">
@@ -70,7 +109,7 @@
       @if (expandedAppointmentId() === apt.id) {
         <app-appointment-detail-card
           [appointment]="apt"
-          (close)="clearExpand()"
+          (cancel)="cancelAppointment(apt)"
         />
       }
     }
@@ -80,66 +119,4 @@
   </div>
 </div>
 
-@if (showSettings) {
-  <div class="settings-backdrop" (click)="closeSettings()"></div>
-  <aside class="settings-panel">
-    <div class="settings-header">
-      <h2 class="title-small">Configuración</h2>
-      <button mat-icon-button (click)="closeSettings()">
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
-    <div class="settings-body">
-      <!-- Settings content goes here -->
-      <p class="body-large">Opciones de configuración</p>
-    </div>
-  </aside>
-}
 
-@if (showDialog) {
-  <div class="dialog-overlay">
-    <mat-card class="dialog-card">
-      <mat-card-header>
-        <mat-card-title>Nueva cita</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <form [formGroup]="appointmentForm">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Paciente</mat-label>
-            <mat-select formControlName="patientId">
-              @for (p of allPatients; track p.id) {
-                <mat-option [value]="p.id">{{ p.name }} {{ p.lastName }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-
-          <div class="form-row">
-            <mat-form-field appearance="outline">
-              <mat-label>Fecha</mat-label>
-              <input matInput type="date" formControlName="date" />
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Hora</mat-label>
-              <input matInput type="time" formControlName="time" />
-            </mat-form-field>
-          </div>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Notas</mat-label>
-            <textarea matInput formControlName="notes" rows="2"></textarea>
-          </mat-form-field>
-
-          @if (dialogError) {
-            <mat-error class="dialog-error">{{ dialogError }}</mat-error>
-          }
-        </form>
-      </mat-card-content>
-      <mat-card-actions align="end">
-        <button mat-button (click)="closeDialog()">Cancelar</button>
-        <button mat-unelevated-button class="btn-primary" (click)="saveAppointment()" [disabled]="appointmentForm.invalid">
-          Guardar
-        </button>
-      </mat-card-actions>
-    </mat-card>
-  </div>
-}

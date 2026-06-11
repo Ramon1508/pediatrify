@@ -1,4 +1,4 @@
-import { Component, inject, output } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../core/services/auth.service';
@@ -8,6 +8,7 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink,
     RouterLinkActive,
@@ -17,8 +18,6 @@ import { AuthService } from '../../../core/services/auth.service';
 export class Sidebar {
   protected authService = inject(AuthService);
   private router = inject(Router);
-  closeSidenav = output<void>();
-
   readonly navItems = [
     { path: '/app/calendar', icon: 'access_time', label: 'Calendario' },
     { path: '/app/patients', icon: 'groups', label: 'Pacientes' },

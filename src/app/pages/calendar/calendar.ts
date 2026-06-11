@@ -1,19 +1,29 @@
-import { Component, inject, signal, computed, OnInit, AfterViewInit, ViewChild } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, ViewChild, ChangeDetectorRef, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
+import { FormBuilder, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AppointmentRepository } from '../../core/repositories/appointment.repository';
+import { UserRepository } from '../../core/repositories/user.repository';
 import { PatientRepository } from '../../core/repositories/patient.repository';
-import { Appointment, Patient } from '../../core/models/user';
+import { AuditRepository } from '../../core/repositories/audit.repository';
+import { Appointment, Patient, AppUser, TimeSegment } from '../../core/models/user';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
 import { AppointmentDetailCard } from '../../shared/components/appointment-detail-card/appointment-detail-card';
+import { AppointmentDialog } from './dialogs/appointment-dialog/appointment-dialog';
+import { SettingsDialog, SettingsData } from './dialogs/settings-dialog/settings-dialog';
+import { CancelAppointmentDialog } from './dialogs/cancel-appointment-dialog/cancel-appointment-dialog';
+import { Subscription } from 'rxjs';
 
 export interface TimeSlot {
   hour: number;
@@ -27,46 +37,60 @@ export interface TimeSlot {
   templateUrl: './calendar.html',
   styleUrl: './calendar.scss',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
+    MatAutocompleteModule,
     AppointmentDetailCard,
     MatDatepickerModule,
+    MatTooltipModule,
+    MatDialogModule,
+    MatSlideToggleModule,
+    MatProgressSpinnerModule,
   ],
 })
-export class Calendar implements OnInit, AfterViewInit {
+export class Calendar implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private appointmentRepo = inject(AppointmentRepository);
+  private userRepo = inject(UserRepository);
   private patientRepo = inject(PatientRepository);
+  private auditRepo = inject(AuditRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
+  private dialog = inject(MatDialog);
+  private cdr = inject(ChangeDetectorRef);
 
   readonly dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  readonly dayNamesShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   readonly monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
   protected weekStart = signal<Date>(this.getWeekStart(new Date()));
   protected allAppointments = signal<Appointment[]>([]);
   protected allPatients: Patient[] = [];
+  protected allDoctors: AppUser[] = [];
+  protected selectedDoctorId = signal<string>('');
+  protected isAdmin = false;
 
-  protected showDialog = false;
-  protected showSettings = false;
-  protected dialogError = '';
-
-  protected appointmentForm = this.fb.group({
-    patientId: ['', Validators.required],
-    date: ['', Validators.required],
-    time: ['', Validators.required],
-    notes: [''],
+  protected settingsForm = this.fb.group({
+    consultationDuration: [30, Validators.required],
+    allowPatientScheduling: [false],
+    timeSegments: this.fb.array<{ startTime: string; endTime: string }>([]),
   });
+
+  protected availableDaysSignal = signal<string[]>(['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']);
 
   protected selectedDay = signal<Date>(new Date());
   protected expandedAppointmentId = signal<string | null>(null);
+  protected selectedAppointment = signal<Appointment | null>(null);
+  protected overlayPosition = signal<{ top: number; left: number } | null>(null);
+
+  private appointmentSub: Subscription | null = null;
 
   @ViewChild('picker') materialPicker!: any;
 
@@ -80,12 +104,25 @@ export class Calendar implements OnInit, AfterViewInit {
     this.materialPicker?.open();
   }
 
-  protected toggleSettings() {
-    this.showSettings = !this.showSettings;
-  }
-
-  protected closeSettings() {
-    this.showSettings = false;
+  protected openSettingsDialog() {
+    const data: SettingsData = {
+      consultationDuration: this.settingsForm.value.consultationDuration ?? 30,
+      allowPatientScheduling: this.settingsForm.value.allowPatientScheduling ?? false,
+      timeSegments: (this.settingsForm.value.timeSegments ?? []) as TimeSegment[],
+      availableDays: this.availableDaysSignal(),
+      doctorId: this.selectedDoctorId(),
+    };
+    const dialogRef = this.dialog.open(SettingsDialog, {
+      width: '400px',
+      disableClose: true,
+      panelClass: 'right-panel',
+    });
+    dialogRef.componentInstance.setData(data);
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.loadDoctorData(this.selectedDoctorId());
+      }
+    });
   }
 
   protected getAppointmentsForDay = computed(() => {
@@ -138,9 +175,16 @@ export class Calendar implements OnInit, AfterViewInit {
     });
   });
 
+  protected gridTemplateColumns = '80px repeat(7, 1fr)';
+
   protected dateLabel = computed(() => {
     const start = this.weekStart();
-    const end = this.weekDays()[6];
+    const allDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+    const end = allDays[6];
     const startMonth = this.monthNames[start.getMonth()];
     const endMonth = this.monthNames[end.getMonth()];
     const startYear = start.getFullYear();
@@ -156,32 +200,128 @@ export class Calendar implements OnInit, AfterViewInit {
   });
 
   protected timeSlots: TimeSlot[] = [];
-
   protected hoveredCell: { date: Date; slot: TimeSlot } | null = null;
 
   constructor() {
-    for (let h = 6; h <= 21; h++) {
-      this.timeSlots.push({ hour: h, minute: 0, label: `${h}:00`, key: `${h}:00` });
-      this.timeSlots.push({ hour: h, minute: 30, label: '', key: `${h}:30` });
+    this.timeSlots = this.generateTimeSlots();
+  }
+
+  private generateTimeSlots(): TimeSlot[] {
+    const raw = this.settingsForm.value.timeSegments as TimeSegment[] | undefined;
+    const segments = raw?.length ? raw : [{ startTime: '06:00', endTime: '00:00' }];
+    const duration = this.settingsForm.value.consultationDuration ?? 30;
+    const slots: TimeSlot[] = [];
+    for (const seg of segments) {
+      const [startH, startM] = seg.startTime.split(':').map(Number);
+      let [endH, endM] = seg.endTime.split(':').map(Number);
+      if (endH === 0 && endM === 0) endH = 24;
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+      let idx = 0;
+      for (let m = startMinutes; m < endMinutes; m += duration) {
+        const hour = Math.floor(m / 60);
+        const minute = m % 60;
+        const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        slots.push({
+          hour,
+          minute,
+          label: idx % 2 === 0 ? `${hour12}:${minute.toString().padStart(2, '0')} ${period}` : '',
+          key: timeStr,
+        });
+        idx++;
+      }
     }
+    return slots;
+  }
+
+  private getDayShort(date: Date): string {
+    const idx = date.getDay();
+    return this.dayNamesShort[idx === 0 ? 6 : idx - 1];
+  }
+
+  protected isDayAvailable(date: Date): boolean {
+    return this.availableDaysSignal().includes(this.getDayShort(date));
+  }
+
+  protected canInteractWithCell(_date: Date): boolean {
+    return true;
+  }
+
+  protected onDoctorSelected(doctorId: string) {
+    this.selectedDoctorId.set(doctorId);
+    this.loadDoctorData(doctorId);
+  }
+
+  private get timeSegmentsFormArray() {
+    return this.settingsForm.get('timeSegments') as FormArray;
+  }
+
+  private async loadDoctorData(doctorId: string) {
+    if (this.appointmentSub) {
+      this.appointmentSub.unsubscribe();
+      this.appointmentSub = null;
+    }
+
+    this.appointmentSub = this.appointmentRepo.watchAppointmentsByDoctor(doctorId).subscribe((apps) => {
+      this.allAppointments.set(apps);
+      this.cdr.markForCheck();
+    });
+
+    const user = await this.userRepo.getUser(doctorId);
+    if (user) {
+      this.settingsForm.patchValue({
+        consultationDuration: user.consultationDuration ?? 30,
+        allowPatientScheduling: user.allowPatientScheduling ?? false,
+      });
+      this.timeSegmentsFormArray.clear();
+      const oldDefault = user.timeSegments?.length === 1 && user.timeSegments[0].startTime === '08:00' && user.timeSegments[0].endTime === '17:00';
+      const segments = oldDefault ? [{ startTime: '06:00', endTime: '00:00' }] : (user.timeSegments?.length ? user.timeSegments : [{ startTime: '06:00', endTime: '00:00' }]);
+      for (const seg of segments) {
+        this.timeSegmentsFormArray.push(this.fb.group({ startTime: seg.startTime, endTime: seg.endTime }));
+      }
+      if (user.availableDays?.length) {
+        this.availableDaysSignal.set(user.availableDays);
+      }
+    }
+    this.timeSlots = this.generateTimeSlots();
+    this.cdr.markForCheck();
   }
 
   async ngOnInit() {
     const doctor = this.authService.currentDoctor;
     if (!doctor) return;
+
+    this.isAdmin = doctor.role === 'admin';
+    this.selectedDoctorId.set(doctor.uid);
+
     this.allPatients = await this.patientRepo.getAllPatients();
-    this.appointmentRepo.watchAppointmentsByDoctor(doctor.uid).subscribe((apps) => {
-      this.allAppointments.set(apps);
-    });
+    this.cdr.markForCheck();
+
+    if (this.isAdmin) {
+      this.userRepo.watchAllUsers().subscribe((users) => {
+        this.allDoctors = users.filter(u => u.role === 'admin' || u.role === 'employee');
+        this.cdr.markForCheck();
+      });
+    }
+
+    this.loadDoctorData(doctor.uid).then(() => this.scrollToCurrentHour());
   }
 
-  ngAfterViewInit() {
+  private scrollToCurrentHour() {
     setTimeout(() => {
       const el = document.querySelector('.time-label.current-hour');
       if (el) {
         el.scrollIntoView({ block: 'center', behavior: 'auto' });
       }
     });
+  }
+
+  ngOnDestroy() {
+    if (this.appointmentSub) {
+      this.appointmentSub.unsubscribe();
+    }
   }
 
   private getWeekStart(date: Date): Date {
@@ -205,6 +345,7 @@ export class Calendar implements OnInit, AfterViewInit {
 
   goToToday() {
     this.weekStart.set(this.getWeekStart(new Date()));
+    setTimeout(() => this.scrollToCurrentHour());
   }
 
   jumpToWeek(dateValue: string) {
@@ -224,8 +365,11 @@ export class Calendar implements OnInit, AfterViewInit {
 
   isCurrentHour(slot: TimeSlot): boolean {
     const now = new Date();
-    const currentBlockMinute = now.getMinutes() < 30 ? 0 : 30;
-    return slot.hour === now.getHours() && slot.minute === currentBlockMinute;
+    const duration = this.settingsForm.value.consultationDuration ?? 30;
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const blockStart = Math.floor(nowMinutes / duration) * duration;
+    const slotMinutes = slot.hour * 60 + slot.minute;
+    return slotMinutes === blockStart;
   }
 
   onCellHover(date: Date, slot: TimeSlot) {
@@ -252,42 +396,110 @@ export class Calendar implements OnInit, AfterViewInit {
     );
   }
 
-  openNewAppointment(date: Date, slot: TimeSlot) {
-    const dateStr = this.formatDate(date);
-    const timeStr = `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`;
-    this.appointmentForm.setValue({ patientId: '', date: dateStr, time: timeStr, notes: '' });
-    this.dialogError = '';
-    this.showDialog = true;
-  }
-
-  closeDialog() {
-    this.showDialog = false;
-  }
-
-  async saveAppointment() {
-    if (this.appointmentForm.invalid) return;
-
-    const doctor = this.authService.currentDoctor;
-    const { patientId, date, time, notes } = this.appointmentForm.value;
-    const patient = this.allPatients.find((p) => p.id === patientId);
-    if (!doctor || !patient) return;
-
-    const id = crypto.randomUUID();
-    await this.appointmentRepo.createAppointment(id, {
-      id,
-      patientId: patient.id,
-      patientName: `${patient.name} ${patient.lastName}`,
-      doctorId: doctor.uid,
-      doctorName: doctor.name,
-      date: date!,
-      time: time!,
-      status: 'scheduled',
-      type: 'scheduled',
-      notes: notes || '',
+  private openAppointmentDialog(editingAppointment?: Appointment | null, prefill?: { date: Date; slot: TimeSlot }) {
+    const dialogRef = this.dialog.open(AppointmentDialog, {
+      width: '400px',
+      disableClose: true,
+      panelClass: 'right-panel',
     });
+    const instance = dialogRef.componentInstance;
 
-    this.alert.success({ message: 'Cita agendada', duration: 3000 });
-    this.showDialog = false;
+    if (prefill) {
+      const dateStr = this.formatDate(prefill.date);
+      const timeStr = `${prefill.slot.hour.toString().padStart(2, '0')}:${prefill.slot.minute.toString().padStart(2, '0')}`;
+      instance.setData({
+        allPatients: this.allPatients,
+        selectedDoctorId: this.selectedDoctorId(),
+        editingAppointment: null,
+      });
+      instance.setPrefill(dateStr, timeStr);
+    } else if (editingAppointment) {
+      instance.setData({
+        allPatients: this.allPatients,
+        selectedDoctorId: this.selectedDoctorId(),
+        editingAppointment,
+      });
+    } else {
+      instance.setData({
+        allPatients: this.allPatients,
+        selectedDoctorId: this.selectedDoctorId(),
+      });
+    }
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  protected selectAppointment(apt: Appointment, event: MouseEvent) {
+    this.selectedAppointment.set(apt);
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.overlayPosition.set({ top: rect.bottom + 4, left: rect.left });
+  }
+
+  openNewAppointment(date: Date, slot: TimeSlot) {
+    this.selectedAppointment.set(null);
+    this.overlayPosition.set(null);
+    this.openAppointmentDialog(null, { date, slot });
+  }
+
+  openSideAppointment() {
+    this.selectedAppointment.set(null);
+    this.overlayPosition.set(null);
+    this.openAppointmentDialog();
+  }
+
+  editAppointment(apt: Appointment) {
+    this.selectedAppointment.set(null);
+    this.overlayPosition.set(null);
+    this.openAppointmentDialog(apt);
+  }
+
+  protected cancelAppointment(apt: Appointment) {
+    const dialogRef = this.dialog.open(CancelAppointmentDialog, {
+      disableClose: true,
+      panelClass: 'cancel-dialog',
+    });
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.selectedAppointment.set(null);
+        this.overlayPosition.set(null);
+        this.doCancelAppointment(apt);
+      }
+    });
+  }
+
+  private async doCancelAppointment(apt: Appointment) {
+    await this.appointmentRepo.updateAppointment(apt.id, { status: 'cancelled' });
+    this.alert.success({ message: 'Cita cancelada', duration: 3000 });
+  }
+
+  async deleteAppointment(apt: Appointment) {
+    this.selectedAppointment.set(null);
+    this.overlayPosition.set(null);
+    const dialogRef = this.alert.confirm({
+      title: 'Eliminar cita',
+      message: `¿Deshabilitar la cita de ${apt.patientName}? No se borrará, solo se ocultará.`,
+      confirmText: 'Eliminar',
+    });
+    const result = await dialogRef.afterClosed().toPromise();
+    if (!result) return;
+    await this.appointmentRepo.updateAppointment(apt.id, { disabled: true });
+    const currentUser = this.authService.currentDoctor;
+    await this.auditRepo.log({
+      id: crypto.randomUUID(),
+      action: 'delete',
+      entityType: 'appointment',
+      entityId: apt.id,
+      performedBy: currentUser?.email ?? '',
+      performedByUid: currentUser?.uid ?? '',
+      timestamp: new Date() as any,
+      oldValues: { status: apt.status, date: apt.date, time: apt.time, patientId: apt.patientId, doctorId: apt.doctorId },
+    });
+    this.alert.success({ message: 'Cita deshabilitada', duration: 3000 });
+    this.cdr.markForCheck();
   }
 
   protected formatDate(date: Date): string {
@@ -296,4 +508,6 @@ export class Calendar implements OnInit, AfterViewInit {
     const d = date.getDate().toString().padStart(2, '0');
     return `${y}-${m}-${d}`;
   }
+
+
 }

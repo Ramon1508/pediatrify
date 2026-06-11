@@ -1,18 +1,8 @@
-<app-header [showMenuToggle]="true" (menuToggle)="toggleSidenav()" />
+<app-header />
 
-<mat-sidenav-container class="sidenav-container">
-  <mat-sidenav
-    [opened]="sidenavOpened()"
-    [mode]="isMobile() ? 'over' : 'side'"
-    position="start"
-    class="sidenav"
-  >
-    <app-sidebar (closeSidenav)="toggleSidenav()" />
-  </mat-sidenav>
-
-  <mat-sidenav-content class="sidenav-content">
-    <main class="main-content">
-      <router-outlet />
-    </main>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+<div class="layout-body">
+  <app-sidebar />
+  <main class="main-content">
+    <router-outlet />
+  </main>
+</div>

@@ -1,0 +1,60 @@
+<div class="audit-container">
+  <h2>Registro de cambios</h2>
+
+  <mat-card>
+    <mat-card-content>
+      @if (loading) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="entries()" class="audit-table">
+          <ng-container matColumnDef="action">
+            <th mat-header-cell *matHeaderCellDef>Acción</th>
+            <td mat-cell *matCellDef="let e">
+              <span class="action-badge" [class.create]="e.action === 'create'" [class.update]="e.action === 'update'" [class.delete]="e.action === 'delete'">
+                {{ e.action }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="entityType">
+            <th mat-header-cell *matHeaderCellDef>Entidad</th>
+            <td mat-cell *matCellDef="let e">{{ e.entityType }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="entityId">
+            <th mat-header-cell *matHeaderCellDef>ID</th>
+            <td mat-cell *matCellDef="let e" class="mono">{{ e.entityId.substring(0, 8) }}…</td>
+          </ng-container>
+
+          <ng-container matColumnDef="performedBy">
+            <th mat-header-cell *matHeaderCellDef>Realizado por</th>
+            <td mat-cell *matCellDef="let e">{{ e.performedBy }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="timestamp">
+            <th mat-header-cell *matHeaderCellDef>Fecha</th>
+            <td mat-cell *matCellDef="let e">{{ formatTimestamp(e.timestamp) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="changes">
+            <th mat-header-cell *matHeaderCellDef>Cambios</th>
+            <td mat-cell *matCellDef="let e" class="changes-cell">{{ formatChanges(e) }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+          @if (entries().length === 0) {
+            <tr class="mat-row">
+              <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+                <div class="empty-state">No hay cambios registrados</div>
+              </td>
+            </tr>
+          }
+        </table>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

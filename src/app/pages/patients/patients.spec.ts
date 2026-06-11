@@ -1,45 +1,89 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flush } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 import { Patients } from './patients';
 import { PatientRepository } from '../../core/repositories/patient.repository';
+import { AppointmentRepository } from '../../core/repositories/appointment.repository';
+import { AuditRepository } from '../../core/repositories/audit.repository';
 import { AlertService } from '../../core/services/alert.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Clipboard } from '@angular/cdk/clipboard';
+import { MatDialog } from '@angular/material/dialog';
+import { provideNativeDateAdapter } from '@angular/material/core';
 
 describe('Patients', () => {
   let fixture: ComponentFixture<Patients>;
   let component: Patients;
   let patientRepo: PatientRepository;
   let alertService: AlertService;
+  let appointmentRepo: AppointmentRepository;
+  let auditRepo: AuditRepository;
+  let dialog: MatDialog;
 
   const mockPatients = [
-    { id: '1', name: 'Juan', lastName: 'Pérez', email: 'juan@test.com', phone: '5512345678', otpPassword: 'ABC123' },
-    { id: '2', name: 'María', lastName: 'García', email: 'maria@test.com', phone: '5598765432', otpPassword: 'XYZ789' },
+    { id: '1', name: 'Juan', lastName: 'Pérez', email: 'juan@test.com', phone: '5512345678', otpPassword: 'ABC123', birthDate: '2020-01-15', fatherName: 'Carlos', motherName: 'María' },
+    { id: '2', name: 'María', lastName: 'García', email: 'maria@test.com', phone: '5598765432', otpPassword: 'XYZ789', birthDate: '2019-06-20', fatherName: 'Luis', motherName: 'Ana' },
   ] as any[];
 
+  const todayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const mockAppointments = [
+    { id: 'a1', patientId: '1', patientName: 'Juan Pérez', doctorId: 'doc1', doctorName: 'Dr. Test', date: todayStr(), time: '10:00', status: 'scheduled' as const, type: 'scheduled' as const, notes: 'Dolor de cabeza' },
+  ] as any[];
+
+  let dialogRefMock: any;
+
   beforeEach(async () => {
+    dialogRefMock = {
+      afterClosed: () => of(null),
+      componentInstance: {
+        setPatients: vi.fn(),
+        setEditData: vi.fn(),
+      },
+      close: vi.fn(),
+    };
+
     const repoSpy = {
       watchAllPatients: vi.fn().mockReturnValue(of(mockPatients)),
       createPatient: vi.fn(),
       updatePatient: vi.fn(),
       deletePatient: vi.fn(),
     } as any;
-    const alertSpy = { success: vi.fn() } as any;
+    const alertSpy = { success: vi.fn(), error: vi.fn() } as any;
     const clipboardSpy = { copy: vi.fn() } as any;
+    const auditSpy = { log: vi.fn() } as any;
+    const authSpy = { currentDoctor: { uid: 'doc1', email: 'admin@test.com', role: 'admin' } } as any;
+    const apptRepoSpy = {
+      watchAppointmentsByDoctor: vi.fn().mockReturnValue(of(mockAppointments)),
+      updateAppointment: vi.fn(),
+    } as any;
+    const dialogSpy = {
+      open: vi.fn().mockReturnValue(dialogRefMock),
+    } as any;
 
     await TestBed.configureTestingModule({
       imports: [Patients, NoopAnimationsModule],
       providers: [
+        provideNativeDateAdapter(),
         { provide: PatientRepository, useValue: repoSpy },
+        { provide: AppointmentRepository, useValue: apptRepoSpy },
+        { provide: AuditRepository, useValue: auditSpy },
         { provide: AlertService, useValue: alertSpy },
+        { provide: AuthService, useValue: authSpy },
         { provide: Clipboard, useValue: clipboardSpy },
+        { provide: MatDialog, useValue: dialogSpy },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Patients);
     component = fixture.componentInstance;
     patientRepo = TestBed.inject(PatientRepository);
+    appointmentRepo = TestBed.inject(AppointmentRepository);
+    auditRepo = TestBed.inject(AuditRepository);
     alertService = TestBed.inject(AlertService);
+    dialog = TestBed.inject(MatDialog);
     fixture.detectChanges();
   });
 
@@ -54,52 +98,60 @@ describe('Patients', () => {
     expect(el.textContent).toContain('María');
   });
 
-  it('opens dialog for new patient', () => {
-    (component as any).openNewPatient();
-    expect((component as any).showDialog).toBe(true);
-    expect((component as any).editingPatient).toBeNull();
+  it('shows today appointments carousel', () => {
+    const appts = (component as any).todayAppointments();
+    expect(appts.length).toBe(1);
+    expect(appts[0].patientName).toBe('Juan Pérez');
+    fixture.detectChanges();
+    fixture.detectChanges();
+    const el = fixture.nativeElement;
+    expect(el.textContent).toContain('Consultas del día de hoy');
+    expect(el.textContent).toContain('Juan Pérez');
+    expect(el.textContent).toContain('Dolor de cabeza');
   });
 
-  it('closes dialog', () => {
-    (component as any).showDialog = true;
-    (component as any).closeDialog();
-    expect((component as any).showDialog).toBe(false);
+  it('opens dialog for new patient', async () => {
+    dialogRefMock.afterClosed = () => of(null);
+
+    await (component as any).openNewPatient();
+
+    expect(dialog.open).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({
+      width: '400px',
+      disableClose: true,
+      panelClass: 'right-panel',
+    }));
+    expect(dialogRefMock.componentInstance.setPatients).toHaveBeenCalledWith(mockPatients);
   });
 
-  it('creates a new patient', async () => {
-    (component as any).form.setValue({
-      name: 'Carlos',
-      lastName: 'López',
-      email: 'carlos@test.com',
-      phone: '5511111111',
-    });
-    (patientRepo.createPatient as any).mockResolvedValue(undefined);
+  it('opens dialog for editing patient', async () => {
+    dialogRefMock.afterClosed = () => of(null);
 
-    await (component as any).savePatient();
+    await (component as any).openEditPatient(mockPatients[0]);
 
-    expect(patientRepo.createPatient).toHaveBeenCalled();
-    expect(alertService.success).toHaveBeenCalled();
+    expect(dialog.open).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({
+      width: '400px',
+      disableClose: true,
+      panelClass: 'right-panel',
+    }));
+    expect(dialogRefMock.componentInstance.setPatients).toHaveBeenCalled();
+    expect(dialogRefMock.componentInstance.setEditData).toHaveBeenCalledWith(mockPatients[0]);
   });
 
-  it('does not save when required fields are empty', async () => {
-    await (component as any).savePatient();
-    expect(patientRepo.createPatient).not.toHaveBeenCalled();
+  it('logs audit when new patient dialog returns a result', async () => {
+    const newPatient = { id: '3', name: 'Carlos', lastName: 'López', email: 'carlos@test.com', phone: '5511111111', fatherName: 'Pedro', motherName: 'Sofía' };
+    dialogRefMock.afterClosed = () => of(newPatient);
+
+    await (component as any).openNewPatient();
+
+    expect(auditRepo.log).toHaveBeenCalled();
   });
 
-  it('updates an existing patient', async () => {
-    (component as any).editingPatient = mockPatients[0];
-    (component as any).form.setValue({
-      name: 'Juan Updated',
-      lastName: 'Pérez',
-      email: 'juan@test.com',
-      phone: '5512345678',
-    });
-    (patientRepo.updatePatient as any).mockResolvedValue(undefined);
+  it('does not log audit when dialog is dismissed', async () => {
+    dialogRefMock.afterClosed = () => of(null);
 
-    await (component as any).savePatient();
+    await (component as any).openNewPatient();
 
-    expect(patientRepo.updatePatient).toHaveBeenCalledWith('1', (component as any).form.value);
-    expect(alertService.success).toHaveBeenCalled();
+    expect(auditRepo.log).not.toHaveBeenCalled();
   });
 
   it('regenerates OTP password', async () => {
@@ -127,5 +179,29 @@ describe('Patients', () => {
     await (component as any).deletePatient(mockPatients[0]);
 
     expect(patientRepo.deletePatient).not.toHaveBeenCalled();
+  });
+
+  it('cancels an appointment', async () => {
+    (appointmentRepo.updateAppointment as any).mockResolvedValue(undefined);
+
+    await (component as any).cancelAppointment(mockAppointments[0]);
+
+    expect(appointmentRepo.updateAppointment).toHaveBeenCalledWith('a1', { status: 'cancelled' });
+    expect(auditRepo.log).toHaveBeenCalled();
+    expect(alertService.success).toHaveBeenCalled();
+  });
+
+  it('filters patients by search term', () => {
+    (component as any).searchTerm.set('maría');
+    fixture.detectChanges();
+    expect((component as any).filteredPatients().length).toBe(1);
+    expect((component as any).filteredPatients()[0].name).toBe('María');
+  });
+
+  it('copies OTP to clipboard', () => {
+    const clipboard = TestBed.inject(Clipboard);
+    (component as any).copyOtp('ABC123');
+    expect(clipboard.copy).toHaveBeenCalledWith('ABC123');
+    expect(alertService.success).toHaveBeenCalled();
   });
 });

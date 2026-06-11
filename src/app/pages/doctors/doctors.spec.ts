@@ -1,23 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatDialog } from '@angular/material/dialog';
 import { of } from 'rxjs';
 import { Doctors } from './doctors';
 import { UserRepository } from '../../core/repositories/user.repository';
 import { AlertService } from '../../core/services/alert.service';
-import { Clipboard } from '@angular/cdk/clipboard';
-import { FirebaseService } from '../../core/firebase/firebase.service';
-
-vi.mock('firebase/firestore', () => ({
-  setDoc: vi.fn().mockResolvedValue(undefined),
-  doc: vi.fn().mockReturnValue('doc-ref'),
-  Timestamp: { now: () => ({ toMillis: () => 0 }) },
-}));
 
 describe('Doctors', () => {
   let fixture: ComponentFixture<Doctors>;
   let component: Doctors;
-  let userRepo: UserRepository;
-  let alertService: AlertService;
 
   const mockDoctors = [
     { uid: '1', name: 'Dr. A', email: 'a@test.com', role: 'admin', profileComplete: true },
@@ -28,26 +19,33 @@ describe('Doctors', () => {
     const userRepoSpy = {
       watchAllUsers: vi.fn().mockReturnValue(of(mockDoctors)),
       deleteUser: vi.fn(),
+      updateUser: vi.fn(),
     } as any;
-    const alertSpy = { success: vi.fn() } as any;
-    const clipboardSpy = { copy: vi.fn() } as any;
-    const firebaseSpy = {} as any;
-    Object.defineProperty(firebaseSpy, 'firestore', { get: () => 'mocked-firestore' as any, configurable: true });
-
+    const alertSpy = { success: vi.fn(), error: vi.fn() } as any;
     await TestBed.configureTestingModule({
       imports: [Doctors, NoopAnimationsModule],
       providers: [
         { provide: UserRepository, useValue: userRepoSpy },
         { provide: AlertService, useValue: alertSpy },
-        { provide: Clipboard, useValue: clipboardSpy },
-        { provide: FirebaseService, useValue: firebaseSpy },
       ],
+    }).overrideProvider(MatDialog, {
+      useValue: {
+        open: vi.fn().mockReturnValue({
+          afterClosed: vi.fn().mockReturnValue(of(true)),
+          componentInstance: { setDoctor: vi.fn() },
+          _openDialogs: [],
+          addPanelClass: vi.fn(),
+          removePanelClass: vi.fn(),
+          close: vi.fn(),
+        }),
+        _openDialogs: [],
+        _afterAllClosed: { subscribe: vi.fn() },
+        afterOpened: { subscribe: vi.fn(), pipe: vi.fn().mockReturnThis() },
+      },
     }).compileComponents();
 
     fixture = TestBed.createComponent(Doctors);
     component = fixture.componentInstance;
-    userRepo = TestBed.inject(UserRepository);
-    alertService = TestBed.inject(AlertService);
     fixture.detectChanges();
   });
 
@@ -57,7 +55,7 @@ describe('Doctors', () => {
 
   it('renders a list of doctors', () => {
     const el = fixture.nativeElement;
-    expect(el.textContent).toContain('Doctores');
+    expect(el.textContent).toContain('Asistentes');
     expect(el.textContent).toContain('Dr. A');
     expect(el.textContent).toContain('Dr. B');
   });
@@ -66,49 +64,40 @@ describe('Doctors', () => {
     expect((component as any).doctors().length).toBe(2);
   });
 
-  it('opens dialog to invite a new doctor', () => {
+  it('opens invite dialog when adding a new doctor', () => {
+    const dialog = TestBed.inject(MatDialog);
     (component as any).openNewDoctor();
-    expect((component as any).showDialog).toBe(true);
-    expect((component as any).form.get('name').value).toBe('');
-    expect((component as any).form.get('email').value).toBe('');
+    expect(dialog.open).toHaveBeenCalled();
   });
 
-  it('closes dialog', () => {
-    (component as any).showDialog = true;
-    (component as any).closeDialog();
-    expect((component as any).showDialog).toBe(false);
+  it('opens edit dialog when editing a doctor', () => {
+    const dialog = TestBed.inject(MatDialog);
+    (component as any).openEditDoctor(mockDoctors[0]);
+    expect(dialog.open).toHaveBeenCalled();
   });
 
-  it('saves a doctor (creates invitation)', async () => {
-    (component as any).form.setValue({ name: 'Dr. C', email: 'c@test.com', role: 'employee' });
-    await (component as any).saveDoctor();
-
-    expect((component as any).invitationLink).toContain('/setup-profile?email=');
-    expect(alertService.success).toHaveBeenCalled();
+  it('opens delete dialog when deleting a doctor', () => {
+    const dialog = TestBed.inject(MatDialog);
+    (component as any).deleteDoctor(mockDoctors[0]);
+    expect(dialog.open).toHaveBeenCalled();
   });
 
-  it('does not save without name or email', async () => {
-    (component as any).form.setValue({ name: '', email: '', role: 'employee' });
-    await (component as any).saveDoctor();
+  it('filters doctors by name via searchControl', () => {
+    (component as any).searchControl.setValue('Dr. A');
+    fixture.detectChanges();
 
-    expect((component as any).invitationLink).toBe('');
+    expect((component as any).filteredDoctors().length).toBe(1);
+    expect((component as any).filteredDoctors()[0].name).toBe('Dr. A');
   });
 
-  it('deletes a doctor', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
-    (userRepo.deleteUser as any).mockResolvedValue(undefined);
+  it('shows empty state when no doctors', async () => {
+    const emptyComponent = TestBed.createComponent(Doctors);
+    emptyComponent.detectChanges();
+    (emptyComponent.componentInstance as any).doctors.set([]);
+    (emptyComponent.componentInstance as any).loading = false;
+    emptyComponent.detectChanges();
 
-    await (component as any).deleteDoctor(mockDoctors[0]);
-
-    expect(userRepo.deleteUser).toHaveBeenCalledWith('1');
-    expect(alertService.success).toHaveBeenCalledWith({ message: 'Doctor eliminado', duration: 3000 });
-  });
-
-  it('does not delete if cancelled', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-
-    await (component as any).deleteDoctor(mockDoctors[0]);
-
-    expect(userRepo.deleteUser).not.toHaveBeenCalled();
+    const el = emptyComponent.nativeElement;
+    expect(el.textContent).toContain('No has agregado ningún asistente');
   });
 });

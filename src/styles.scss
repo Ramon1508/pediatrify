@@ -1,22 +1,24 @@
 @use '@angular/material' as mat;
 @use 'sass:color';
 
-$primary: #0D6E8F;
-$on-primary: #FFFFFF;
-$danger: #B3261E;
-$on-danger: #FFFFFF;
-$body-color: #49454F;
+$primary: #0d6e8f;
+$on-primary: #ffffff;
+$danger: #b3261e;
+$on-danger: #ffffff;
+$body-color: #49454f;
 
 html {
   height: 100%;
-  @include mat.theme((
-    color: (
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-    ),
-    typography: Roboto,
-    density: 0,
-  ));
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
 }
 :root {
   --mat-sys-primary: #{$primary};
@@ -25,7 +27,7 @@ html {
   --mat-sys-on-primary-container: #{color.adjust($primary, $lightness: -10%)};
   --mat-sys-secondary: #{$primary};
   --mat-sys-on-secondary: #{$on-primary};
-  --mat-sys-surface: #FFFFFF;
+  --mat-sys-surface: #ffffff;
   --mat-sys-on-surface: #000000;
   --mat-sys-error: #{$danger};
   --mat-sys-on-error: #{$on-danger};
@@ -59,7 +61,12 @@ body {
   box-sizing: border-box;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 500;
   color: #000000;
   margin: 0;
@@ -106,15 +113,12 @@ p {
   border-color: #{$primary};
 }
 
-.btn-primary,
-.btn-secondary,
-.btn-tertiary,
-.btn-danger {
+.btn-primary {
   padding: 16px 24px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: auto;
+  height: auto !important;
   line-height: 24px;
   font-family: Roboto, sans-serif;
   font-weight: 500;
@@ -123,9 +127,6 @@ p {
   vertical-align: middle;
   width: fit-content;
   border-radius: 12px;
-}
-
-.btn-primary {
   --mdc-filled-button-container-color: #{$primary};
   --mdc-filled-button-label-text-color: #{$on-primary};
   background-color: #{$primary};
@@ -134,36 +135,77 @@ p {
 }
 
 .btn-secondary {
-  --mdc-outlined-button-label-text-color: #0D6E8F;
+  padding: 16px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: auto !important;
+  line-height: 24px;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 0.15px;
+  vertical-align: middle;
+  width: fit-content;
+  border-radius: 12px;
+  --mdc-outlined-button-label-text-color: #0d6e8f;
   background: transparent;
-  border: 1px solid #0D6E8F;
-  color: #0D6E8F;
+  border: 1px solid #0d6e8f;
+  color: #0d6e8f;
+  padding: 16px 24px !important;
 }
 
 .btn-tertiary {
+  padding: 16px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: auto !important;
+  line-height: 24px;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 0.15px;
+  vertical-align: middle;
+  width: fit-content;
+  border-radius: 12px;
   background: transparent;
-  color: #0D6E8F;
+  color: #0d6e8f;
   border: none;
   box-shadow: none;
 }
 
 .btn-danger {
+  padding: 16px 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: auto !important;
+  line-height: 24px;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 0.15px;
+  vertical-align: middle;
+  width: fit-content;
+  border-radius: 12px;
   --mdc-filled-button-container-color: #{$danger};
   --mdc-filled-button-label-text-color: #{$on-danger};
   background-color: #{$danger};
   color: #{$on-danger};
+  border: none;
 }
 
 .btn-primary:disabled,
 .btn-secondary:disabled,
 .btn-tertiary:disabled,
 .btn-danger:disabled {
-  background-color: #9E9E9E !important;
-  color: #FFFFFF !important;
+  background-color: #9e9e9e !important;
+  color: #ffffff !important;
   border: none;
-  --mdc-filled-button-container-color: #9E9E9E;
-  --mdc-filled-button-label-text-color: #FFFFFF;
-  --mdc-outlined-button-label-text-color: #FFFFFF;
+  --mdc-filled-button-container-color: #9e9e9e;
+  --mdc-filled-button-label-text-color: #ffffff;
+  --mdc-outlined-button-label-text-color: #ffffff;
 }
 
 .chip {
@@ -171,7 +213,7 @@ p {
   width: fit-content;
   height: fit-content;
   background: transparent;
-  border: 1px solid #0D6E8F;
+  border: 1px solid #0d6e8f;
   border-radius: 8px;
   font-family: Roboto, sans-serif;
   font-weight: 500;
@@ -180,7 +222,7 @@ p {
   letter-spacing: 0.1px;
   text-align: center;
   vertical-align: middle;
-  color: #49454F;
+  color: #49454f;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -190,8 +232,8 @@ p {
   padding: 6px 16px;
   width: fit-content;
   height: fit-content;
-  background: #0D6E8F;
-  border: 1px solid #0D6E8F;
+  background: #0d6e8f;
+  border: 1px solid #0d6e8f;
   border-radius: 8px;
   font-family: Roboto, sans-serif;
   font-weight: 500;
@@ -200,23 +242,95 @@ p {
   letter-spacing: 0.1px;
   text-align: center;
   vertical-align: middle;
-  color: #FFFFFF;
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
 .chip-active mat-icon {
-  color: #FFFFFF;
+  color: #ffffff;
+}
+
+.right-panel {
+  .mat-mdc-dialog-container {
+    border-radius: 0 !important;
+
+    .mdc-dialog__container {
+      height: 100%;
+    }
+
+    .mdc-dialog__surface.mat-mdc-dialog-surface {
+      border-radius: 0 !important;
+      height: 100vh !important;
+      max-height: 100vh !important;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+  .mat-mdc-dialog-content {
+    flex: 1;
+    max-height: none;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+.cdk-overlay-pane.right-panel {
+  right: 0 !important;
+  left: auto !important;
+  top: 0 !important;
+  height: 100vh !important;
+  position: absolute !important;
+}
+
+.cancel-dialog {
+  .mat-mdc-dialog-container {
+    border-radius: 0 !important;
+
+    .mdc-dialog__surface.mat-mdc-dialog-surface {
+      border-radius: 0 !important;
+      padding: 0 !important;
+      background: transparent !important;
+    }
+  }
+}
+
+.btn-close-dialog {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  color: #474747 !important;
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
   .w-100-mobile {
     width: 100% !important;
   }
+
+  .right-panel {
+    .mat-mdc-dialog-container {
+      .mdc-dialog__surface.mat-mdc-dialog-surface {
+        border-radius: 0 !important;
+      }
+    }
+  }
+
+  .cdk-overlay-pane.right-panel {
+    height: 100vh !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
 
-mat-footer-row, mat-header-row, mat-row, mat-cell, mat-footer-cell, mat-header-cell {
+mat-footer-row,
+mat-header-row,
+mat-row,
+mat-cell,
+mat-footer-cell,
+mat-header-cell {
   border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 
@@ -235,7 +349,7 @@ mat-footer-row, mat-header-row, mat-row, mat-cell, mat-footer-cell, mat-header-c
   font-size: 1.25rem;
   line-height: 1.75rem;
   letter-spacing: 0;
-  color: #0D6E8F;
+  color: #0d6e8f;
 }
 
 .body-large {
@@ -253,5 +367,25 @@ mat-footer-row, mat-header-row, mat-row, mat-cell, mat-footer-cell, mat-header-c
   font-size: 0.8rem;
   line-height: 1rem;
   letter-spacing: 0.4px;
-  color: #49454F;
+  color: #49454f;
+}
+
+.dialog-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+}
+
+.dialog-title {
+  font-family: Roboto;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 28px;
+  letter-spacing: 0px;
+}
+
+mat-dialog-content {
+  flex: 1;
+  max-height: none;
 }

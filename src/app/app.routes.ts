@@ -8,6 +8,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/login/login').then((m) => m.Login),
   },
   {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password').then((m) => m.ResetPassword),
+  },
+  {
     path: 'pacientes',
     loadComponent: () => import('./pages/otp-login/otp-login').then((m) => m.OtpLogin),
   },
@@ -37,6 +42,11 @@ export const routes: Routes = [
       {
         path: 'doctors',
         loadComponent: () => import('./pages/doctors/doctors').then((m) => m.Doctors),
+        canActivate: [roleGuard(['admin'])],
+      },
+      {
+        path: 'audit-log',
+        loadComponent: () => import('./pages/audit-log/audit-log').then((m) => m.AuditLog),
         canActivate: [roleGuard(['admin'])],
       },
     ],

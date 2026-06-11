@@ -19,6 +19,7 @@
 - File upload errors use alert service with `duration: 5000`
 - After account creation: redirect to login with success alert "Tu cuenta ha sido creada" 5s
 - Use reactive forms (`FormBuilder`, `Validators`) instead of template-driven (`ngModel`). All form controls (including passwords) must be defined inside a single `FormGroup` so that `form.invalid` validates every field at once. Never use separate `FormControl` fields outside the group.
+- Submit/save buttons use `[disabled]="formName.invalid || formName.pristine || loadingFlag"` so the button stays disabled while the form has errors, hasn't been touched, or a request is in flight. `submitted` flag triggers field error display.
 - `matPrefix` must be placed BEFORE `matInput` in DOM order for proper form field layout
 - `$primary: #0D6E8F` in styles.scss
 - `.gitignore` includes `/src/environments/`; env files removed from git history via `git filter-branch`
@@ -52,24 +53,62 @@
 - Updated AGENTS.md with Angular 17+ control flow, semantic HTML, alt attributes rules
 
 ### Done (continued)
+- Patient model expanded: `birthDate`, `secondaryEmail`, `fatherName`, `motherName` fields; patient form redesigned with all new fields + validation
+- Admin OTP customization: `setCustomOtp()` lets admin type a custom password; admin sees OTP input in dialog, employee sees only regenerate button
+- Email normalization: `normalizeEmail()` utility trims+lowercases; `loginPatient()` normalizes input before lookup; all email stores normalized
+- Calendar settings: `startTime`/`endTime` replaced with `timeSegments: FormArray` — multiple open segments per doctor with add/remove in settings panel
+- Appointment editing: `editAppointment()` opens panel/dialog pre-filled; soft delete via `disabled: boolean` flag (appointments filtered with `!a.disabled`)
+- Audit log system: `AuditEntry` model, `AuditRepository` (Firestore `auditLog` collection, `watchAll()` sorted by timestamp desc), `AuditLog` page component, route `/app/audit-log`
+- Sidebar: added "Bitácora" nav entry for admin with `history` icon
+- Audit logging wired into patient create/update and appointment delete
+- Calendar: shows full 7-day week; unavailable days greyed out with `.disabled-header` / `.disabled-cell`; `isDayAvailable()` checks `availableDays`
+- Calendar: admin doctor selector (`<mat-select>` in toolbar) — admin picks which doctor's schedule to view/manage
+- `canInteractWithCell()`: returns `true` if day available OR user is admin (admins can schedule on greyed cells)
+- `updatedBy` field on Appointment model (`user.ts`); all 3 `createAppointment()` calls (calendar, appointments scheduled+walk-in) set `updatedBy` to current user's email
+- Detail card shows `updatedBy` when present
+- `.btn-secondary` padding fix: added `!important` on `padding` and `height: auto !important` on base button class in `styles.scss` to prevent MDC overrides
+- Budget for `anyComponentStyle` increased to `5kB` warning / `10kB` error in `angular.json`
+- Created `FIRESTORE-INDEXES.md`: docs that no composite indexes are needed
+- Created `SYSTEM-DOMAIN.md`: domain model docs (patients=children, tutors=parent users, appointments linked to patientId+doctorId)
 - Replaced inline `form-error` display in login and setup-profile with the global alert service; removed `error` and `successMsg` class properties; cleaned up unused CSS
 - Created `SpanishDateAdapter` (`core/adapters/spanish-date-adapter.ts`): extends `NativeDateAdapter`, overrides `getFirstDayOfWeek()` to return `0` (Sunday); configured in `app.config.ts` with `MAT_DATE_LOCALE: 'es-MX'`
 - Changed `getMonday` → `getWeekStart` in calendar so grid starts on Sunday (`d.setDate(d.getDate() - d.getDay())`), matching the Material datepicker mini calendar
 - Migrated **otp-login**, **doctors**, **patients**, **calendar** (dialog), and **appointments** (walk-in + dialog) from template-driven (`ngModel`/`FormsModule`) to reactive forms (`FormBuilder`/`ReactiveFormsModule`)
 - Removed `FormsModule` imports from all 5 migrated pages
+- Replaced `mat-select` with `mat-autocomplete` for patient search in calendar appointment panel and dialog — search filters patients by name/lastname
+- Added `+ Añadir nuevo paciente` button below patient search in both new appointment panel and dialog
+- Created new patient side panel: full form (name, lastName, birthDate, email, secondaryEmail, fatherName, motherName, phone), email duplicate detection with "Continuar" flow, auto-select after creation, patient list refresh
+- Added `patientSearchControl`, `filteredPatients` signal, `filterPatients()`, `onPatientSelected()`, `displayPatientFn()`, `onPatientSearchFocus()` methods to Calendar component
+- Added CSS: `.add-patient-btn`, `.new-patient-alert`, `.alert-continue-btn`, `.panel-subtitle`
+
+### Done (continued)
+- Appointments inline dialog refactored into standalone `AppointmentFormDialog` component (`pages/appointments/dialogs/appointment-form-dialog/`) with `setPatients()`/`setEditData()` pattern matching other dialog components
+- `.btn-secondary`, `.btn-tertiary`, `.btn-danger` made fully self-contained: each class now declares all properties (padding, font, border-radius, etc.) instead of sharing a common selector block
+- Added `border: none` to `.btn-danger` for consistency with `.btn-primary`
+- Sidebar semantic HTML: `<div class="sidebar-nav">` → `<nav>`, `<div class="sidebar-footer">` → `<footer>`
+- Appointments spec file rewritten to test dialog-based flow (mock `MatDialog.open` instead of inline dialog state)
+- All 141 tests pass across 20 files (0 failures)
 
 ### Blocked
 - (none)
 
 ## Next Steps
-- (none — all pending migrations completed)
+- Wire up "Ver historial" action in appointment detail card (currently logs to console)
+- Replace `<div>` click handlers with `<button>` in calendar (date picker, time slot cells, appointment blocks, mobile cards)
+- Add dialog component spec files for individual coverage (appointment-form-dialog, invite-doctor-dialog, etc.)
+- Verify composite Firestore index `appointments` `doctorId ASC + disabled ASC` is deployed
+- Consider Cloud Function or Admin SDK for old auth cleanup when email changes
 
 ## Key Decisions
+- Always use Angular Material components (`mat-dialog`, `mat-form-field`, `mat-button`, etc.) instead of custom HTML/CSS panels, overlays, or buttons. Avoid inline side panels with backdrop divs — use `MatDialog` with proper dialog components instead.
+- **Every dialog/modal/card lives in its own individual component file.** If reused across multiple pages, place it under `src/app/shared/components/<name>/`. If page-specific, place it under `src/app/pages/<page>/dialogs/<name>/`. Never inline dialog HTML directly in a parent template.
 - `$primary` set to `#0D6E8F` (not `#01687D`) as the app-wide primary color; secondary uses same `#0D6E8F` hardcoded
 - `!important` on `--mdc-filled-button-container-color` and background-color for primary buttons because MDC's internal theming overrides specificity otherwise
+- `!important` on `.btn-secondary` `padding` and `height: auto !important` on `.mat-mdc-unelevated-button` base class to prevent MDC inline height overrides
 - Alert service rewritten from queue-based single-item to `signal<AlertItem[]>` supporting up to 5 concurrent alerts with individual timers and dismiss-by-ID
 - Login validation: removed `[disabled]="loginForm.invalid"` so submit always validates; `submitted` flag triggers field errors
 - Setup-profile button: removed `[disabled]="!canFinish"` dependency, now only `[disabled]="finishing"`; validation runs on click via `finish()`
+- **OnPush change detection**: All components use `ChangeDetectionStrategy.OnPush` for performance. Components with `async` operations that modify non-signal state use `ChangeDetectorRef.markForCheck()` after the async change to ensure the view updates. Signal writes automatically mark the component dirty.
 - **DB Enum pattern**: For multiple-choice fields (e.g. `Sexo`), store only a number in the DB; frontend uses a TypeScript enum to map number ↔ label. This keeps DB portable and avoids string storage.
 - **Registration vs update flow**: New records are created ONLY in two places: (1) `AdminInitService.ensureAdminExists()` creates the initial admin pending document, (2) admin invitation creates pending documents for doctors. `registerFromInvitation` UPDATES the existing pending document in-place (never creates a new one). `completeProfile` also UPDATES the existing user document. Both use `updateUser` on the pending/existing document ID. User documents store `firebaseUid` for login lookup and `pending: false` to prevent `ensureAdminExists` from creating duplicates.
 
@@ -81,6 +120,9 @@
 - Setup-profile container `max-width: 880px` desktop with `margin: 0 auto`; mobile `100%`; padding `40px 200px` desktop (outer spacing), `23px 16px` mobile
 - Primary button has `border: none` to prevent MDC default borders
 - All primary buttons use `class="btn-primary"` (not `color="primary"`) for consistent styling; `.btn-primary` is self-contained with all button properties
+- Calendar uses 7-day grid starting Sunday; `isDayAvailable()` checks `availableDays` from doctor settings; `canInteractWithCell()` allows admins to click greyed cells
+- Admin doctor selector in calendar toolbar; `onDoctorSelected()` reloads that doctor's appointments+settings; `loadDoctorData()` called on init and on selection change
+- `updatedBy` is set on every `createAppointment()` call; detail card conditionally displays it
 
 ## Typography
 

@@ -1,6 +1,9 @@
 .detail-card {
   border: 2px solid #0D6E8F;
   padding: 16px;
+  background: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
 }
 
 .detail-title {
@@ -16,9 +19,9 @@
 .detail-label {
   font-family: Roboto, sans-serif;
   font-weight: 400;
-  font-size: 1rem;
-  line-height: 1.5rem;
-  letter-spacing: 0;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.5px;
   color: #1B1B1B;
   margin: 0 0 4px;
 }
@@ -42,4 +45,8 @@
 .detail-actions {
   display: flex;
   gap: 16px;
+}
+
+.btn-detail {
+  padding: 10px 16px !important;
 }

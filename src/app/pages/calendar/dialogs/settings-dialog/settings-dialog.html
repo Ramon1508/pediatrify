@@ -1,0 +1,78 @@
+<div class="dialog-title-container">
+    <h2 class="dialog-title">Configuración de horarios</h2>
+    <button mat-icon-button class="btn-close-dialog" [mat-dialog-close]="false" aria-label="Cerrar">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content>
+  <form [formGroup]="form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Duración de consulta</mat-label>
+      <mat-select formControlName="consultationDuration">
+        <mat-option [value]="10">10 minutos</mat-option>
+        <mat-option [value]="15">15 minutos</mat-option>
+        <mat-option [value]="30">30 minutos</mat-option>
+        <mat-option [value]="45">45 minutos</mat-option>
+        <mat-option [value]="60">1 hora</mat-option>
+        <mat-option [value]="120">2 horas</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="scheduling-row">
+      <mat-slide-toggle formControlName="allowPatientScheduling" color="primary" />
+      <span class="scheduling-label">Permitir que los pacientes agenden citas</span>
+    </div>
+
+    <div class="availability-section">
+      <div class="availability-title">Horarios disponibles</div>
+      <div class="availability-subtitle">Agrega los segmentos en los que tus pacientes podrán agendar sus consultas.</div>
+      <div class="day-chips">
+        @for (day of dayNamesShort; track day) {
+          <button type="button" class="chip-day" [class.active]="availableDays.includes(day)" (click)="toggleDay(day)">{{ day }}</button>
+        }
+      </div>
+      <div class="segments-header">
+        <span class="segments-title">Segmentos de horario</span>
+      </div>
+      <div formArrayName="timeSegments" class="segments-list">
+        @for (seg of timeSegments.controls; track $index) {
+          @if (timeSegments.length > 1) {
+            <hr class="segment-divider" />
+            <div class="segment-header-row">
+              <span class="segment-number">{{ $index + 1 }}° Segmento</span>
+              <button type="button" class="btn-segment-remove" (click)="removeSegment($index)">- Eliminar</button>
+            </div>
+          }
+          <div class="segment-inputs-row" [formGroupName]="$index" [class.single-segment]="timeSegments.length <= 1">
+            <mat-form-field appearance="outline" class="time-field">
+              <mat-label>Inicio</mat-label>
+              <input matInput type="time" formControlName="startTime" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="time-field">
+              <mat-label>Fin</mat-label>
+              <input matInput type="time" formControlName="endTime" />
+            </mat-form-field>
+            @if (timeSegments.length <= 1) {
+              <button type="button" mat-icon-button class="segment-remove" (click)="removeSegment($index)">
+                <mat-icon>close</mat-icon>
+              </button>
+            }
+          </div>
+        }
+      </div>
+      <button type="button" class="btn-add-segment" (click)="addSegment()">+ Añadir nuevo segmento</button>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button class="btn-tertiary" [mat-dialog-close]="false">Cancelar</button>
+  <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+    @if (saving) {
+      <mat-spinner diameter="18" />
+    } @else {
+      Guardar configuración
+    }
+  </button>
+</mat-dialog-actions>

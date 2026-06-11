@@ -122,7 +122,7 @@
       />
 
       <div class="button-row">
-        <button mat-unelevated-button class="btn-primary finish-btn w-100-mobile" (click)="finish()" [disabled]="form.invalid || finishing">
+        <button mat-unelevated-button class="btn-primary finish-btn w-100-mobile" (click)="finish()" [disabled]="form.invalid || form.pristine || finishing">
         @if (finishing) {
           <mat-spinner diameter="18" />
         } @else {
