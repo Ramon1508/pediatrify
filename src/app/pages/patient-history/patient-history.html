@@ -1,0 +1,80 @@
+<div class="history-container">
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <nav class="breadcrumbs">
+    <a class="breadcrumb-link" routerLink="/app/patients">Pacientes</a>
+    <span class="breadcrumb-separator">&gt;</span>
+    <span class="breadcrumb-current">Historial de {{ patient()?.name }} {{ patient()?.lastName }}</span>
+  </nav>
+
+  @if (patient(); as p) {
+    <app-patient-history-card
+      [patient]="p"
+      (viewProfile)="viewProfile($event)"
+      (editProfile)="editProfile($event)"
+      (completeProfile)="openCompleteProfile($event)"
+      (delete)="deletePatient($event)"
+    />
+
+    <section class="consultas-section">
+      <div class="consultas-header">
+        <h2 class="consultas-title">Datos por consulta</h2>
+        <div class="consultas-actions">
+          <button mat-stroked-button class="btn-secondary dialog-btn" (click)="openNewAppointment()">
+            <mat-icon>calendar_today</mat-icon>
+            Agendar consulta
+          </button>
+        </div>
+      </div>
+
+      @if (records().length === 0) {
+        <div class="empty-state">
+          <span class="empty-text">A&uacute;n no se han agregado datos por consultas de este paciente</span>
+          <button mat-unelevated-button class="btn-primary" (click)="openAddEntry()">
+            <mat-icon>add</mat-icon>
+            A&ntilde;adir entrada
+          </button>
+        </div>
+      } @else {
+        <button mat-unelevated-button class="btn-primary dialog-btn add-entry-btn" (click)="openAddEntry()">
+          <mat-icon>add</mat-icon>
+          A&ntilde;adir entrada
+        </button>
+
+        <div class="records-list">
+          @for (record of records(); track record.id) {
+            <div class="record-card">
+              <div class="record-header">
+                <span class="record-date">{{ record.date | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="record-field">
+                <span class="record-label">Motivo de consulta</span>
+                <span class="record-value">{{ record.motivoConsulta }}</span>
+              </div>
+              @if (record.diagnosis) {
+                <div class="record-field">
+                  <span class="record-label">Diagn&oacute;stico</span>
+                  <span class="record-value">{{ record.diagnosis }}</span>
+                </div>
+              }
+              @if (record.treatment) {
+                <div class="record-field">
+                  <span class="record-label">Tratamiento</span>
+                  <span class="record-value">{{ record.treatment }}</span>
+                </div>
+              }
+              @if (record.notes) {
+                <div class="record-field">
+                  <span class="record-label">Notas</span>
+                  <span class="record-value">{{ record.notes }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </section>
+  }
+</div>

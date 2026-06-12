@@ -32,7 +32,7 @@
     </div>
 
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Notas (opcional)</mat-label>
+      <mat-label>Motivo de la consulta</mat-label>
       <textarea matInput formControlName="notes" rows="2"></textarea>
     </mat-form-field>
 
@@ -43,8 +43,8 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-stroked-button class="btn-tertiary" [mat-dialog-close]="false">Cancelar</button>
-  <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+  <button mat-stroked-button class="btn-tertiary dialog-btn" [mat-dialog-close]="false">Cancelar</button>
+  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
     @if (saving) {
       <mat-spinner diameter="18" />
     } @else {

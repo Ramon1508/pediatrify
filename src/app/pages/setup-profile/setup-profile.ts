@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -42,13 +42,12 @@ export class SetupProfile implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
-  private cdr = inject(ChangeDetectorRef);
 
   protected mode = signal<'invitation' | 'existing' | 'invalid'>('invalid');
   protected pendingUid = '';
   protected pendingRole: UserRole = 'employee';
-  protected displayName = '';
-  protected displayEmail = '';
+  protected displayName = signal('');
+  protected displayEmail = signal('');
 
   protected readonly sexoOptions: { value: Sexo; label: string }[] = [
     { value: Sexo.Masculino, label: 'Masculino' },
@@ -73,11 +72,11 @@ export class SetupProfile implements OnInit {
 
   get passwordControl() { return this.form.get('password')!; }
   get confirmPasswordControl() { return this.form.get('confirmPassword')!; }
-  protected hidePassword = true;
-  protected hideConfirmPassword = true;
-  protected finishing = false;
-  protected logoPath: string | null = null;
-  protected submitted = false;
+  protected hidePassword = signal(true);
+  protected hideConfirmPassword = signal(true);
+  protected finishing = signal(false);
+  protected logoPath = signal<string | null>(null);
+  protected submitted = signal(false);
 
   async ngOnInit() {
     try {
@@ -89,8 +88,8 @@ export class SetupProfile implements OnInit {
           this.mode.set('invitation');
           this.pendingUid = pending.uid;
           this.pendingRole = pending.role;
-          this.displayName = pending.name;
-          this.displayEmail = pending.email;
+          this.displayName.set(pending.name);
+          this.displayEmail.set(pending.email);
           return;
         }
       }
@@ -98,8 +97,8 @@ export class SetupProfile implements OnInit {
       const doctor = this.authService.currentDoctor;
       if (this.authService.isDoctor && doctor && !doctor.profileComplete) {
         this.mode.set('existing');
-        this.displayName = doctor.name;
-        this.displayEmail = doctor.email;
+        this.displayName.set(doctor.name);
+        this.displayEmail.set(doctor.email);
         return;
       }
 
@@ -126,34 +125,34 @@ export class SetupProfile implements OnInit {
   }
 
   onLogoUploaded(result: UploadResult | null) {
-    this.logoPath = result?.path || null;
+    this.logoPath.set(result?.path || null);
   }
 
   async finish() {
-    this.submitted = true;
+    this.submitted.set(true);
 
     if (this.form.invalid) return;
 
     const password = this.passwordControl.value ?? '';
 
-    this.finishing = true;
+    this.finishing.set(true);
 
     const fv = this.form.value;
 
     try {
       if (this.mode() === 'invitation') {
         await this.authService.registerFromInvitation(
-          this.displayEmail,
+          this.displayEmail(),
           password,
           {
-            name: this.displayName,
+            name: this.displayName(),
             sexo: fv.sexo!,
             phone: fv.phone!,
             especialidad: fv.especialidad ?? '',
             cedula: fv.cedula!,
             cedulaEspecialidad: fv.cedulaEspecialidad ?? '',
             consultorios: fv.consultorios!,
-            logoPath: this.logoPath || undefined,
+            logoPath: this.logoPath() || undefined,
             role: this.pendingRole,
           },
           this.pendingUid
@@ -161,14 +160,14 @@ export class SetupProfile implements OnInit {
       } else if (this.mode() === 'existing') {
         await this.authService.completeProfile(
           {
-            name: this.displayName,
+            name: this.displayName(),
             sexo: fv.sexo!,
             phone: fv.phone!,
             especialidad: fv.especialidad ?? '',
             cedula: fv.cedula!,
             cedulaEspecialidad: fv.cedulaEspecialidad ?? '',
             consultorios: fv.consultorios!,
-            logoPath: this.logoPath || undefined,
+            logoPath: this.logoPath() || undefined,
           },
           password
         );
@@ -178,8 +177,7 @@ export class SetupProfile implements OnInit {
     } catch (e: any) {
       this.alert.error({ message: this.getReadableError(e), duration: 5000 });
     } finally {
-      this.finishing = false;
-      this.cdr.markForCheck();
+      this.finishing.set(false);
     }
   }
 

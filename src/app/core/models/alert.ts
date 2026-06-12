@@ -1,4 +1,4 @@
-export type AlertType = 'success' | 'error';
+export type AlertType = 'success' | 'error' | 'warning';
 
 export interface AlertConfig {
   message: string;

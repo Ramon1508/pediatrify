@@ -1,0 +1,47 @@
+<div class="child-card">
+  <button mat-icon-button [matMenuTriggerFor]="patientMenu" class="menu-button">
+    <mat-icon>more_vert</mat-icon>
+  </button>
+  <mat-menu #patientMenu="matMenu">
+    @if (patient.profileComplete) {
+      <button mat-menu-item (click)="edit.emit(patient)">
+        <mat-icon>edit</mat-icon>
+        <span>Editar paciente</span>
+      </button>
+    } @else {
+      <button mat-menu-item (click)="completeProfile.emit(patient)">
+        <mat-icon>account_circle</mat-icon>
+        <span>Completar perfil</span>
+      </button>
+    }
+    @if (isAdmin) {
+      <button mat-menu-item (click)="setCustomOtp.emit(patient)">
+        <mat-icon>lock_reset</mat-icon>
+        <span>Ver contrase&ntilde;a OTP</span>
+      </button>
+    } @else {
+      <button mat-menu-item (click)="regenerateOtp.emit(patient)">
+        <mat-icon>refresh</mat-icon>
+        <span>Regenerar OTP</span>
+      </button>
+    }
+    <button mat-menu-item (click)="delete.emit(patient)">
+      <mat-icon>delete</mat-icon>
+      <span>Eliminar paciente</span>
+    </button>
+  </mat-menu>
+
+  <div class="child-name">{{ patient.name }} {{ patient.lastName }}</div>
+  <div class="child-age">Edad: {{ patient.ageDisplay }}</div>
+
+  <div class="parents-section">
+    <div class="parents-title">Padres o tutores:</div>
+    <div class="parents-list">{{ patient.fatherName }}{{ patient.fatherName && patient.motherName ? ' · ' : '' }}{{ patient.motherName }}</div>
+  </div>
+
+  <div class="actions">
+    <button mat-stroked-button class="btn-secondary" (click)="viewHistory.emit(patient)">
+      Ver historial
+    </button>
+  </div>
+</div>

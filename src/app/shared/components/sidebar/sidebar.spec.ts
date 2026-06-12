@@ -62,18 +62,10 @@ describe('Sidebar', () => {
     expect(fixture.nativeElement.textContent).not.toContain('Asistentes');
   });
 
-  it('logs out and navigates to /login on logout click', () => {
-    fixture.detectChanges();
-    const logoutBtn = fixture.nativeElement.querySelector('.logout-btn');
-    logoutBtn.click();
+  it('calls logout and navigates to login', () => {
+    component.logout();
 
     expect(authService.logout).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
-  });
-
-  it('has a logout button in the footer', () => {
-    fixture.detectChanges();
-    const footer = fixture.nativeElement.querySelector('.sidebar-footer');
-    expect(footer.textContent).toContain('Salir');
   });
 });

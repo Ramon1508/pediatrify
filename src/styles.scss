@@ -196,6 +196,11 @@ p {
   border: none;
 }
 
+.dialog-btn {
+  padding: 10px 16px !important;
+  height: auto !important;
+}
+
 .btn-primary:disabled,
 .btn-secondary:disabled,
 .btn-tertiary:disabled,
@@ -283,6 +288,7 @@ p {
   top: 0 !important;
   height: 100vh !important;
   position: absolute !important;
+  max-width: 100% !important;
 }
 
 .cancel-dialog {
@@ -337,8 +343,8 @@ mat-header-cell {
 .title-large {
   font-family: Roboto, sans-serif;
   font-weight: 500;
-  font-size: 1.75rem;
-  line-height: 2.25rem;
+  font-size: 22px;
+  line-height: 28px;
   letter-spacing: 0;
   color: #000000;
 }

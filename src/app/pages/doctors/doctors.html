@@ -7,11 +7,11 @@
     </button>
   </div>
 
-  @if (loading) {
+  @if (loading()) {
     <mat-progress-bar mode="indeterminate" />
   }
 
-  @if (doctors().length === 0 && !loading) {
+  @if (doctors().length === 0 && !loading()) {
     <div class="empty-state-wrapper">
       <div class="empty-state-content">
         <span class="empty-text">No has agregado ningún asistente</span>

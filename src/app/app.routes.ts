@@ -40,8 +40,18 @@ export const routes: Routes = [
         canActivate: [roleGuard(['admin', 'employee'])],
       },
       {
+        path: 'patients/history/:patientId',
+        loadComponent: () => import('./pages/patient-history/patient-history').then((m) => m.PatientHistory),
+        canActivate: [roleGuard(['admin', 'employee'])],
+      },
+      {
         path: 'doctors',
         loadComponent: () => import('./pages/doctors/doctors').then((m) => m.Doctors),
+        canActivate: [roleGuard(['admin'])],
+      },
+      {
+        path: 'impresion',
+        loadComponent: () => import('./pages/impresion/impresion').then((m) => m.Impresion),
         canActivate: [roleGuard(['admin'])],
       },
       {

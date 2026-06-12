@@ -1,0 +1,295 @@
+<div class="impresion-page">
+  <div class="impresion-header">
+    <div class="header-left">
+      <span class="title-large">Ajustes de impresión de recetas y recomendaciones</span>
+    </div>
+    @if (isEditing()) {
+      <div class="header-actions">
+        <button mat-unelevated-button class="btn-secondary" (click)="cancel()">Cancelar</button>
+        <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="saving()">Guardar cambios</button>
+      </div>
+    } @else {
+      <div class="header-actions">
+        <button mat-unelevated-button class="btn-primary" (click)="toggleEdit()">Editar</button>
+      </div>
+    }
+  </div>
+
+  <div class="impresion-body">
+    <div class="settings-panel">
+      <mat-tab-group dynamicHeight>
+        <!-- Tab 1: Márgenes y estilos -->
+        <mat-tab label="Márgenes y estilos">
+          <div class="tab-content">
+            @if (isEditing()) {
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="margin-input">
+                  <mat-label>Tamaño</mat-label>
+                <mat-select [value]="settings().paperSize" (valueChange)="updateSetting('paperSize', $event)">
+                  @for (s of paperSizes; track s.value) {
+                    <mat-option [value]="s.value">{{ s.label }}</mat-option>
+                  }
+                  <mat-option value="custom">Personalizado</mat-option>
+                </mat-select>
+              </mat-form-field>
+              </div>
+              @if (settings().paperSize === 'custom') {
+                <div class="form-row">
+                  <mat-form-field appearance="outline" class="margin-input">
+                    <mat-label>Ancho (cm)</mat-label>
+                    <input matInput type="number" step="0.1" min="1" [value]="settings().customWidth" (input)="updateSetting('customWidth', +$any($event).target.value)" />
+                  </mat-form-field>
+                </div>
+                <div class="form-row">
+                  <mat-form-field appearance="outline" class="margin-input">
+                    <mat-label>Altura (cm)</mat-label>
+                    <input matInput type="number" step="0.1" min="1" [value]="settings().customHeight" (input)="updateSetting('customHeight', +$any($event).target.value)" />
+                  </mat-form-field>
+                </div>
+              }
+            } @else {
+              <div class="view-field">
+                <span class="view-label">Tamaño</span>
+                <span class="view-value">{{ paperSizeLabel(settings().paperSize) }}</span>
+              </div>
+              @if (settings().paperSize === 'custom') {
+                <div class="view-field">
+                  <span class="view-label">Dimensiones</span>
+                  <span class="view-value">{{ settings().customWidth ?? '?' }} x {{ settings().customHeight ?? '?' }} cm</span>
+                </div>
+              }
+            }
+
+            @if (isEditing()) {
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="margin-input">
+                  <mat-label>Superior</mat-label>
+                  <input matInput type="number" step="0.1" min="0" [value]="settings().marginTop" (input)="updateSetting('marginTop', +$any($event).target.value)" />
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="margin-input">
+                  <mat-label>Inferior</mat-label>
+                  <input matInput type="number" step="0.1" min="0" [value]="settings().marginBottom" (input)="updateSetting('marginBottom', +$any($event).target.value)" />
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="margin-input">
+                  <mat-label>Izquierdo</mat-label>
+                  <input matInput type="number" step="0.1" min="0" [value]="settings().marginLeft" (input)="updateSetting('marginLeft', +$any($event).target.value)" />
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="margin-input">
+                  <mat-label>Derecho</mat-label>
+                  <input matInput type="number" step="0.1" min="0" [value]="settings().marginRight" (input)="updateSetting('marginRight', +$any($event).target.value)" />
+                </mat-form-field>
+              </div>
+            } @else {
+              <div class="view-field">
+                <span class="view-label">Superior</span>
+                <span class="view-value">{{ settings().marginTop }} cm</span>
+              </div>
+              <div class="view-field">
+                <span class="view-label">Inferior</span>
+                <span class="view-value">{{ settings().marginBottom }} cm</span>
+              </div>
+              <div class="view-field">
+                <span class="view-label">Izquierdo</span>
+                <span class="view-value">{{ settings().marginLeft }} cm</span>
+              </div>
+              <div class="view-field">
+                <span class="view-label">Derecho</span>
+                <span class="view-value">{{ settings().marginRight }} cm</span>
+              </div>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Tab 2: Logo -->
+        <mat-tab label="Logo">
+          <div class="tab-content">
+            <div class="form-row">
+              <mat-checkbox [checked]="settings().usePreloadedLogo" (change)="updateSetting('usePreloadedLogo', $event.checked)" [disabled]="!isEditing()">
+                Usar logo Precargado
+              </mat-checkbox>
+            </div>
+            @if (isEditing()) {
+              @if (!settings().usePreloadedLogo) {
+                <div class="logo-upload-area" (click)="logoInput.click()" (keydown.enter)="logoInput.click()" tabindex="0" role="button" aria-label="Subir logo">
+                  @if (settings().logoUrl) {
+                    <img [src]="settings().logoUrl" class="logo-preview" alt="Logo preview" />
+                    <br />
+                    <button mat-button color="warn" (click)="$event.stopPropagation(); removeLogo()" type="button">Eliminar</button>
+                  } @else {
+                    <mat-icon>cloud_upload</mat-icon>
+                    <p>Selecciona una imagen</p>
+                  }
+                  <p class="upload-hint">PNG, JPG, JPEG, SVG — máx 1 MB</p>
+                  <input #logoInput type="file" accept=".png,.jpg,.jpeg,.svg" (change)="onLogoSelected($event)" style="display: none" />
+                </div>
+              }
+            } @else {
+              @if (!settings().usePreloadedLogo && settings().logoUrl) {
+                <div class="form-row">
+                  <img [src]="settings().logoUrl" class="view-logo-preview" alt="Logo actual" />
+                </div>
+              }
+            }
+
+            @if (isEditing()) {
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="margin-input">
+                  <mat-label>Posición</mat-label>
+                  <mat-select [value]="settings().logoPosition" (valueChange)="updateSetting('logoPosition', $event)">
+                    <mat-option value="top-left">Arriba a la izquierda</mat-option>
+                    <mat-option value="top-right">Arriba a la derecha</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="margin-input">
+                  <mat-label>Ancho</mat-label>
+                  <mat-select [value]="settings().logoWidth" (valueChange)="updateSetting('logoWidth', $event)">
+                    <mat-option [value]="3">3 cm</mat-option>
+                    <mat-option [value]="5">5 cm</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            } @else {
+              <div class="view-field">
+                <span class="view-label">Posición</span>
+                <span class="view-value">{{ settings().logoPosition === 'top-left' ? 'Arriba a la izquierda' : 'Arriba a la derecha' }}</span>
+              </div>
+              <div class="view-field">
+                <span class="view-label">Ancho</span>
+                <span class="view-value">{{ settings().logoWidth }} cm</span>
+              </div>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Tab 3: Información -->
+        <mat-tab label="Información">
+          <div class="tab-content">
+            <div class="checkbox-group">
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showDoctorName" (change)="updateSetting('showDoctorName', $event.checked)" [disabled]="!isEditing()">Mostrar nombre del doctor(a)</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showSpecialty" (change)="updateSetting('showSpecialty', $event.checked)" [disabled]="!isEditing()">Mostrar especialidad</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showProfessionalId" (change)="updateSetting('showProfessionalId', $event.checked)" [disabled]="!isEditing()">Mostrar cédula profesional</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showSpecialtyId" (change)="updateSetting('showSpecialtyId', $event.checked)" [disabled]="!isEditing()">Mostrar cédula de especialidad</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showDoctorPhone" (change)="updateSetting('showDoctorPhone', $event.checked)" [disabled]="!isEditing()">Mostrar teléfono del doctor</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showDoctorOffice" (change)="updateSetting('showDoctorOffice', $event.checked)" [disabled]="!isEditing()">Mostrar consultorio(s) del doctor</mat-checkbox>
+              </div>
+            </div>
+
+            <div class="checkbox-group">
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showPatientName" (change)="updateSetting('showPatientName', $event.checked)" [disabled]="!isEditing()">Mostrar nombre del paciente</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showConsultDate" (change)="updateSetting('showConsultDate', $event.checked)" [disabled]="!isEditing()">Mostrar fecha de la consulta</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showPatientAge" (change)="updateSetting('showPatientAge', $event.checked)" [disabled]="!isEditing()">Mostrar edad del paciente</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showPatientWeight" (change)="updateSetting('showPatientWeight', $event.checked)" [disabled]="!isEditing()">Mostrar peso del paciente</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showPatientHeight" (change)="updateSetting('showPatientHeight', $event.checked)" [disabled]="!isEditing()">Mostrar talla del paciente</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showPatientHeadCircumference" (change)="updateSetting('showPatientHeadCircumference', $event.checked)" [disabled]="!isEditing()">Mostrar perímetro cefálico del paciente</mat-checkbox>
+              </div>
+              <div class="checkbox-row">
+                <mat-checkbox [checked]="settings().showPatientTemperature" (change)="updateSetting('showPatientTemperature', $event.checked)" [disabled]="!isEditing()">Mostrar temperatura del paciente</mat-checkbox>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+
+    <div class="preview-panel">
+      <p class="preview-label">Preview</p>
+      <div class="preview-frame" [style]="previewStyle()">
+        <div class="preview-content" [style]="previewContentStyle()">
+          <div class="preview-top-section">
+            @if (showLogo()) {
+              <div class="preview-logo" [style.width.px]="previewLogoWidthPx()">
+                <img [src]="logoUrl()" alt="Logo" />
+              </div>
+            }
+
+            <div class="preview-doctor-info" [style.fontSize]="fontSize12()">
+            @if (settings().showDoctorName && doctor) {
+              <div class="preview-doctor-name" [style.fontSize]="fontSize16()">{{ doctor.sexo === Sexo.Femenino ? 'DRA.' : 'DR.' }} {{ doctor.name | uppercase }}</div>
+            }
+            @if (settings().showSpecialty) {
+              <div class="preview-field">{{ doctor?.especialidad || 'Pediatría' }}</div>
+            }
+            @if (settings().showProfessionalId) {
+              <div class="preview-field">CED. PROF. 1234567</div>
+            }
+            @if (settings().showSpecialtyId) {
+              <div class="preview-field">CED. ESP. 9876543</div>
+            }
+            @if (settings().showDoctorPhone) {
+              <div class="preview-field">TEL. {{ doctor?.phone || '555-0000' }}</div>
+            }
+            @if (settings().showDoctorOffice) {
+              <div class="preview-field">CONSULTORIO: {{ doctor?.consultorios || 'Consultorio A' }}</div>
+            }
+          </div>
+          </div>
+
+          <div class="preview-gap-32" [style.height]="gapPx(32)"></div>
+
+          <div class="preview-body-text" [style.fontSize]="fontSize12()">
+            <div class="preview-patient-row">
+              @if (settings().showPatientName) {
+                <span>NOMBRE DEL PACIENTE: Nombre del paciente</span>
+              }
+              @if (settings().showConsultDate) {
+                <span>FECHA: 00/00/0000</span>
+              }
+            </div>
+
+            <div class="preview-gap-16" [style.height]="gapPx(16)"></div>
+
+            <div class="preview-patient-row">
+              @if (settings().showPatientAge) {
+                <span>EDAD: 00/00/0000</span>
+              }
+              @if (settings().showPatientWeight) {
+                <span>PESO: 0.0 kg.</span>
+              }
+              @if (settings().showPatientHeight) {
+                <span>TALLA: 0.0 cm.</span>
+              }
+              @if (settings().showPatientHeadCircumference) {
+                <span>PC: 0.0 cm.</span>
+              }
+              @if (settings().showPatientTemperature) {
+                <span>TEMP: 00 °C</span>
+              }
+            </div>
+
+            <div class="preview-gap-12" [style.height]="gapPx(12)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

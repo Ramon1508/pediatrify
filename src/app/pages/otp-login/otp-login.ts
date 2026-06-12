@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -37,29 +37,28 @@ export class OtpLogin {
     password: ['', Validators.required],
   });
 
-  protected hidePassword = true;
-  protected error = '';
-  protected loading = false;
-  protected submitted = false;
+  protected hidePassword = signal(true);
+  protected error = signal('');
+  protected loading = signal(false);
+  protected submitted = signal(false);
 
   protected get emailControl() { return this.form.get('email')!; }
   protected get passwordControl() { return this.form.get('password')!; }
 
   async onSubmit() {
-    this.submitted = true;
+    this.submitted.set(true);
     if (this.form.invalid) return;
 
-    this.loading = true;
-    this.error = '';
+    this.loading.set(true);
+    this.error.set('');
 
     try {
       await this.authService.loginPatient(this.form.value.email!, this.form.value.password!);
       this.router.navigate(['/otp-dashboard']);
     } catch (e: any) {
-      this.error = e.message || 'Error al verificar credenciales';
-      this.cdr.markForCheck();
+      this.error.set(e.message || 'Error al verificar credenciales');
     } finally {
-      this.loading = false;
+      this.loading.set(false);
       this.cdr.markForCheck();
     }
   }

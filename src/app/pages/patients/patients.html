@@ -1,4 +1,23 @@
 <div class="patients-container">
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (todayAppointments().length > 0) {
+    <div class="carousel-section">
+      <span class="carousel-label">Consultas del d&iacute;a de hoy ({{ todayDateLabel() }})</span>
+      <app-carousel [items]="todayAppointments()" [slotWidth]="376">
+        <ng-template let-appt>
+          <app-appointment-card
+            [appointment]="appt"
+            (cancel)="cancelAppointment($event)"
+            (viewHistory)="viewHistory($event)"
+          />
+        </ng-template>
+      </app-carousel>
+    </div>
+  }
+
   <div class="header-actions">
     <span class="page-title">Pacientes</span>
     <button mat-unelevated-button class="btn-primary" (click)="openNewPatient()">
@@ -7,30 +26,7 @@
     </button>
   </div>
 
-  @if (loading) {
-    <mat-progress-bar mode="indeterminate" />
-  }
-
-  @if (todayAppointments().length > 0) {
-    <div class="carousel-section">
-      <span class="carousel-label">Consultas del d&iacute;a de hoy ({{ todayDateLabel }})</span>
-      <div class="carousel-scroll">
-        @for (appt of todayAppointments(); track appt.id) {
-          <mat-card class="appointment-card">
-            <span class="appt-name">{{ appt.patientName }}</span>
-            <span class="appt-time">{{ appt.time }}</span>
-            <span class="appt-motive">{{ appt.notes || 'Sin motivo registrado' }}</span>
-            <div class="appt-actions">
-              <button mat-stroked-button class="btn-tertiary" (click)="cancelAppointment(appt)">Cancelar</button>
-              <button mat-stroked-button class="btn-secondary" (click)="viewHistory(appt)">Ver historial</button>
-            </div>
-          </mat-card>
-        }
-      </div>
-    </div>
-  }
-
-  @if (patients().length === 0 && !loading) {
+  @if (patients().length === 0 && !loading()) {
     <div class="empty-state-wrapper">
       <div class="empty-state-content">
         <span class="empty-text">No hay pacientes registrados</span>
@@ -42,64 +38,24 @@
     </div>
   } @else {
     <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Buscar por nombre</mat-label>
+      <mat-label>Buscar por paciente, padre o tutor.</mat-label>
       <mat-icon matPrefix>search</mat-icon>
       <input matInput [formControl]="searchControl" />
     </mat-form-field>
 
     <div class="patients-grid">
       @for (patient of filteredPatients(); track patient.id) {
-        <mat-card class="patient-card">
-          <div class="card-header">
-            <span class="card-name" [matTooltip]="patient.name + ' ' + patient.lastName">{{ patient.name }} {{ patient.lastName }}</span>
-            <button mat-icon-button [matMenuTriggerFor]="patientMenu" class="card-menu-btn">
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #patientMenu="matMenu">
-              <button mat-menu-item (click)="openEditPatient(patient)">
-                <mat-icon>edit</mat-icon>
-                <span>Editar paciente</span>
-              </button>
-              <button mat-menu-item (click)="openEditPatient(patient)">
-                <mat-icon>history</mat-icon>
-                <span>Ver historial</span>
-              </button>
-              @if (isAdmin) {
-                <button mat-menu-item (click)="setCustomOtp(patient)">
-                  <mat-icon>lock_reset</mat-icon>
-                  <span>Cambiar contrase&ntilde;a OTP</span>
-                </button>
-              } @else {
-                <button mat-menu-item (click)="regenerateOtp(patient)">
-                  <mat-icon>refresh</mat-icon>
-                  <span>Regenerar OTP</span>
-                </button>
-              }
-              <button mat-menu-item (click)="deletePatient(patient)">
-                <mat-icon>delete</mat-icon>
-                <span>Eliminar paciente</span>
-              </button>
-            </mat-menu>
-          </div>
-          <div class="card-body">
-            <span class="card-label">Correo:</span>
-            <span class="card-value">{{ patient.email }}</span>
-            <span class="card-label">Tel&eacute;fono:</span>
-            <span class="card-value">{{ patient.phone }}</span>
-            <span class="card-label">Padre:</span>
-            <span class="card-value">{{ patient.fatherName }}</span>
-            <span class="card-label">Madre:</span>
-            <span class="card-value">{{ patient.motherName }}</span>
-            <span class="card-label">Contrase&ntilde;a OTP:</span>
-            <span class="card-value otp-value">{{ patient.otpPassword }}
-              <button mat-icon-button (click)="copyOtp(patient.otpPassword)" matTooltip="Copiar OTP" class="otp-copy-btn">
-                <mat-icon>content_copy</mat-icon>
-              </button>
-            </span>
-          </div>
-        </mat-card>
+        <app-patient-card
+          [patient]="patient"
+          [isAdmin]="isAdmin()"
+          (edit)="openEditPatient($event)"
+          (completeProfile)="openCompleteProfile($event)"
+          (viewHistory)="viewHistory($event)"
+          (setCustomOtp)="setCustomOtp($event)"
+          (regenerateOtp)="regenerateOtp($event)"
+          (delete)="deletePatient($event)"
+        />
       }
     </div>
   }
 </div>
-

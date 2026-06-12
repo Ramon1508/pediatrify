@@ -94,7 +94,7 @@ describe('Doctors', () => {
     const emptyComponent = TestBed.createComponent(Doctors);
     emptyComponent.detectChanges();
     (emptyComponent.componentInstance as any).doctors.set([]);
-    (emptyComponent.componentInstance as any).loading = false;
+    (emptyComponent.componentInstance as any).loading.set(false);
     emptyComponent.detectChanges();
 
     const el = emptyComponent.nativeElement;

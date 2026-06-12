@@ -23,13 +23,13 @@ export class AuditLog implements OnInit {
   private auditRepo = inject(AuditRepository);
 
   protected entries = signal<AuditEntry[]>([]);
-  protected loading = true;
+  protected loading = signal(true);
   protected displayedColumns = ['action', 'entityType', 'entityId', 'performedBy', 'timestamp', 'changes'];
 
   ngOnInit() {
     this.auditRepo.watchAll().subscribe((items) => {
       this.entries.set(items);
-      this.loading = false;
+      this.loading.set(false);
     });
   }
 

@@ -39,6 +39,18 @@
 
     <a
       class="nav-item"
+      routerLink="/app/impresion"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }"
+    >
+      <div class="icon-wrapper">
+        <mat-icon>settings</mat-icon>
+      </div>
+      <span class="nav-label">Impresión</span>
+    </a>
+
+    <a
+      class="nav-item"
       routerLink="/app/audit-log"
       routerLinkActive="active"
       [routerLinkActiveOptions]="{ exact: false }"
@@ -50,12 +62,3 @@
     </a>
   }
 </nav>
-
-<footer class="sidebar-footer">
-  <button class="nav-item logout-btn" (click)="logout()">
-    <div class="icon-wrapper">
-      <mat-icon>logout</mat-icon>
-    </div>
-    <span class="nav-label">Salir</span>
-  </button>
-</footer>

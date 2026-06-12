@@ -1,4 +1,5 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,11 +14,40 @@ import { CommonModule } from '@angular/common';
 import { PatientRepository } from '../../core/repositories/patient.repository';
 import { AppointmentRepository } from '../../core/repositories/appointment.repository';
 import { AuditRepository } from '../../core/repositories/audit.repository';
+
+function calcAge(birthDate: unknown): string {
+  let d: Date | null = null;
+  if (typeof birthDate === 'string') {
+    const parts = birthDate.split('-');
+    if (parts.length === 3) d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+  } else if (birthDate && typeof (birthDate as any).toDate === 'function') {
+    d = (birthDate as any).toDate();
+  }
+  if (!d || isNaN(d.getTime())) return '';
+  const now = new Date();
+  let months = (now.getFullYear() - d.getFullYear()) * 12;
+  months += now.getMonth() - d.getMonth();
+  if (now.getDate() < d.getDate()) months--;
+  if (months < 0) return '0 meses';
+  if (months < 24) return `${months} meses`;
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  return remainingMonths > 0
+    ? `${years} años ${remainingMonths} meses`
+    : `${years} años`;
+}
 import { Patient, Appointment } from '../../core/models/user';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { NewPatientDialog } from '../calendar/dialogs/new-patient-dialog/new-patient-dialog';
+import { EditPatientDialog } from './dialogs/edit-patient-dialog/edit-patient-dialog';
+import { CompleteProfileDialog } from './dialogs/complete-profile-dialog/complete-profile-dialog';
+import { ViewOtpDialog } from './dialogs/view-otp-dialog/view-otp-dialog';
+import { PatientCard } from '../../shared/components/patient-card/patient-card';
+import { AppointmentCard } from '../../shared/components/appointment-card/appointment-card';
+import { Carousel } from '../../shared/components/carousel/carousel';
+import { ConfirmDialog, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog';
 
 @Component({
   selector: 'app-patients',
@@ -36,9 +66,13 @@ import { NewPatientDialog } from '../calendar/dialogs/new-patient-dialog/new-pat
     MatProgressBarModule,
     MatTooltipModule,
     MatMenuModule,
+    PatientCard,
+    AppointmentCard,
+    Carousel,
   ],
 })
 export class Patients implements OnInit, OnDestroy {
+  private router = inject(Router);
   private dialog = inject(MatDialog);
   private patientRepo = inject(PatientRepository);
   private appointmentRepo = inject(AppointmentRepository);
@@ -46,29 +80,33 @@ export class Patients implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private alert = inject(AlertService);
   private clipboard = inject(Clipboard);
-  private cdr = inject(ChangeDetectorRef);
 
   protected patients = signal<Patient[]>([]);
-  protected loading = true;
-  protected isAdmin = false;
+  protected patientsWithAge = signal<(Patient & { ageDisplay: string })[]>([]);
+  protected loading = signal(true);
+  protected isAdmin = signal(false);
   protected searchControl = new FormControl('');
   protected searchTerm = signal('');
 
   protected todayAppointments = signal<Appointment[]>([]);
-  protected todayDateLabel = '';
+  protected todayDateLabel = signal('');
 
   protected filteredPatients = computed(() => {
     const term = this.searchTerm().toLowerCase();
-    if (!term) return this.patients();
-    return this.patients().filter(
-      (p) => (p.name + ' ' + p.lastName).toLowerCase().includes(term)
+    const all = this.patientsWithAge();
+    if (!term) return all;
+    return all.filter(
+      (p) =>
+        (p.name + ' ' + p.lastName).toLowerCase().includes(term) ||
+        (p.fatherName || '').toLowerCase().includes(term) ||
+        (p.motherName || '').toLowerCase().includes(term)
     );
   });
 
   private subs: any[] = [];
 
   async ngOnInit() {
-    this.isAdmin = this.authService.currentDoctor?.role === 'admin';
+    this.isAdmin.set(this.authService.currentDoctor?.role === 'admin');
     const currentDoctorUid = this.authService.currentDoctor?.uid;
 
     this.subs.push(
@@ -79,8 +117,8 @@ export class Patients implements OnInit, OnDestroy {
 
     this.patientRepo.watchAllPatients().subscribe((patients) => {
       this.patients.set(patients);
-      this.loading = false;
-      this.cdr.markForCheck();
+      this.patientsWithAge.set(patients.map((p) => ({ ...p, ageDisplay: calcAge(p.birthDate) })));
+      this.loading.set(false);
     });
 
     if (currentDoctorUid) {
@@ -88,15 +126,13 @@ export class Patients implements OnInit, OnDestroy {
         this.appointmentRepo.watchAppointmentsByDoctor(currentDoctorUid).subscribe((appts) => {
           const today = new Date();
           const todayStr = this.formatDateStr(today);
-          this.todayAppointments.set(
-            appts.filter((a) => a.date === todayStr && a.status === 'scheduled')
-          );
-          this.todayDateLabel = today.toLocaleDateString('es-MX', {
+          const filtered = appts.filter((a) => a.date === todayStr && a.status === 'scheduled');
+          this.todayAppointments.set(filtered);
+          this.todayDateLabel.set(today.toLocaleDateString('es-MX', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
-          });
-          this.cdr.markForCheck();
+          }));
         })
       );
     }
@@ -134,17 +170,28 @@ export class Patients implements OnInit, OnDestroy {
         timestamp: new Date() as any,
         newValues: { name: result.name, lastName: result.lastName, email: result.email, phone: result.phone, fatherName: result.fatherName, motherName: result.motherName },
       });
+      this.alert.success({ message: 'Paciente agregado', duration: 3000 });
     }
   }
 
-  async openEditPatient(patient: Patient) {
-    const dialogRef = this.dialog.open(NewPatientDialog, {
-      width: '400px',
+  async openCompleteProfile(patient: Patient) {
+    const dialogRef = this.dialog.open(CompleteProfileDialog, {
+      width: '736px',
       disableClose: true,
       panelClass: 'right-panel',
     });
-    dialogRef.componentInstance.setPatients(this.patients());
-    dialogRef.componentInstance.setEditData(patient);
+    dialogRef.componentInstance.setPatient(patient);
+
+    await dialogRef.afterClosed().toPromise();
+  }
+
+  async openEditPatient(patient: Patient) {
+    const dialogRef = this.dialog.open(EditPatientDialog, {
+      width: '736px',
+      disableClose: true,
+      panelClass: 'right-panel',
+    });
+    dialogRef.componentInstance.setPatient(patient);
 
     const result = await dialogRef.afterClosed().toPromise();
     if (result) {
@@ -164,6 +211,19 @@ export class Patients implements OnInit, OnDestroy {
   }
 
   async cancelAppointment(appt: Appointment) {
+    const dialogRef = this.dialog.open(ConfirmDialog, {
+      data: {
+        title: 'Cancelar consulta',
+        message: 'Al cancelar una consulta el padre o tutor del paciente recibirá una notificación de la cancelación y podrá seleccionar un nuevo día y horario para la consulta si así lo desea.',
+        confirmLabel: 'Cancelar consulta',
+        cancelLabel: 'Cerrar',
+        confirmButtonClass: 'btn-danger dialog-btn',
+      } as ConfirmDialogData,
+    });
+
+    const confirmed = await dialogRef.afterClosed().toPromise();
+    if (!confirmed) return;
+
     try {
       await this.appointmentRepo.updateAppointment(appt.id, { status: 'cancelled' });
       await this.auditRepo.log({
@@ -183,13 +243,11 @@ export class Patients implements OnInit, OnDestroy {
     }
   }
 
-  viewHistory(appt: Appointment) {
-    const patient = this.patients().find((p) => p.id === appt.patientId);
-    if (patient) {
-      this.openEditPatient(patient);
-    } else {
-      this.alert.error({ message: 'Paciente no encontrado', duration: 3000 });
-    }
+  viewHistory(appt: Appointment): void;
+  viewHistory(patient: Patient): void;
+  viewHistory(item: Appointment | Patient): void {
+    const patientId = 'patientId' in item ? item.patientId : (item as Patient).id;
+    this.router.navigate(['/app/patients/history', patientId]);
   }
 
   async regenerateOtp(patient: Patient) {
@@ -199,17 +257,30 @@ export class Patients implements OnInit, OnDestroy {
   }
 
   async setCustomOtp(patient: Patient) {
-    const pwd = prompt('Ingresa la nueva contraseña OTP (mín. 4 caracteres):');
-    if (!pwd || pwd.length < 4) return;
-    await this.patientRepo.updatePatient(patient.id, { otpPassword: pwd });
-    this.alert.success({ message: `Contraseña OTP actualizada: ${pwd}`, duration: 5000 });
+    const dialogRef = this.dialog.open(ViewOtpDialog, {
+      width: '400px',
+      disableClose: true,
+    });
+    dialogRef.componentInstance.setPatient(patient);
+    await dialogRef.afterClosed().toPromise();
   }
 
   async deletePatient(patient: Patient) {
-    if (confirm(`¿Eliminar a ${patient.name} ${patient.lastName}?`)) {
-      await this.patientRepo.deletePatient(patient.id);
-      this.alert.success({ message: 'Paciente eliminado', duration: 3000 });
-    }
+    const dialogRef = this.dialog.open(ConfirmDialog, {
+      data: {
+        title: 'Eliminar paciente',
+        message: `¿Eliminar a ${patient.name} ${patient.lastName}?`,
+        confirmLabel: 'Eliminar',
+        cancelLabel: 'Cancelar',
+        confirmButtonClass: 'btn-danger dialog-btn',
+      } as ConfirmDialogData,
+    });
+
+    const confirmed = await dialogRef.afterClosed().toPromise();
+    if (!confirmed) return;
+
+    await this.patientRepo.deletePatient(patient.id);
+    this.alert.success({ message: 'Paciente eliminado', duration: 3000 });
   }
 
   copyOtp(password: string) {

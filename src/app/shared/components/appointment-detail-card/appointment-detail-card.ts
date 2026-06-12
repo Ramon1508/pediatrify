@@ -1,4 +1,5 @@
-import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { Appointment } from '../../../core/models/user';
 
@@ -23,7 +24,9 @@ export class AppointmentDetailCard {
     this.cancel.emit();
   }
 
+  private router = inject(Router);
+
   onVerHistorial() {
-    console.log('Ver historial');
+    this.router.navigate(['/app/patients/history', this.appointment().patientId]);
   }
 }

@@ -48,7 +48,7 @@ describe('ResetPassword', () => {
   });
 
   it('starts in request mode by default', () => {
-    expect((component as any).mode).toBe('request');
+    expect((component as any).mode()).toBe('request');
   });
 
   it('requestForm is invalid when empty', () => {
@@ -68,7 +68,7 @@ describe('ResetPassword', () => {
 
   it('does not call sendPasswordResetEmail when form is invalid', async () => {
     await (component as any).onRequestLink();
-    expect((component as any).loading).toBe(false);
+    expect((component as any).loading()).toBe(false);
   });
 
   it('calls sendPasswordResetEmail when form is valid', async () => {
@@ -156,7 +156,7 @@ describe('ResetPassword', () => {
     });
 
     it('switches to reset mode when oobCode is valid', () => {
-      expect((component as any).mode).toBe('reset');
+      expect((component as any).mode()).toBe('reset');
       expect((component as any).oobCode).toBe('valid-code');
     });
 

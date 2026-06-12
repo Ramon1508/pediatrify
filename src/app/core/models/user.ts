@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 import { Sexo } from './sexo';
+import { PrintSettings } from './print-settings';
 
 export type UserRole = 'admin' | 'employee';
 
@@ -26,8 +27,17 @@ export interface AppUser {
   startTime?: string;
   endTime?: string;
   timeSegments?: TimeSegment[];
+  printSettings?: PrintSettings;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
+}
+
+export interface VaccineDose {
+  applied: boolean;
+  applicationDate?: string;
+  batchNumber?: string;
+  institution?: string;
+  notes?: string;
 }
 
 export interface Patient {
@@ -40,7 +50,25 @@ export interface Patient {
   fatherName: string;
   motherName: string;
   phone: string;
+  secondaryPhone?: string;
+  referredBy?: string;
   otpPassword: string;
+  profileComplete?: boolean;
+  bloodType?: string;
+  birthWeight?: number;
+  birthHeight?: number;
+  headCircumference?: number;
+  sex?: Sexo;
+  birthMethod?: 'vaginal' | 'cesarean';
+  hasAllergies?: boolean;
+  allergies?: string;
+  hasBeenHospitalized?: boolean;
+  hospitalizationReason?: string;
+  hasDisease?: boolean;
+  diseaseDescription?: string;
+  takesMedication?: boolean;
+  medicationDescription?: string;
+  vaccinationRecord?: Record<string, Record<string, VaccineDose>>;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -66,6 +94,11 @@ export interface Appointment {
   id: string;
   patientId: string;
   patientName: string;
+  patientLastName: string;
+  patientFatherName: string;
+  patientMotherName: string;
+  patientBirthDate: string;
+  patientPhone: string;
   doctorId: string;
   doctorName: string;
   date: string;

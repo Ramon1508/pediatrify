@@ -50,7 +50,7 @@ describe('SetupProfile', () => {
     router = TestBed.inject(Router);
     fixture.detectChanges();
     (component as any).mode.set('existing');
-    (component as any).displayEmail = 'doc@test.com';
+      (component as any).displayEmail.set('doc@test.com');
     fixture.detectChanges();
   });
 
@@ -143,7 +143,7 @@ describe('SetupProfile', () => {
 
     it('calls completeProfile in existing mode', async () => {
       (component as any).mode.set('existing');
-      (component as any).displayEmail = 'doc@test.com';
+    (component as any).displayEmail.set('doc@test.com');
       fillValidForm();
       (authService.completeProfile as any).mockResolvedValue(undefined);
 
@@ -162,7 +162,7 @@ describe('SetupProfile', () => {
 
       await (component as any).finish();
 
-      expect((component as any).finishing).toBe(false);
+      expect((component as any).finishing()).toBe(false);
       expect(alertService.error).toHaveBeenCalled();
     });
   });
@@ -178,9 +178,9 @@ describe('SetupProfile', () => {
 
   it('onLogoUploaded sets logoPath', () => {
     (component as any).onLogoUploaded({ url: 'http://img', path: 'logos/file.png' });
-    expect((component as any).logoPath).toBe('logos/file.png');
+    expect((component as any).logoPath()).toBe('logos/file.png');
 
     (component as any).onLogoUploaded(null);
-    expect((component as any).logoPath).toBeNull();
+    expect((component as any).logoPath()).toBeNull();
   });
 });

@@ -21,8 +21,8 @@ describe('Appointments', () => {
   ] as any[];
 
   const mockAppointments = [
-    { id: 'a1', patientId: 'p1', patientName: 'Juan Pérez', doctorId: 'd1', doctorName: 'Dr. X', date: '2026-06-01', time: '10:00', status: 'scheduled', type: 'scheduled' },
-    { id: 'a2', patientId: 'p1', patientName: 'Juan Pérez', doctorId: 'd1', doctorName: 'Dr. X', date: '2026-06-01', time: '11:00', status: 'attended', type: 'scheduled' },
+    { id: 'a1', patientId: 'p1', patientName: 'Juan Pérez', patientLastName: 'Pérez', patientFatherName: '', patientMotherName: '', patientBirthDate: '', patientPhone: '', doctorId: 'd1', doctorName: 'Dr. X', date: '2026-06-01', time: '10:00', status: 'scheduled', type: 'scheduled' },
+    { id: 'a2', patientId: 'p1', patientName: 'Juan Pérez', patientLastName: 'Pérez', patientFatherName: '', patientMotherName: '', patientBirthDate: '', patientPhone: '', doctorId: 'd1', doctorName: 'Dr. X', date: '2026-06-01', time: '11:00', status: 'attended', type: 'scheduled' },
   ] as any[];
 
   beforeEach(async () => {

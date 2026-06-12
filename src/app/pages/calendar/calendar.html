@@ -45,7 +45,7 @@
           </div>
         }
 
-        @for (slot of timeSlots; track slot.key) {
+        @for (slot of timeSlots(); track slot.key) {
           <div class="grid-cell time-label">
             @if (slot.label) {
               <span>{{ slot.label }}</span>

@@ -1,4 +1,9 @@
-<h2 mat-dialog-title>Invitar asistente</h2>
+<div class="dialog-title-container">
+  <h2 class="dialog-title">Invitar asistente</h2>
+  <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
 
 <mat-dialog-content>
   <form [formGroup]="form">
@@ -15,6 +20,18 @@
       <input matInput type="email" formControlName="email" />
       @if (form.get('email')?.invalid && (form.get('email')?.touched || submitted)) {
         <mat-error>Ingresa un correo electrónico válido</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Rol del usuario</mat-label>
+      <mat-select formControlName="role">
+        @for (r of roles; track r.value) {
+          <mat-option [value]="r.value">{{ r.label }}</mat-option>
+        }
+      </mat-select>
+      @if (form.get('role')?.invalid && (form.get('role')?.touched || submitted)) {
+        <mat-error>Selecciona un rol</mat-error>
       }
     </mat-form-field>
 
@@ -39,16 +56,15 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-stroked-button class="btn-tertiary" [mat-dialog-close]="false">
-    {{ invitationLink ? 'Cerrar' : 'Cancelar' }}
-  </button>
   @if (!invitationLink) {
-    <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
       @if (saving) {
         <mat-spinner diameter="18" />
       } @else {
         Crear invitación
       }
     </button>
+  } @else {
+    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="close()">Cerrar</button>
   }
 </mat-dialog-actions>

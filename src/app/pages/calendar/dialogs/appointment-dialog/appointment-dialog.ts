@@ -14,8 +14,9 @@ import { AuditRepository } from '../../../../core/repositories/audit.repository'
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
-import { Appointment, Patient } from '../../../../core/models/user';
+import { Appointment, Patient, TimeSegment } from '../../../../core/models/user';
 import { NewPatientDialog } from '../new-patient-dialog/new-patient-dialog';
+import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { MatDialog } from '@angular/material/dialog';
 
 @Component({
@@ -51,6 +52,7 @@ export class AppointmentDialog {
   protected allPatients: Patient[] = [];
   protected selectedDoctorId = '';
   protected editingAppointment: Appointment | null = null;
+  protected timeSegments: TimeSegment[] = [];
   protected error = '';
   protected submitted = false;
   protected saving = false;
@@ -64,21 +66,38 @@ export class AppointmentDialog {
     notes: [''],
   });
 
+  private toDateStr(value: unknown): string {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (value instanceof Date && !isNaN(value.getTime())) {
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, '0');
+      const d = String(value.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    if (typeof (value as any).toDate === 'function') {
+      return this.toDateStr((value as any).toDate());
+    }
+    return String(value);
+  }
+
   setData(data: {
     allPatients: Patient[];
     selectedDoctorId: string;
     editingAppointment?: Appointment | null;
+    timeSegments?: TimeSegment[];
   }) {
     this.allPatients = data.allPatients;
     this.filteredPatients = data.allPatients;
     this.selectedDoctorId = data.selectedDoctorId;
     this.editingAppointment = data.editingAppointment ?? null;
+    this.timeSegments = data.timeSegments ?? [];
 
     if (data.editingAppointment) {
       const apt = data.editingAppointment;
       this.form.setValue({
         patientId: apt.patientId,
-        date: apt.date,
+        date: this.toDateStr(apt.date),
         time: apt.time,
         notes: apt.notes || '',
       });
@@ -99,16 +118,57 @@ export class AppointmentDialog {
     this.dialogRef.close();
   }
 
+  private isTimeWithinSegments(time: string): boolean {
+    if (!this.timeSegments.length) return true;
+    const [h, m] = time.split(':').map(Number);
+    const totalMinutes = h * 60 + m;
+    return this.timeSegments.some((seg) => {
+      const [sh, sm] = seg.startTime.split(':').map(Number);
+      let [eh, em] = seg.endTime.split(':').map(Number);
+      if (eh === 0 && em === 0) eh = 24;
+      const startMinutes = sh * 60 + sm;
+      const endMinutes = eh * 60 + em;
+      return totalMinutes >= startMinutes && totalMinutes < endMinutes;
+    });
+  }
+
+  protected onTimeBlur() {
+    const time = this.form.value.time;
+    if (time && !this.isTimeWithinSegments(time)) {
+      this.alert.warning({ message: 'La hora seleccionada está fuera del horario laboral configurado', duration: 5000 });
+    }
+  }
+
   async save() {
     this.submitted = true;
     if (this.form.invalid) return;
+
+    const time = this.form.value.time;
+    const outsideHours = !!time && !this.isTimeWithinSegments(time);
+
+    const data: ConfirmDialogData = {
+      title: outsideHours ? 'Fuera del horario laboral' : `${this.editingAppointment ? 'Reagendar' : 'Agendar'} cita`,
+      message: outsideHours
+        ? 'La hora seleccionada está fuera del horario laboral configurado. ¿Guardar de todas formas?'
+        : `¿Confirmas ${this.editingAppointment ? 'la modificación de' : 'agendar'} esta cita?`,
+      confirmLabel: 'Confirmar',
+      cancelLabel: 'Cancelar',
+      confirmButtonClass: outsideHours ? 'btn-danger dialog-btn' : 'btn-primary dialog-btn',
+    };
+    const dialogRef = this.dialog.open(ConfirmDialog, { disableClose: true, data });
+    const confirmed = await dialogRef.afterClosed().toPromise();
+    if (!confirmed) {
+      this.submitted = false;
+      return;
+    }
 
     this.saving = true;
     this.error = '';
 
     try {
       const targetDoctor = this.authService.currentDoctor;
-      const { patientId, date, time, notes } = this.form.value;
+      const { patientId, date: rawDate, time, notes } = this.form.value;
+      const date = this.toDateStr(rawDate);
       const patient = this.allPatients.find((p) => p.id === patientId);
       if (!targetDoctor || !patient) return;
 
@@ -118,6 +178,11 @@ export class AppointmentDialog {
         await this.appointmentRepo.updateAppointment(this.editingAppointment.id, {
           patientId: patient.id,
           patientName: `${patient.name} ${patient.lastName}`,
+          patientLastName: patient.lastName,
+          patientFatherName: patient.fatherName ?? '',
+          patientMotherName: patient.motherName ?? '',
+          patientBirthDate: patient.birthDate,
+          patientPhone: patient.phone ?? '',
           doctorId: targetDoctor.uid,
           doctorName: targetDoctor.name,
           date: date!,
@@ -135,6 +200,11 @@ export class AppointmentDialog {
         id,
         patientId: patient.id,
         patientName: `${patient.name} ${patient.lastName}`,
+        patientLastName: patient.lastName,
+        patientFatherName: patient.fatherName ?? '',
+        patientMotherName: patient.motherName ?? '',
+        patientBirthDate: patient.birthDate,
+        patientPhone: patient.phone ?? '',
         doctorId: targetDoctor.uid,
         doctorName: targetDoctor.name,
         date: date!,

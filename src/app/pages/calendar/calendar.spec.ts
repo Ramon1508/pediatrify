@@ -25,6 +25,11 @@ describe('Calendar', () => {
       id: 'a1',
       patientId: 'p1',
       patientName: 'Ana López',
+      patientLastName: 'López',
+      patientFatherName: '',
+      patientMotherName: '',
+      patientBirthDate: '',
+      patientPhone: '',
       doctorId: 'd1',
       doctorName: 'Dr. Y',
       date: TODAY,
@@ -69,9 +74,10 @@ describe('Calendar', () => {
 
   it('has 36 time slots (06:00 to 23:30) from default segment', () => {
     fixture.detectChanges();
-    expect((component as any).timeSlots.length).toBe(36);
-    expect((component as any).timeSlots[0].label).toBe('6:00 AM');
-    expect((component as any).timeSlots[35].key).toBe('23:30');
+    const slots = (component as any).timeSlots();
+    expect(slots.length).toBe(36);
+    expect(slots[0].label).toBe('6:00 AM');
+    expect(slots[35].key).toBe('23:30');
   });
 
   it('shows all 7 days in the week', () => {
@@ -101,7 +107,7 @@ describe('Calendar', () => {
   it('tracks hovered cell', () => {
     fixture.detectChanges();
     const date = new Date(2026, 5, 1);
-    const slot = (component as any).timeSlots[4];
+    const slot = (component as any).timeSlots()[4];
     (component as any).onCellHover(date, slot);
 
     expect((component as any).isHovered(date, slot)).toBe(true);

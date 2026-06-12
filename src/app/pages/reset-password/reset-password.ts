@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { sendPasswordResetEmail, confirmPasswordReset } from 'firebase/auth';
@@ -36,12 +36,12 @@ export class ResetPassword implements OnInit {
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
 
-  protected mode: 'request' | 'reset' = 'request';
+  protected mode = signal<'request' | 'reset'>('request');
   protected oobCode = '';
-  protected loading = false;
-  protected submitted = false;
-  protected hidePassword = true;
-  protected hideConfirmPassword = true;
+  protected loading = signal(false);
+  protected submitted = signal(false);
+  protected hidePassword = signal(true);
+  protected hideConfirmPassword = signal(true);
 
   protected requestForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -77,17 +77,17 @@ export class ResetPassword implements OnInit {
     const oobCode = params['oobCode'];
     if (oobCode) {
       this.oobCode = oobCode;
-      this.mode = 'reset';
+      this.mode.set('reset');
       this.cdr.detectChanges();
     }
   }
 
   async onRequestLink() {
-    this.submitted = true;
+    this.submitted.set(true);
     if (this.requestForm.invalid) return;
 
     const email = this.requestForm.value.email!;
-    this.loading = true;
+    this.loading.set(true);
 
     try {
       const actionCodeSettings = {
@@ -96,7 +96,7 @@ export class ResetPassword implements OnInit {
       await sendPasswordResetEmail(this.firebase.auth, email, actionCodeSettings);
       this.alert.success({ message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.', duration: 5000 });
       this.requestForm.reset();
-      this.submitted = false;
+      this.submitted.set(false);
     } catch (e: any) {
       if (e.code === 'auth/user-not-found') {
         this.alert.error({ message: 'No se encontró una cuenta con este correo electrónico', duration: 5000 });
@@ -104,16 +104,16 @@ export class ResetPassword implements OnInit {
         this.alert.error({ message: e.message || 'Error al enviar correo de recuperación', duration: 5000 });
       }
     } finally {
-      this.loading = false;
+      this.loading.set(false);
     }
   }
 
   async onResetPassword() {
-    this.submitted = true;
+    this.submitted.set(true);
     if (this.resetForm.invalid) return;
 
     const newPassword = this.resetForm.value.newPassword!;
-    this.loading = true;
+    this.loading.set(true);
 
     try {
       await confirmPasswordReset(this.firebase.auth, this.oobCode, newPassword);
@@ -128,7 +128,7 @@ export class ResetPassword implements OnInit {
         this.alert.error({ message: e.message || 'Error al restablecer la contraseña', duration: 5000 });
       }
     } finally {
-      this.loading = false;
+      this.loading.set(false);
     }
   }
 }

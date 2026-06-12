@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
@@ -39,10 +39,9 @@ export class Doctors implements OnInit, OnDestroy {
   private userRepo = inject(UserRepository);
   private alert = inject(AlertService);
   private dialog = inject(MatDialog);
-  private cdr = inject(ChangeDetectorRef);
 
   protected doctors = signal<AppUser[]>([]);
-  protected loading = true;
+  protected loading = signal(true);
   protected searchControl = new FormControl('');
   protected searchTerm = signal('');
 
@@ -64,8 +63,7 @@ export class Doctors implements OnInit, OnDestroy {
     );
     this.userRepo.watchAllUsers().subscribe((users) => {
       this.doctors.set(users);
-      this.loading = false;
-      this.cdr.markForCheck();
+      this.loading.set(false);
     });
   }
 
@@ -75,15 +73,17 @@ export class Doctors implements OnInit, OnDestroy {
 
   openNewDoctor() {
     this.dialog.open(InviteDoctorDialog, {
-      width: '480px',
+      width: '400px',
       disableClose: true,
+      panelClass: 'right-panel',
     });
   }
 
   openEditDoctor(doctor: AppUser) {
     const dialogRef = this.dialog.open(EditDoctorDialog, {
-      width: '480px',
+      width: '400px',
       disableClose: true,
+      panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setDoctor(doctor);
   }

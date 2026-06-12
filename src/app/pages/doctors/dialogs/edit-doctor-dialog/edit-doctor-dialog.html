@@ -1,4 +1,9 @@
-<h2 mat-dialog-title>Editar asistente</h2>
+<div class="dialog-title-container">
+  <h2 class="dialog-title">Editar asistente</h2>
+  <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
 
 <mat-dialog-content>
   <form [formGroup]="form">
@@ -45,8 +50,7 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-stroked-button class="btn-tertiary" [mat-dialog-close]="false">Cancelar</button>
-  <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
     @if (saving) {
       <mat-spinner diameter="18" />
     } @else {

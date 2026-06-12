@@ -45,13 +45,13 @@ export class Appointments implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   protected allAppointments = signal<Appointment[]>([]);
-  protected allPatients: Patient[] = [];
-  protected selectedTab = 0;
+  protected allPatients = signal<Patient[]>([]);
+  protected selectedTab = signal(0);
   protected isAdmin = false;
 
-  protected showWalkIn = false;
-  protected submitted = false;
-  protected saving = false;
+  protected showWalkIn = signal(false);
+  protected submitted = signal(false);
+  protected saving = signal(false);
 
   protected walkInForm = this.fb.group({
     patientId: ['', Validators.required],
@@ -73,8 +73,7 @@ export class Appointments implements OnInit {
     if (!doctor) return;
 
     this.isAdmin = doctor.role === 'admin';
-    this.allPatients = await this.patientRepo.getAllPatients();
-    this.cdr.markForCheck();
+    this.allPatients.set(await this.patientRepo.getAllPatients());
 
     this.appointmentRepo.watchAppointmentsByDoctor(doctor.uid).subscribe((apps) => {
       this.allAppointments.set(apps);
@@ -86,7 +85,7 @@ export class Appointments implements OnInit {
       width: '400px',
       disableClose: true,
     });
-    dialogRef.componentInstance.setPatients(this.allPatients);
+    dialogRef.componentInstance.setPatients(this.allPatients());
     await dialogRef.afterClosed().toPromise();
   }
 
@@ -95,7 +94,7 @@ export class Appointments implements OnInit {
       width: '400px',
       disableClose: true,
     });
-    dialogRef.componentInstance.setPatients(this.allPatients);
+    dialogRef.componentInstance.setPatients(this.allPatients());
     dialogRef.componentInstance.setEditData(apt);
     await dialogRef.afterClosed().toPromise();
   }
@@ -124,14 +123,14 @@ export class Appointments implements OnInit {
   }
 
   async registerWalkIn() {
-    this.submitted = true;
+    this.submitted.set(true);
     if (this.walkInForm.invalid) return;
 
-    this.saving = true;
+    this.saving.set(true);
     try {
       const doctor = this.authService.currentDoctor;
       const { patientId, date, time, notes } = this.walkInForm.value;
-      const patient = this.allPatients.find((p) => p.id === patientId);
+      const patient = this.allPatients().find((p) => p.id === patientId);
       if (!doctor || !patient) return;
 
       const id = crypto.randomUUID();
@@ -142,6 +141,11 @@ export class Appointments implements OnInit {
         id,
         patientId: patient.id,
         patientName: `${patient.name} ${patient.lastName}`,
+        patientLastName: patient.lastName,
+        patientFatherName: patient.fatherName ?? '',
+        patientMotherName: patient.motherName ?? '',
+        patientBirthDate: patient.birthDate,
+        patientPhone: patient.phone ?? '',
         doctorId: doctor.uid,
         doctorName: doctor.name,
         date: finalDate,
@@ -154,10 +158,10 @@ export class Appointments implements OnInit {
       });
 
       this.alert.success({ message: 'Atención registrada', duration: 3000 });
-      this.showWalkIn = false;
+      this.showWalkIn.set(false);
       this.walkInForm.reset({ patientId: '', date: '', time: '', notes: '' });
     } finally {
-      this.saving = false;
+      this.saving.set(false);
       this.cdr.markForCheck();
     }
   }

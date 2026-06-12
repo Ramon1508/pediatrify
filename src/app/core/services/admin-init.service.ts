@@ -6,12 +6,13 @@ import {
   where,
   Timestamp,
   doc,
-  getDoc,
   setDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
+import { normalizeEmail } from '../utils/normalize-email';
 
-const ADMIN_EMAIL = 'valenzuela_luna@hotmail.com';
+const ADMIN_EMAIL = normalizeEmail('valenzuela_luna@hotmail.com');
 
 @Injectable({
   providedIn: 'root',
@@ -22,13 +23,23 @@ export class AdminInitService {
   async ensureAdminExists(): Promise<void> {
     try {
       const firestore = this.firebase.firestore;
+      const usersRef = collection(firestore, 'users');
 
       const existing = query(
-        collection(firestore, 'users'),
+        usersRef,
         where('email', '==', ADMIN_EMAIL)
       );
       const snap = await getDocs(existing);
       if (!snap.empty) return;
+
+      const allSnap = await getDocs(usersRef);
+      const matched = allSnap.docs.find(
+        (d) => normalizeEmail(d.data()['email'] ?? '') === ADMIN_EMAIL
+      );
+      if (matched) {
+        await updateDoc(doc(firestore, 'users', matched.id), { email: ADMIN_EMAIL });
+        return;
+      }
 
       const uid = crypto.randomUUID();
       await setDoc(doc(firestore, 'users', uid), {

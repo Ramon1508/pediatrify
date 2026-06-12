@@ -13,10 +13,10 @@
           type="email"
           formControlName="email"
         />
-        @if (loginForm.get('email')?.errors?.['required'] && (loginForm.get('email')?.touched || submitted)) {
+        @if (loginForm.get('email')?.errors?.['required'] && (loginForm.get('email')?.touched || submitted())) {
           <mat-error>Ingresa tu correo electrónico</mat-error>
         }
-        @if (loginForm.get('email')?.errors?.['email'] && !loginForm.get('email')?.errors?.['required'] && (loginForm.get('email')?.touched || submitted)) {
+        @if (loginForm.get('email')?.errors?.['email'] && !loginForm.get('email')?.errors?.['required'] && (loginForm.get('email')?.touched || submitted())) {
           <mat-error>Ingresa un correo electrónico válido</mat-error>
         }
       </mat-form-field>
@@ -26,13 +26,13 @@
         <mat-icon matPrefix>lock</mat-icon>
         <input
           matInput
-          [type]="hidePassword ? 'password' : 'text'"
+          [type]="hidePassword() ? 'password' : 'text'"
           formControlName="password"
         />
-        <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword = !hidePassword" [attr.aria-label]="hidePassword ? 'Mostrar contraseña' : 'Ocultar contraseña'">
-          <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+        <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword.set(!hidePassword())" [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'">
+          <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
         </button>
-        @if (loginForm.get('password')?.invalid && (loginForm.get('password')?.touched || submitted)) {
+        @if (loginForm.get('password')?.invalid && (loginForm.get('password')?.touched || submitted())) {
           <mat-error>Ingresa tu contraseña</mat-error>
         }
       </mat-form-field>
@@ -41,8 +41,8 @@
         <button mat-unelevated-button class="btn-secondary" type="button" (click)="goToResetPassword()">
           Olvidé mi contraseña
         </button>
-        <button mat-unelevated-button class="btn-primary login-submit-btn" type="submit" [disabled]="loginForm.invalid || loginForm.pristine || loading">
-          @if (loading) {
+        <button mat-unelevated-button class="btn-primary login-submit-btn" type="submit" [disabled]="loginForm.invalid || loginForm.pristine || loading()">
+          @if (loading()) {
             <mat-spinner diameter="20" />
           } @else {
             Iniciar sesión

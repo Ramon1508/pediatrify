@@ -76,15 +76,15 @@ describe('OtpLogin', () => {
 
     await (component as any).onSubmit();
 
-    expect((component as any).error).toBe('Credenciales inválidas');
+    expect((component as any).error()).toBe('Credenciales inválidas');
   });
 
   it('uses submitted flag to show validation errors', () => {
-    expect((component as any).submitted).toBe(false);
+    expect((component as any).submitted()).toBe(false);
 
     (component as any).onSubmit();
 
-    expect((component as any).submitted).toBe(true);
+    expect((component as any).submitted()).toBe(true);
   });
 
   it('resets loading state after error', async () => {
@@ -93,6 +93,6 @@ describe('OtpLogin', () => {
 
     await (component as any).onSubmit();
 
-    expect((component as any).loading).toBe(false);
+    expect((component as any).loading()).toBe(false);
   });
 });

@@ -11,6 +11,13 @@ import { Clipboard } from '@angular/cdk/clipboard';
 import { MatDialog } from '@angular/material/dialog';
 import { provideNativeDateAdapter } from '@angular/material/core';
 
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+(globalThis as any).ResizeObserver = MockResizeObserver;
+
 describe('Patients', () => {
   let fixture: ComponentFixture<Patients>;
   let component: Patients;
@@ -30,7 +37,7 @@ describe('Patients', () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
   const mockAppointments = [
-    { id: 'a1', patientId: '1', patientName: 'Juan Pérez', doctorId: 'doc1', doctorName: 'Dr. Test', date: todayStr(), time: '10:00', status: 'scheduled' as const, type: 'scheduled' as const, notes: 'Dolor de cabeza' },
+    { id: 'a1', patientId: '1', patientName: 'Juan Pérez', patientLastName: 'Pérez', patientFatherName: '', patientMotherName: '', patientBirthDate: '', patientPhone: '', doctorId: 'doc1', doctorName: 'Dr. Test', date: todayStr(), time: '10:00', status: 'scheduled' as const, type: 'scheduled' as const, notes: 'Dolor de cabeza' },
   ] as any[];
 
   let dialogRefMock: any;
@@ -41,6 +48,7 @@ describe('Patients', () => {
       componentInstance: {
         setPatients: vi.fn(),
         setEditData: vi.fn(),
+        setPatient: vi.fn(),
       },
       close: vi.fn(),
     };
@@ -107,7 +115,7 @@ describe('Patients', () => {
     const el = fixture.nativeElement;
     expect(el.textContent).toContain('Consultas del día de hoy');
     expect(el.textContent).toContain('Juan Pérez');
-    expect(el.textContent).toContain('Dolor de cabeza');
+    expect(el.textContent).toContain('Cancelar');
   });
 
   it('opens dialog for new patient', async () => {
@@ -129,12 +137,11 @@ describe('Patients', () => {
     await (component as any).openEditPatient(mockPatients[0]);
 
     expect(dialog.open).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({
-      width: '400px',
+      width: '736px',
       disableClose: true,
       panelClass: 'right-panel',
     }));
-    expect(dialogRefMock.componentInstance.setPatients).toHaveBeenCalled();
-    expect(dialogRefMock.componentInstance.setEditData).toHaveBeenCalledWith(mockPatients[0]);
+    expect(dialogRefMock.componentInstance.setPatient).toHaveBeenCalledWith(mockPatients[0]);
   });
 
   it('logs audit when new patient dialog returns a result', async () => {
@@ -164,7 +171,7 @@ describe('Patients', () => {
   });
 
   it('deletes patient after confirm', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    dialogRefMock.afterClosed = () => of(true);
     (patientRepo.deletePatient as any).mockResolvedValue(undefined);
 
     await (component as any).deletePatient(mockPatients[0]);
@@ -174,7 +181,7 @@ describe('Patients', () => {
   });
 
   it('does not delete if cancelled', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    dialogRefMock.afterClosed = () => of(false);
 
     await (component as any).deletePatient(mockPatients[0]);
 
@@ -182,6 +189,7 @@ describe('Patients', () => {
   });
 
   it('cancels an appointment', async () => {
+    dialogRefMock.afterClosed = () => of(true);
     (appointmentRepo.updateAppointment as any).mockResolvedValue(undefined);
 
     await (component as any).cancelAppointment(mockAppointments[0]);
@@ -191,11 +199,26 @@ describe('Patients', () => {
     expect(alertService.success).toHaveBeenCalled();
   });
 
+  it('does not cancel appointment when dialog is dismissed', async () => {
+    dialogRefMock.afterClosed = () => of(false);
+
+    await (component as any).cancelAppointment(mockAppointments[0]);
+
+    expect(appointmentRepo.updateAppointment).not.toHaveBeenCalled();
+  });
+
   it('filters patients by search term', () => {
-    (component as any).searchTerm.set('maría');
+    (component as any).searchTerm.set('garcía');
     fixture.detectChanges();
     expect((component as any).filteredPatients().length).toBe(1);
     expect((component as any).filteredPatients()[0].name).toBe('María');
+  });
+
+  it('searches by father name', () => {
+    (component as any).searchTerm.set('Carlos');
+    fixture.detectChanges();
+    expect((component as any).filteredPatients().length).toBe(1);
+    expect((component as any).filteredPatients()[0].name).toBe('Juan');
   });
 
   it('copies OTP to clipboard', () => {

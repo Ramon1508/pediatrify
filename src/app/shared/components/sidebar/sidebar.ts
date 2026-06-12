@@ -1,6 +1,7 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -13,6 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
     RouterLink,
     RouterLinkActive,
     MatIconModule,
+    MatButtonModule,
   ],
 })
 export class Sidebar {

@@ -1,0 +1,193 @@
+.tab-content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.step-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  color: #9CA3AF;
+  border: 2px solid #9CA3AF;
+  background: transparent;
+  transition: all 0.2s;
+
+  &.active {
+    color: #FFFFFF;
+    border-color: #0D6E8F;
+    background: #0D6E8F;
+  }
+}
+
+.step-line {
+  width: 40px;
+  height: 2px;
+  background: #9CA3AF;
+  transition: background 0.2s;
+
+  &.active {
+    background: #0D6E8F;
+  }
+}
+
+.step-label {
+  text-align: center;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  color: #1B1B1B;
+  margin: 0 0 20px;
+}
+
+.info-message {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #49454F;
+  margin: 0 0 16px;
+  padding: 12px;
+  background: #F5F5F5;
+  border-radius: 8px;
+}
+
+.form-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 0.75rem;
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+.desktop-2col > * {
+  width: calc(50% - 12px);
+}
+
+.form-gap-40 {
+  gap: 24px;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.radio-group-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 0.75rem;
+
+  .radio-group-label {
+    font-family: Roboto, sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.1px;
+    color: #1B1B1B;
+  }
+
+  .radio-error {
+    font-family: Roboto, sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.4px;
+    color: #B3261E;
+    margin-top: -4px;
+  }
+
+  mat-radio-group {
+    display: flex;
+    gap: 16px;
+  }
+}
+
+.vac-content {
+  overflow-x: auto;
+}
+
+.vac-table-wrap {
+  overflow-x: auto;
+}
+
+.vac-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.vac-th {
+  font-family: Roboto;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.4px;
+  color: #000000;
+  text-align: center;
+  white-space: nowrap;
+  padding: 8px 4px;
+  width: 42.18px;
+  text-wrap: auto;
+}
+
+.vac-th-name {
+  text-align: left;
+  padding-left: 0;
+}
+
+.vac-td {
+  font-family: Roboto;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+  color: #49454F;
+  padding: 4px;
+  vertical-align: middle;
+}
+
+.vac-td-name {
+  padding-left: 0;
+  min-width: 200px;
+}
+
+.vac-td-cb {
+  text-align: center;
+}
+
+.vac-sep-row td {
+  padding: 0;
+}
+
+.vac-sep {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 4px 0;
+}
+
+.vac-sep-td {
+  padding: 0 !important;
+}
+
+mat-dialog-actions {
+  gap: 8px;
+}

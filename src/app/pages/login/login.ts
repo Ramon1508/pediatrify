@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { NgOptimizedImage } from '@angular/common';
@@ -32,15 +32,14 @@ export class Login implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
-  private cdr = inject(ChangeDetectorRef);
 
   protected loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
   });
-  protected hidePassword = true;
-  protected loading = false;
-  protected submitted = false;
+  protected hidePassword = signal(true);
+  protected loading = signal(false);
+  protected submitted = signal(false);
 
   ngOnInit() {
     this.route.queryParams.subscribe((params) => {
@@ -51,13 +50,13 @@ export class Login implements OnInit {
   }
 
   async onSubmit() {
-    this.submitted = true;
+    this.submitted.set(true);
 
     if (this.loginForm.invalid) return;
 
     const { email, password } = this.loginForm.value;
 
-    this.loading = true;
+    this.loading.set(true);
 
     try {
       await this.authService.loginDoctor(email!, password!);
@@ -72,8 +71,7 @@ export class Login implements OnInit {
         this.alert.error({ message: e.message || 'Error al iniciar sesión', duration: 5000 });
       }
     } finally {
-      this.loading = false;
-      this.cdr.markForCheck();
+      this.loading.set(false);
     }
   }
 

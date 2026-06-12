@@ -2,9 +2,9 @@
   <div class="header-actions">
     <h2>Citas</h2>
     <div class="actions-right">
-      <button mat-unelevated-button class="btn-secondary" (click)="showWalkIn = !showWalkIn">
+      <button mat-unelevated-button class="btn-secondary" (click)="showWalkIn.set(!showWalkIn())">
         <mat-icon>walk_in</mat-icon>
-        {{ showWalkIn ? 'Agendar cita' : 'Atender sin cita' }}
+        {{ showWalkIn() ? 'Agendar cita' : 'Atender sin cita' }}
       </button>
       <button mat-unelevated-button class="btn-primary" (click)="openNewAppointment()">
         <mat-icon>add</mat-icon>
@@ -13,7 +13,7 @@
     </div>
   </div>
 
-  @if (showWalkIn) {
+  @if (showWalkIn()) {
     <mat-card class="walk-in-card">
       <mat-card-header>
         <mat-card-title>Atender paciente sin cita</mat-card-title>
@@ -23,11 +23,11 @@
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Seleccionar paciente</mat-label>
             <mat-select formControlName="patientId">
-              @for (p of allPatients; track p.id) {
+              @for (p of allPatients(); track p.id) {
                 <mat-option [value]="p.id">{{ p.name }} {{ p.lastName }} - {{ p.email }}</mat-option>
               }
             </mat-select>
-            @if (walkInPatientControl.invalid && (walkInPatientControl.touched || submitted)) {
+            @if (walkInPatientControl.invalid && (walkInPatientControl.touched || submitted())) {
               <mat-error>Selecciona un paciente</mat-error>
             }
           </mat-form-field>
@@ -44,11 +44,11 @@
           </div>
 
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Notas (opcional)</mat-label>
+            <mat-label>Motivo de la consulta</mat-label>
             <textarea matInput formControlName="notes" rows="2"></textarea>
           </mat-form-field>
 
-          <button mat-unelevated-button class="btn-primary" (click)="registerWalkIn()" [disabled]="walkInForm.invalid || walkInForm.pristine || saving">
+          <button mat-unelevated-button class="btn-primary" (click)="registerWalkIn()" [disabled]="walkInForm.invalid || walkInForm.pristine || saving()">
             Registrar atención
           </button>
         </form>

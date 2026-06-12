@@ -15,7 +15,7 @@
             type="email"
             formControlName="email"
           />
-          @if (emailControl.invalid && (emailControl.touched || submitted)) {
+          @if (emailControl.invalid && (emailControl.touched || submitted())) {
             <mat-error>Ingresa un correo electrónico válido</mat-error>
           }
         </mat-form-field>
@@ -25,13 +25,13 @@
           <mat-icon matPrefix>lock</mat-icon>
           <input
             matInput
-            [type]="hidePassword ? 'password' : 'text'"
+            [type]="hidePassword() ? 'password' : 'text'"
             formControlName="password"
           />
-          <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword = !hidePassword" [attr.aria-label]="hidePassword ? 'Mostrar contraseña' : 'Ocultar contraseña'">
-            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword.set(!hidePassword())" [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'">
+            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
-          @if (passwordControl.invalid && (passwordControl.touched || submitted)) {
+          @if (passwordControl.invalid && (passwordControl.touched || submitted())) {
             <mat-error>Ingresa tu contraseña OTP</mat-error>
           }
         </mat-form-field>
@@ -40,17 +40,17 @@
           Usa la contraseña que te proporcionó tu doctor.
         </p>
 
-        @if (error) {
-          <mat-error class="error-message">{{ error }}</mat-error>
+        @if (error()) {
+          <mat-error class="error-message">{{ error() }}</mat-error>
         }
 
         <button
           mat-unelevated-button
           class="btn-primary full-width"
           type="submit"
-          [disabled]="form.invalid || form.pristine || loading"
+          [disabled]="form.invalid || form.pristine || loading()"
         >
-          @if (loading) {
+          @if (loading()) {
             <mat-spinner diameter="20" />
           } @else {
             Entrar

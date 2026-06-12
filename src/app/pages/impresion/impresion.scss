@@ -1,0 +1,272 @@
+.impresion-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px;
+  background: url('/images/Fondo.svg') repeat;
+  overflow: hidden;
+}
+
+.impresion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+  }
+}
+
+.impresion-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.settings-panel {
+  width: 480px;
+  min-width: 480px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 0;
+  flex: 1;
+
+  ::ng-deep .mat-mdc-tab-group {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  ::ng-deep .mat-mdc-tab-header {
+    flex-shrink: 0;
+  }
+
+  ::ng-deep .mat-mdc-tab-body-wrapper {
+    flex: 1;
+    min-height: 0;
+  }
+
+  ::ng-deep .mat-mdc-tab-body-content {
+    overflow: auto;
+    background: transparent;
+  }
+}
+
+.preview-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: auto;
+}
+
+.preview-label {
+  margin-top: 14px;
+  margin-left: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  letter-spacing: 0.1px;
+  line-height: 20px;
+  margin-bottom: 16px;
+  color: #1D1B20;
+}
+
+.preview-frame {
+  background: white;
+  box-shadow: 0px 1px 2px 0px #0000004D;
+  box-shadow: 0px 2px 6px 2px #00000026;
+  margin-left: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-content {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+}
+
+.preview-top-section {
+  position: relative;
+  min-height: 40px;
+}
+
+.preview-logo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+}
+
+.preview-doctor-info {
+  color: #333;
+  text-align: center;
+
+  .preview-doctor-name {
+    font-weight: 500;
+    letter-spacing: 0.15px;
+    margin-bottom: 0.25em;
+  }
+
+  .preview-field {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25em;
+  }
+}
+
+.preview-body-text {
+  clear: both;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #444;
+}
+
+.preview-patient-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  text-align: center;
+}
+
+.tab-content {
+  padding: 20px;
+  flex: 1;
+  overflow: auto;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: center;
+
+  .full-width {
+    flex: 1;
+  }
+
+}
+
+.paper-select,
+.margin-input,
+.logo-width-select {
+  width: 100%;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+
+  .checkbox-section-label {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: #555;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.logo-upload-area {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: #0D6E8F;
+  }
+
+  .logo-preview {
+    max-width: 120px;
+    max-height: 80px;
+    margin-bottom: 8px;
+  }
+
+  .upload-hint {
+    font-size: 12px;
+    color: #888;
+  }
+}
+
+.view-logo-preview {
+  width: 84px;
+  height: 84px;
+  object-fit: contain;
+  display: block;
+}
+
+.view-field {
+  margin-bottom: 24px;
+
+  .view-label {
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.4px;
+    color: #49454F;
+    display: block;
+  }
+
+  .view-value {
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0.5px;
+    color: #000;
+    display: block;
+    margin-top: 4px;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .impresion-body {
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .settings-panel {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .preview-panel {
+    padding-top: 0;
+  }
+}

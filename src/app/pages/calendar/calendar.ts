@@ -72,6 +72,22 @@ export class Calendar implements OnInit, OnDestroy {
 
   protected weekStart = signal<Date>(this.getWeekStart(new Date()));
   protected allAppointments = signal<Appointment[]>([]);
+  protected visibleWeekAppointments = computed(() => {
+    const start = this.weekStart();
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+    const fmt = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    const startStr = fmt(start);
+    const endStr = fmt(end);
+    return this.allAppointments().filter(
+      (a) => a.date >= startStr && a.date < endStr && a.status !== 'cancelled' && !a.disabled
+    );
+  });
   protected allPatients: Patient[] = [];
   protected allDoctors: AppUser[] = [];
   protected selectedDoctorId = signal<string>('');
@@ -84,6 +100,9 @@ export class Calendar implements OnInit, OnDestroy {
   });
 
   protected availableDaysSignal = signal<string[]>(['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']);
+
+  protected timeSegmentsSignal = signal<TimeSegment[]>([{ startTime: '06:00', endTime: '00:00' }]);
+  protected consultationDurationSignal = signal(30);
 
   protected selectedDay = signal<Date>(new Date());
   protected expandedAppointmentId = signal<string | null>(null);
@@ -199,42 +218,49 @@ export class Calendar implements OnInit, OnDestroy {
     return `${startYear}, ${startMonth} ${start.getDate()} - ${endYear}, ${endMonth} ${end.getDate()}`;
   });
 
-  protected timeSlots: TimeSlot[] = [];
   protected hoveredCell: { date: Date; slot: TimeSlot } | null = null;
 
-  constructor() {
-    this.timeSlots = this.generateTimeSlots();
-  }
+  protected timeSlots = computed(() => {
+    const segments = this.timeSegmentsSignal();
+    const duration = this.consultationDurationSignal();
+    const weekAppts = this.visibleWeekAppointments();
 
-  private generateTimeSlots(): TimeSlot[] {
-    const raw = this.settingsForm.value.timeSegments as TimeSegment[] | undefined;
-    const segments = raw?.length ? raw : [{ startTime: '06:00', endTime: '00:00' }];
-    const duration = this.settingsForm.value.consultationDuration ?? 30;
-    const slots: TimeSlot[] = [];
+    let overallStart = 1440;
+    let overallEnd = 0;
     for (const seg of segments) {
-      const [startH, startM] = seg.startTime.split(':').map(Number);
-      let [endH, endM] = seg.endTime.split(':').map(Number);
-      if (endH === 0 && endM === 0) endH = 24;
-      const startMinutes = startH * 60 + startM;
-      const endMinutes = endH * 60 + endM;
-      let idx = 0;
-      for (let m = startMinutes; m < endMinutes; m += duration) {
-        const hour = Math.floor(m / 60);
-        const minute = m % 60;
-        const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        const period = hour >= 12 ? 'PM' : 'AM';
-        const hour12 = hour % 12 || 12;
-        slots.push({
-          hour,
-          minute,
-          label: idx % 2 === 0 ? `${hour12}:${minute.toString().padStart(2, '0')} ${period}` : '',
-          key: timeStr,
-        });
-        idx++;
-      }
+      const [sh, sm] = seg.startTime.split(':').map(Number);
+      let [eh, em] = seg.endTime.split(':').map(Number);
+      if (eh === 0 && em === 0) eh = 24;
+      overallStart = Math.min(overallStart, sh * 60 + sm);
+      overallEnd = Math.max(overallEnd, eh * 60 + em);
+    }
+    for (const apt of weekAppts) {
+      const [h, m] = apt.time.split(':').map(Number);
+      const t = h * 60 + m;
+      if (t < overallStart) overallStart = Math.floor(t / 30) * 30;
+      if (t + duration > overallEnd) overallEnd = Math.ceil((t + duration) / 30) * 30;
+    }
+
+    const slots: TimeSlot[] = [];
+    let idx = 0;
+    for (let m = overallStart; m < overallEnd; m += duration) {
+      const hour = Math.floor(m / 60);
+      const minute = m % 60;
+      const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      const period = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      slots.push({
+        hour,
+        minute,
+        label: idx % 2 === 0 ? `${hour12}:${minute.toString().padStart(2, '0')} ${period}` : '',
+        key: timeStr,
+      });
+      idx++;
     }
     return slots;
-  }
+  });
+
+  constructor() {}
 
   private getDayShort(date: Date): string {
     const idx = date.getDay();
@@ -265,7 +291,9 @@ export class Calendar implements OnInit, OnDestroy {
     }
 
     this.appointmentSub = this.appointmentRepo.watchAppointmentsByDoctor(doctorId).subscribe((apps) => {
+      console.log('[Calendar] allAppointments from DB:', JSON.parse(JSON.stringify(apps)));
       this.allAppointments.set(apps);
+      this.scrollToCurrentHour();
       this.cdr.markForCheck();
     });
 
@@ -275,17 +303,18 @@ export class Calendar implements OnInit, OnDestroy {
         consultationDuration: user.consultationDuration ?? 30,
         allowPatientScheduling: user.allowPatientScheduling ?? false,
       });
+      this.consultationDurationSignal.set(user.consultationDuration ?? 30);
       this.timeSegmentsFormArray.clear();
       const oldDefault = user.timeSegments?.length === 1 && user.timeSegments[0].startTime === '08:00' && user.timeSegments[0].endTime === '17:00';
       const segments = oldDefault ? [{ startTime: '06:00', endTime: '00:00' }] : (user.timeSegments?.length ? user.timeSegments : [{ startTime: '06:00', endTime: '00:00' }]);
       for (const seg of segments) {
         this.timeSegmentsFormArray.push(this.fb.group({ startTime: seg.startTime, endTime: seg.endTime }));
       }
+      this.timeSegmentsSignal.set(segments);
       if (user.availableDays?.length) {
         this.availableDaysSignal.set(user.availableDays);
       }
     }
-    this.timeSlots = this.generateTimeSlots();
     this.cdr.markForCheck();
   }
 
@@ -306,14 +335,19 @@ export class Calendar implements OnInit, OnDestroy {
       });
     }
 
-    this.loadDoctorData(doctor.uid).then(() => this.scrollToCurrentHour());
+    this.loadDoctorData(doctor.uid);
   }
 
   private scrollToCurrentHour() {
     setTimeout(() => {
-      const el = document.querySelector('.time-label.current-hour');
+      const el = document.querySelector('.current-hour');
       if (el) {
         el.scrollIntoView({ block: 'center', behavior: 'auto' });
+      } else {
+        const container = document.querySelector('.calendar-scroll');
+        if (container) {
+          container.scrollTop = container.scrollHeight / 2;
+        }
       }
     });
   }
@@ -365,7 +399,7 @@ export class Calendar implements OnInit, OnDestroy {
 
   isCurrentHour(slot: TimeSlot): boolean {
     const now = new Date();
-    const duration = this.settingsForm.value.consultationDuration ?? 30;
+    const duration = this.consultationDurationSignal();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const blockStart = Math.floor(nowMinutes / duration) * duration;
     const slotMinutes = slot.hour * 60 + slot.minute;
@@ -383,9 +417,13 @@ export class Calendar implements OnInit, OnDestroy {
   getAppointmentsForCell(date: Date, slot: TimeSlot): Appointment[] {
     const dateStr = this.formatDate(date);
     const timeStr = `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`;
-    return this.allAppointments().filter(
+    const result = this.allAppointments().filter(
       (a) => a.date === dateStr && a.time === timeStr && a.status !== 'cancelled'
     );
+    if (result.length) {
+      console.log(`[Calendar] getAppointmentsForCell date=${dateStr} time=${timeStr} =>`, result.length, 'appt(s)');
+    }
+    return result;
   }
 
   isHovered(date: Date, slot: TimeSlot): boolean {
@@ -403,6 +441,7 @@ export class Calendar implements OnInit, OnDestroy {
       panelClass: 'right-panel',
     });
     const instance = dialogRef.componentInstance;
+    const segments = this.timeSegmentsSignal();
 
     if (prefill) {
       const dateStr = this.formatDate(prefill.date);
@@ -411,6 +450,7 @@ export class Calendar implements OnInit, OnDestroy {
         allPatients: this.allPatients,
         selectedDoctorId: this.selectedDoctorId(),
         editingAppointment: null,
+        timeSegments: segments,
       });
       instance.setPrefill(dateStr, timeStr);
     } else if (editingAppointment) {
@@ -418,11 +458,13 @@ export class Calendar implements OnInit, OnDestroy {
         allPatients: this.allPatients,
         selectedDoctorId: this.selectedDoctorId(),
         editingAppointment,
+        timeSegments: segments,
       });
     } else {
       instance.setData({
         allPatients: this.allPatients,
         selectedDoctorId: this.selectedDoctorId(),
+        timeSegments: segments,
       });
     }
 

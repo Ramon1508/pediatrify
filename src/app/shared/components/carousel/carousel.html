@@ -1,0 +1,24 @@
+<div class="carousel-section">
+  <div class="carousel-with-arrows">
+    <button class="carousel-arrow carousel-arrow-prev" [class.arrow-hidden]="page() === 0" (click)="prev()" aria-label="Anterior">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <div class="carousel-track-wrapper" #trackWrapper>
+      <div class="carousel-track">
+        @for (item of paginatedItems(); track $index) {
+          <ng-container *ngTemplateOutlet="itemTemplate || null; context: { $implicit: item }" />
+        }
+      </div>
+    </div>
+    <button class="carousel-arrow carousel-arrow-next" [class.arrow-hidden]="page() >= totalPages() - 1" (click)="next()" aria-label="Siguiente">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+  @if (totalPages() > 1) {
+    <div class="carousel-dots">
+      @for (p of [].constructor(totalPages()); track $index) {
+        <span class="carousel-dot" [class.dot-active]="$index === page()" (click)="goTo($index)"></span>
+      }
+    </div>
+  }
+</div>

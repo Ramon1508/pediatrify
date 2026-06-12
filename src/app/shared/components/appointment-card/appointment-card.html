@@ -1,0 +1,14 @@
+<div class="child-card">
+  <div class="child-name">{{ appointment().patientName }}</div>
+  <div class="child-age">Edad: {{ ageDisplay() }}</div>
+
+  <div class="reason-section">
+    <div class="reason-title">Motivo de la consulta:</div>
+    <div class="reason-text" [matTooltip]="appointment().notes || ''" matTooltipPosition="above">{{ appointment().notes || 'Sin motivo registrado' }}</div>
+  </div>
+
+  <div class="actions">
+    <button mat-button class="btn-tertiary" (click)="cancel.emit(appointment())">Cancelar</button>
+    <button mat-stroked-button class="btn-secondary" (click)="viewHistory.emit(appointment())">Ver historial</button>
+  </div>
+</div>

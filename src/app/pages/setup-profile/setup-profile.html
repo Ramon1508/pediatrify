@@ -13,11 +13,11 @@
       <div class="form-row desktop-2col form-gap-40">
         <div class="info-block">
           <span class="label-small">Doctor(a)</span>
-          <span class="body-large info-value">{{ displayName }}</span>
+          <span class="body-large info-value">{{ displayName() }}</span>
         </div>
         <div class="info-block">
           <span class="label-small">Correo electrónico</span>
-          <span class="body-large info-value">{{ displayEmail }}</span>
+          <span class="body-large info-value">{{ displayEmail() }}</span>
         </div>
       </div>
 
@@ -31,7 +31,7 @@
                 <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
               }
             </mat-select>
-            @if (form.get('sexo')?.invalid && (form.get('sexo')?.touched || submitted)) {
+            @if (form.get('sexo')?.invalid && (form.get('sexo')?.touched || submitted())) {
               <mat-error>Selecciona tu sexo</mat-error>
             }
           </mat-form-field>
@@ -40,10 +40,10 @@
             <mat-label>Teléfono</mat-label>
             <mat-icon matPrefix>phone</mat-icon>
             <input matInput type="tel" formControlName="phone" placeholder="5512345678" />
-            @if (form.get('phone')?.errors?.['required'] && (form.get('phone')?.touched || submitted)) {
+            @if (form.get('phone')?.errors?.['required'] && (form.get('phone')?.touched || submitted())) {
               <mat-error>Ingresa tu teléfono</mat-error>
             }
-            @if (form.get('phone')?.errors?.['pattern'] && !form.get('phone')?.errors?.['required'] && (form.get('phone')?.touched || submitted)) {
+            @if (form.get('phone')?.errors?.['pattern'] && !form.get('phone')?.errors?.['required'] && (form.get('phone')?.touched || submitted())) {
               <mat-error>Ingresa solo 10 dígitos</mat-error>
             }
           </mat-form-field>
@@ -58,7 +58,7 @@
           <mat-form-field appearance="outline" class="flex-field">
             <mat-label>Cédula profesional</mat-label>
             <input matInput formControlName="cedula" />
-            @if (form.get('cedula')?.invalid && (form.get('cedula')?.touched || submitted)) {
+            @if (form.get('cedula')?.invalid && (form.get('cedula')?.touched || submitted())) {
               <mat-error>Ingresa tu cédula profesional</mat-error>
             }
           </mat-form-field>
@@ -72,7 +72,7 @@
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Consultorio(s)</mat-label>
           <textarea matInput formControlName="consultorios" rows="3" placeholder="Ej: Consultorio 1, Consultorio 2"></textarea>
-            @if (form.get('consultorios')?.invalid && (form.get('consultorios')?.touched || submitted)) {
+            @if (form.get('consultorios')?.invalid && (form.get('consultorios')?.touched || submitted())) {
               <mat-error>Ingresa tus consultorios</mat-error>
             }
         </mat-form-field>
@@ -81,17 +81,17 @@
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Contraseña</mat-label>
           <mat-icon matPrefix>lock</mat-icon>
-          <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder="Mínimo 8 caracteres" />
-          <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword = !hidePassword" [attr.aria-label]="hidePassword ? 'Mostrar contraseña' : 'Ocultar contraseña'">
-            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          <input matInput [type]="hidePassword() ? 'password' : 'text'" formControlName="password" placeholder="Mínimo 8 caracteres" />
+          <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword.set(!hidePassword())" [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'">
+            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
-          @if (passwordControl.errors?.['required'] && (passwordControl.touched || submitted)) {
+          @if (passwordControl.errors?.['required'] && (passwordControl.touched || submitted())) {
             <mat-error>Ingresa una contraseña</mat-error>
           }
-          @if (passwordControl.errors?.['minlength'] && !passwordControl.errors?.['required'] && (passwordControl.touched || submitted)) {
+          @if (passwordControl.errors?.['minlength'] && !passwordControl.errors?.['required'] && (passwordControl.touched || submitted())) {
             <mat-error>Ingresa una contraseña de al menos 8 caracteres</mat-error>
           }
-          @if (passwordControl.errors?.['pattern'] && !passwordControl.errors?.['required'] && !passwordControl.errors?.['minlength'] && (passwordControl.touched || submitted)) {
+          @if (passwordControl.errors?.['pattern'] && !passwordControl.errors?.['required'] && !passwordControl.errors?.['minlength'] && (passwordControl.touched || submitted())) {
             <mat-error>Incluye al menos una mayúscula, una minúscula, un número y un símbolo</mat-error>
           }
         </mat-form-field>
@@ -99,14 +99,14 @@
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Confirmar contraseña</mat-label>
           <mat-icon matPrefix>lock</mat-icon>
-          <input matInput [type]="hideConfirmPassword ? 'password' : 'text'" formControlName="confirmPassword" />
-          <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hideConfirmPassword = !hideConfirmPassword" [attr.aria-label]="hideConfirmPassword ? 'Mostrar contraseña' : 'Ocultar contraseña'">
-            <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          <input matInput [type]="hideConfirmPassword() ? 'password' : 'text'" formControlName="confirmPassword" />
+          <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hideConfirmPassword.set(!hideConfirmPassword())" [attr.aria-label]="hideConfirmPassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'">
+            <mat-icon>{{ hideConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
-          @if (confirmPasswordControl.errors?.['required'] && (confirmPasswordControl.touched || submitted)) {
+          @if (confirmPasswordControl.errors?.['required'] && (confirmPasswordControl.touched || submitted())) {
             <mat-error>Confirma tu contraseña</mat-error>
           }
-          @if (confirmPasswordControl.errors?.['mismatch'] && !confirmPasswordControl.errors?.['required'] && (confirmPasswordControl.touched || submitted)) {
+          @if (confirmPasswordControl.errors?.['mismatch'] && !confirmPasswordControl.errors?.['required'] && (confirmPasswordControl.touched || submitted())) {
             <mat-error>Las contraseñas no coinciden</mat-error>
           }
         </mat-form-field>
@@ -116,14 +116,14 @@
       <p class="hint">Para una experiencia personalizada, puedes subir tu logotipo y éste sustituirá el logo de Lilcare en tu cuenta y la de los asistentes y pacientes que agregues. Sólo se aceptan archivos .png y .jpg, éste no debe superar los 200 KB.</p>
 
       <app-file-upload
-        [id]="displayEmail"
+        [id]="displayEmail()"
         [label]="'Seleccionar archivo'"
         (uploaded)="onLogoUploaded($event)"
       />
 
       <div class="button-row">
-        <button mat-unelevated-button class="btn-primary finish-btn w-100-mobile" (click)="finish()" [disabled]="form.invalid || form.pristine || finishing">
-        @if (finishing) {
+        <button mat-unelevated-button class="btn-primary finish-btn w-100-mobile" (click)="finish()" [disabled]="form.invalid || form.pristine || finishing()">
+        @if (finishing()) {
           <mat-spinner diameter="18" />
         } @else {
           Crear mi cuenta

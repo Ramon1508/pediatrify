@@ -67,8 +67,8 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button class="btn-tertiary" [mat-dialog-close]="false">Cancelar</button>
-  <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+  <button mat-button class="btn-tertiary dialog-btn" [mat-dialog-close]="false">Cancelar</button>
+  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
     @if (saving) {
       <mat-spinner diameter="18" />
     } @else {

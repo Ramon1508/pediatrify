@@ -44,7 +44,8 @@
 }
 
 .search-field {
-  width: 100%;
+  width: 360px;
+  max-width: 100%;
   margin-bottom: 24px;
 }
 
@@ -54,83 +55,69 @@
   gap: 24px;
 }
 
-.patient-card {
+.child-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   width: 360px;
   flex: none;
+  padding: 12px 16px;
+  background-color: #ffffff;
   border: 2px solid #0D6E8F;
-  box-shadow: 0px 2px 6px 2px #00000026, 0px 1px 2px 0px #0000004D;
-  margin: 0 !important;
   border-radius: 12px;
-  padding: 16px 24px;
   box-sizing: border-box;
+  box-shadow: 0px 2px 6px 2px #00000026;
+  box-shadow: 0px 1px 2px 0px #0000004D;
 
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 16px;
-  }
 
-  .card-name {
-    font-family: Roboto, sans-serif;
-    font-weight: 500;
-    font-size: 24px;
-    line-height: 32px;
-    letter-spacing: 0;
-    color: #1B1B1B;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .card-menu-btn {
-    flex-shrink: 0;
-  }
-
-  .card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .card-label {
-    font-family: Roboto, sans-serif;
-    font-weight: 400;
-    font-size: 16px;
-    line-height: 24px;
-    letter-spacing: 0.15px;
-    color: #1B1B1B;
-  }
-
-  .card-value {
-    font-family: Roboto, sans-serif;
-    font-weight: 400;
-    font-size: 16px;
-    line-height: 24px;
-    letter-spacing: 0.15px;
+  .menu-button {
+    position: absolute;
+    top: 16px;
+    right: 16px;
     color: #474747;
   }
 
-  .otp-value {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .otp-copy-btn {
-    width: 24px;
-    height: 24px;
+  .child-name {
+    color: #1b1b1b;
+    font-size: 16px;
+    font-weight: 700;
     line-height: 24px;
-
-    mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      line-height: 16px;
-    }
   }
+
+  .child-age {
+    margin-top: 4px;
+    color: #1b1b1b;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+  }
+
+  .parents-section {
+    margin-top: 28px;
+  }
+
+  .parents-title {
+    color: #1b1b1b;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+  }
+
+  .parents-list {
+    margin-top: 4px;
+    color: #474747;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+
+
 }
 
 .carousel-section {
@@ -140,79 +127,10 @@
     display: block;
     font-family: Roboto, sans-serif;
     font-weight: 500;
-    font-size: 16px;
-    line-height: 24px;
-    letter-spacing: 0.5px;
+    font-size: 22px;
+    line-height: 28px;
+    letter-spacing: 0px;
     color: #000000;
     margin-bottom: 12px;
-  }
-
-  .carousel-scroll {
-    display: flex;
-    gap: 16px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
-.appointment-card {
-  min-width: 280px;
-  flex: none;
-  scroll-snap-align: start;
-  border: 1px solid #CAC4D0;
-  border-radius: 12px;
-  padding: 16px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  .appt-name {
-    font-family: Roboto, sans-serif;
-    font-weight: 500;
-    font-size: 18px;
-    line-height: 24px;
-    letter-spacing: 0;
-    color: #1B1B1B;
-  }
-
-  .appt-time {
-    font-family: Roboto, sans-serif;
-    font-weight: 400;
-    font-size: 14px;
-    line-height: 20px;
-    letter-spacing: 0.25px;
-    color: #0D6E8F;
-  }
-
-  .appt-motive {
-    font-family: Roboto, sans-serif;
-    font-weight: 400;
-    font-size: 14px;
-    line-height: 20px;
-    letter-spacing: 0.25px;
-    color: #49454F;
-  }
-
-  .appt-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 4px;
-  }
-}
-
-@media (max-width: 768px) {
-  .patients-container {
-    margin: 1rem 16px;
-  }
-
-  .appointment-card {
-    min-width: 240px;
-
-    .appt-actions {
-      flex-direction: column;
-    }
   }
 }

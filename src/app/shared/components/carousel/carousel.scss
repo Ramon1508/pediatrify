@@ -1,0 +1,118 @@
+:host {
+  display: block;
+}
+
+.carousel-section {
+  margin-bottom: 24px;
+}
+
+.carousel-with-arrows {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.carousel-track-wrapper {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.carousel-track {
+  display: flex;
+  gap: 16px;
+
+  > ::ng-deep > * {
+    animation: cardAppear 0.3s ease;
+  }
+}
+
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.carousel-arrow {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #0D6E8F;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.2s, background 0.2s;
+  color: #0D6E8F;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.carousel-arrow:hover {
+  background: #E0F2FE;
+}
+
+.arrow-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.carousel-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #0D6E8F;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  box-sizing: border-box;
+  transition: background 0.2s;
+}
+
+.carousel-dot.dot-active {
+  background: #0D6E8F;
+  border-color: #0D6E8F;
+  box-shadow: inset 0 0 0 3px #fff;
+}
+
+@media (max-width: 768px) {
+  .carousel-with-arrows {
+    flex-wrap: wrap;
+    justify-content: center;
+
+    .carousel-arrow {
+      order: 1;
+    }
+
+    .carousel-track-wrapper {
+      order: 0;
+      width: 100%;
+    }
+
+    .carousel-arrow-prev {
+      order: 1;
+    }
+
+    .carousel-arrow-next {
+      order: 2;
+    }
+  }
+}

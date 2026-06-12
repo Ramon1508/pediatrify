@@ -97,6 +97,16 @@
   }
 }
 
+.alert-warning {
+  background: #FFE082;
+
+  .alert-title,
+  .alert-message,
+  .alert-close {
+    color: #000000;
+  }
+}
+
 @media (max-width: 768px) {
   .alerts-wrapper {
     min-width: unset;

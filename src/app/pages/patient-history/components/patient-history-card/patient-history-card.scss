@@ -1,0 +1,58 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.child-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 24px;
+  background-color: #ffffff;
+  border: 3px solid #0D6E8F;
+  border-radius: 24px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 18%);
+  box-sizing: border-box;
+
+  .menu-button {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    color: #474747;
+  }
+
+  .child-name {
+    color: #1b1b1b;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 24px;
+  }
+
+  .child-age {
+    margin-top: 4px;
+    color: #1b1b1b;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+  }
+
+  .parents-section {
+    margin-top: 28px;
+  }
+
+  .parents-title {
+    color: #1b1b1b;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+  }
+
+  .parents-list {
+    margin-top: 4px;
+    color: #474747;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+  }
+}

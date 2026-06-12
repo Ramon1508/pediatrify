@@ -56,6 +56,10 @@ export class AlertService {
     this.show(config, 'error');
   }
 
+  warning(config: AlertConfig): void {
+    this.show(config, 'warning');
+  }
+
   private dialog = inject(MatDialog);
 
   confirm(options: ConfirmOptions) {

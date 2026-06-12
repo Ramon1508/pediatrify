@@ -1,0 +1,68 @@
+:host {
+  display: contents;
+}
+
+.child-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  flex: none;
+  padding: 24px;
+  background-color: #ffffff;
+  border: 3px solid #0D6E8F;
+  border-radius: 24px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 18%);
+  box-sizing: border-box;
+
+  .child-name {
+    color: #1b1b1b;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 24px;
+  }
+
+  .child-age {
+    margin-top: 4px;
+    color: #1b1b1b;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+  }
+
+  .reason-section {
+    margin-top: 28px;
+  }
+
+  .reason-title {
+    color: #1b1b1b;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 24px;
+  }
+
+  .reason-text {
+    margin-top: 4px;
+    color: #474747;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 24px;
+
+    .btn-secondary {
+      padding: 10px 16px !important;
+    }
+  }
+}
