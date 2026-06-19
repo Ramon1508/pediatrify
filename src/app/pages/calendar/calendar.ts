@@ -291,7 +291,6 @@ export class Calendar implements OnInit, OnDestroy {
     }
 
     this.appointmentSub = this.appointmentRepo.watchAppointmentsByDoctor(doctorId).subscribe((apps) => {
-      console.log('[Calendar] allAppointments from DB:', JSON.parse(JSON.stringify(apps)));
       this.allAppointments.set(apps);
       this.scrollToCurrentHour();
       this.cdr.markForCheck();
@@ -320,6 +319,7 @@ export class Calendar implements OnInit, OnDestroy {
 
   async ngOnInit() {
     const doctor = this.authService.currentDoctor;
+        
     if (!doctor) return;
 
     this.isAdmin = doctor.role === 'admin';
@@ -330,7 +330,7 @@ export class Calendar implements OnInit, OnDestroy {
 
     if (this.isAdmin) {
       this.userRepo.watchAllUsers().subscribe((users) => {
-        this.allDoctors = users.filter(u => u.role === 'admin' || u.role === 'employee');
+        this.allDoctors = users.filter(u => u.role === 'admin' || u.role === 'doctor');
         this.cdr.markForCheck();
       });
     }
@@ -420,9 +420,6 @@ export class Calendar implements OnInit, OnDestroy {
     const result = this.allAppointments().filter(
       (a) => a.date === dateStr && a.time === timeStr && a.status !== 'cancelled'
     );
-    if (result.length) {
-      console.log(`[Calendar] getAppointmentsForCell date=${dateStr} time=${timeStr} =>`, result.length, 'appt(s)');
-    }
     return result;
   }
 

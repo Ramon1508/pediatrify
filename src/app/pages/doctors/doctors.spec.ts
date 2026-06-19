@@ -12,7 +12,7 @@ describe('Doctors', () => {
 
   const mockDoctors = [
     { uid: '1', name: 'Dr. A', email: 'a@test.com', role: 'admin', profileComplete: true },
-    { uid: '2', name: 'Dr. B', email: 'b@test.com', role: 'employee', profileComplete: false },
+    { uid: '2', name: 'Dr. B', email: 'b@test.com', role: 'doctor', profileComplete: false },
   ] as any[];
 
   beforeEach(async () => {

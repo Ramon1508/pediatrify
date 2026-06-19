@@ -1,5 +1,6 @@
 @use '@angular/material' as mat;
 @use 'sass:color';
+@import 'quill/dist/quill.snow.css';
 
 $primary: #0d6e8f;
 $on-primary: #ffffff;
@@ -268,9 +269,12 @@ p {
     .mdc-dialog__surface.mat-mdc-dialog-surface {
       border-radius: 0 !important;
       height: 100vh !important;
+      height: 100dvh !important;
       max-height: 100vh !important;
+      max-height: 100dvh !important;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
   }
   .mat-mdc-dialog-content {
@@ -287,8 +291,11 @@ p {
   left: auto !important;
   top: 0 !important;
   height: 100vh !important;
+  height: 100dvh !important;
   position: absolute !important;
+  width: 736px;
   max-width: 100% !important;
+  overflow: hidden;
 }
 
 .cancel-dialog {
@@ -326,8 +333,10 @@ p {
 
   .cdk-overlay-pane.right-panel {
     height: 100vh !important;
+    height: 100dvh !important;
     width: 100% !important;
     max-width: 100% !important;
+    overflow: hidden;
   }
 }
 
@@ -389,6 +398,12 @@ mat-header-cell {
   font-size: 22px;
   line-height: 28px;
   letter-spacing: 0px;
+}
+
+.dialog-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 mat-dialog-content {

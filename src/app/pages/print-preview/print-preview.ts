@@ -1,0 +1,353 @@
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  OnInit,
+  ChangeDetectionStrategy,
+  ViewChild,
+  ElementRef,
+  ViewEncapsulation,
+} from '@angular/core';
+import { DatePipe, NgTemplateOutlet, UpperCasePipe } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { ActivatedRoute } from '@angular/router';
+import { ClinicalRecordRepository } from '../../core/repositories/clinical-record.repository';
+import { PatientRepository } from '../../core/repositories/patient.repository';
+import { PrintSettingsRepository } from '../../core/repositories/print-settings.repository';
+import { UserRepository } from '../../core/repositories/user.repository';
+import { AuthService } from '../../core/services/auth.service';
+import { ClinicalRecord } from '../../core/models/clinical-record';
+import { Patient, AppUser } from '../../core/models/user';
+import { PrintSettings, getDefaultSettings, PAPER_SIZES, getPaperDimensions } from '../../core/models/print-settings';
+import { Sexo } from '../../core/models/sexo';
+import { DEFAULT_LOGO_URL } from '../../core/config/brand';
+import { normalizeEmail } from '../../core/utils/normalize-email';
+
+const PX_PER_CM = 96 / 2.54;
+
+interface PrintPage {
+  html: SafeHtml;
+}
+
+function calcAge(birthDate: unknown): string {
+  let d: Date | null = null;
+  if (typeof birthDate === 'string') {
+    const parts = birthDate.split('-');
+    if (parts.length === 3) d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+  } else if (birthDate && typeof (birthDate as any).toDate === 'function') {
+    d = (birthDate as any).toDate();
+  }
+  if (!d || isNaN(d.getTime())) return '';
+  const now = new Date();
+  let months = (now.getFullYear() - d.getFullYear()) * 12;
+  months += now.getMonth() - d.getMonth();
+  if (now.getDate() < d.getDate()) months--;
+  if (months < 0) return '0 meses';
+  if (months < 24) return `${months} meses`;
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  return remainingMonths > 0
+    ? `${years} años ${remainingMonths} meses`
+    : `${years} años`;
+}
+
+@Component({
+  selector: 'app-print-preview',
+  templateUrl: './print-preview.html',
+  styleUrl: './print-preview.scss',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
+  imports: [DatePipe, NgTemplateOutlet, UpperCasePipe],
+})
+export class PrintPreview implements OnInit {
+  @ViewChild('measurePage') private measurePage?: ElementRef<HTMLElement>;
+  @ViewChild('measureScratch') private measureScratch?: ElementRef<HTMLElement>;
+
+  private route = inject(ActivatedRoute);
+  private clinicalRepo = inject(ClinicalRecordRepository);
+  private patientRepo = inject(PatientRepository);
+  private printRepo = inject(PrintSettingsRepository);
+  private userRepo = inject(UserRepository);
+  private auth = inject(AuthService);
+  private sanitizer = inject(DomSanitizer);
+  private defaultLogo = inject(DEFAULT_LOGO_URL);
+
+  protected readonly Sexo = Sexo;
+  protected readonly paperSizes = PAPER_SIZES;
+  protected loading = signal(true);
+
+  protected record: ClinicalRecord | null = null;
+  protected patient: Patient | null = null;
+  protected doctor: AppUser | null = null;
+  protected settings = signal<PrintSettings>(getDefaultSettings());
+  protected patientAge = '';
+
+  protected sanitizedRecommendations: SafeHtml = '';
+  protected sanitizedPrescription: SafeHtml = '';
+  protected pages = signal<PrintPage[]>([]);
+
+  protected paperSizeLabel(value: string): string {
+    const found = PAPER_SIZES.find((s) => s.value === value);
+    return found ? found.label : value === 'custom' ? 'Personalizado' : value;
+  }
+
+  protected logoUrl = computed(() => {
+    const s = this.settings();
+    if (s.usePreloadedLogo) {
+      return this.doctor?.logoPath || this.defaultLogo;
+    }
+    return s.logoUrl || this.doctor?.logoPath || this.defaultLogo;
+  });
+
+  protected paperSizeCss = computed(() => {
+    const s = this.settings();
+    const size = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    return `${size.width}cm ${size.height}cm`;
+  });
+
+  protected marginCss = computed(() => {
+    const s = this.settings();
+    return `${s.marginTop}cm ${s.marginRight}cm ${s.marginBottom}cm ${s.marginLeft}cm`;
+  });
+
+  protected pageStyle = computed(() => {
+    const s = this.settings();
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const scale = this.printScale();
+    return {
+      '--paper-width': `${dim.width}cm`,
+      '--paper-height': `${dim.height}cm`,
+      '--margin-top': `${s.marginTop}cm`,
+      '--margin-right': `${s.marginRight}cm`,
+      '--margin-bottom': `${s.marginBottom}cm`,
+      '--margin-left': `${s.marginLeft}cm`,
+      '--logo-width': `${s.logoWidth}cm`,
+      '--content-height': `${dim.height - s.marginTop - s.marginBottom}cm`,
+      '--font-doctor': `${12 * scale}pt`,
+      '--font-doctor-name': `${16 * scale}pt`,
+      '--font-body': `${12 * scale}pt`,
+      '--font-rich': `${11 * scale}pt`,
+      '--font-section-label': `${12 * scale}pt`,
+      '--screen-scale': String(this.screenScale()),
+    };
+  });
+
+  protected showLogo = computed(() => true);
+
+  protected screenPageWrapperStyle = computed(() => {
+    const s = this.settings();
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const scale = this.screenScale();
+    return {
+      width: `${Math.round(dim.width * PX_PER_CM * scale)}px`,
+      height: `${Math.round(dim.height * PX_PER_CM * scale)}px`,
+    };
+  });
+
+  private printScale(): number {
+    const s = this.settings();
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const contentWidth = dim.width - s.marginLeft - s.marginRight;
+    const baseContentWidth = 19.5;
+    const scale = Math.max(0.72, Math.min(1, contentWidth / baseContentWidth));
+    return Math.round(scale * 1000) / 1000;
+  }
+
+  private screenScale(): number {
+    const s = this.settings();
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const availableWidth = Math.max(window.innerWidth - 32, 280);
+    const scale = Math.min(1, availableWidth / (dim.width * PX_PER_CM));
+    return Math.round(scale * 1000) / 1000;
+  }
+
+  async ngOnInit() {
+    const recordId = this.route.snapshot.paramMap.get('recordId');
+    if (!recordId) return;
+
+    this.record = await this.clinicalRepo.get(recordId);
+    if (!this.record) return;
+
+    if (this.record.patientId) {
+      this.patient = await this.patientRepo.getPatient(this.record.patientId);
+      if (this.patient) {
+        this.patientAge = calcAge(this.patient.birthDate);
+      }
+    }
+
+    this.doctor = await this.resolveDoctorForRecord(this.record);
+    if (this.doctor) {
+      const s = await this.printRepo.getSettings(this.doctor.uid);
+      this.settings.set(s);
+    }
+
+    if (this.record.recommendations) {
+      this.sanitizedRecommendations = this.sanitizer.bypassSecurityTrustHtml(this.record.recommendations);
+    }
+    if (this.record.prescription) {
+      this.sanitizedPrescription = this.sanitizer.bypassSecurityTrustHtml(this.record.prescription);
+    }
+
+    this.loading.set(false);
+    await this.waitForPrintableLayout();
+    this.paginateContent();
+
+    this.injectPageSize();
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  }
+
+  private async resolveDoctorForRecord(record: ClinicalRecord): Promise<AppUser | null> {
+    const currentDoctor = this.auth.currentDoctor;
+    const createdBy = record.createdBy?.trim();
+
+    if (!createdBy) return currentDoctor;
+
+    if (createdBy.includes('@')) {
+      const email = normalizeEmail(createdBy);
+      if (currentDoctor && normalizeEmail(currentDoctor.email) === email) return currentDoctor;
+      return (await this.userRepo.getUserByEmail(email)) ?? currentDoctor;
+    }
+
+    return (await this.userRepo.getUser(createdBy)) ?? currentDoctor;
+  }
+
+  private async waitForPrintableLayout(): Promise<void> {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    await document.fonts?.ready;
+
+    const images = Array.from(document.querySelectorAll<HTMLImageElement>('.print-page img'));
+    await Promise.all(
+      images.map(
+        (img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                img.addEventListener('load', () => resolve(), { once: true });
+                img.addEventListener('error', () => resolve(), { once: true });
+              }),
+      ),
+    );
+  }
+
+  private buildPrintUnits(): string[] {
+    const units: string[] = [];
+    const addRichContent = (html: string) => {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const nodes = Array.from(doc.body.childNodes);
+      for (const node of nodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent?.trim();
+          if (text) units.push(`<div class="print-rich-content ql-editor"><p>${this.escapeHtml(text)}</p></div>`);
+          continue;
+        }
+
+        if (!(node instanceof HTMLElement)) continue;
+        if (node.tagName === 'UL' || node.tagName === 'OL') {
+          const tag = node.tagName.toLowerCase();
+          const items = Array.from(node.children).filter((child) => child.tagName === 'LI');
+          if (!items.length) {
+            units.push(`<div class="print-rich-content ql-editor">${node.outerHTML}</div>`);
+            continue;
+          }
+          for (const item of items) {
+            units.push(`<div class="print-rich-content ql-editor"><${tag}>${item.outerHTML}</${tag}></div>`);
+          }
+          continue;
+        }
+
+        units.push(`<div class="print-rich-content ql-editor">${node.outerHTML}</div>`);
+      }
+    };
+
+    if (this.record?.recommendations) {
+      units.push('<h2 class="print-section-label">RECOMENDACIONES</h2>');
+      addRichContent(this.record.recommendations);
+    }
+
+    if (this.record?.recommendations && this.record?.prescription) {
+      units.push('<div class="print-separator" aria-hidden="true"></div>');
+    }
+
+    if (this.record?.prescription) {
+      units.push('<h2 class="print-section-label">RECETA</h2>');
+      addRichContent(this.record.prescription);
+    }
+
+    return units;
+  }
+
+  private paginateContent(): void {
+    const measurePage = this.measurePage?.nativeElement;
+    const scratch = this.measureScratch?.nativeElement;
+    if (!measurePage || !scratch) {
+      this.pages.set([]);
+      return;
+    }
+
+    const pageStyles = getComputedStyle(measurePage);
+    const verticalPadding =
+      parseFloat(pageStyles.paddingTop || '0') + parseFloat(pageStyles.paddingBottom || '0');
+    const shell = measurePage.querySelector<HTMLElement>('.print-shell');
+    const shellHeight = shell?.getBoundingClientRect().height ?? 0;
+    const availableHeight = measurePage.getBoundingClientRect().height - verticalPadding - shellHeight;
+    const units = this.buildPrintUnits();
+    const pageHtml: string[] = [];
+    let currentUnits: string[] = [];
+
+    for (const unit of units) {
+      scratch.innerHTML = [...currentUnits, unit].join('');
+      const fits = scratch.scrollHeight <= availableHeight + 1;
+
+      if (fits || currentUnits.length === 0) {
+        currentUnits.push(unit);
+        continue;
+      }
+
+      pageHtml.push(currentUnits.join(''));
+      currentUnits = [unit];
+      scratch.innerHTML = unit;
+    }
+
+    if (currentUnits.length) {
+      pageHtml.push(currentUnits.join(''));
+    }
+
+    scratch.innerHTML = '';
+    this.pages.set(
+      pageHtml.map((html) => ({
+        html: this.sanitizer.bypassSecurityTrustHtml(html || '&nbsp;'),
+      })),
+    );
+  }
+
+  private escapeHtml(value: string): string {
+    const div = document.createElement('div');
+    div.textContent = value;
+    return div.innerHTML;
+  }
+
+  private injectPageSize() {
+    const s = this.settings();
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const style = document.createElement('style');
+    style.id = 'print-preview-page-size';
+    document.getElementById(style.id)?.remove();
+    style.textContent = `
+      @page {
+        size: ${dim.width}cm ${dim.height}cm;
+        margin: 0;
+        @top-left { content: none; }
+        @top-center { content: none; }
+        @top-right { content: none; }
+        @bottom-left { content: none; }
+        @bottom-center { content: none; }
+        @bottom-right { content: none; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}

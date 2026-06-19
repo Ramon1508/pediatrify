@@ -1,0 +1,89 @@
+@if (!loading() && record) {
+  <ng-template #printShell>
+    <header class="print-shell">
+      <div class="print-top-section">
+        @if (showLogo()) {
+          <div class="print-logo" [class.print-logo-right]="settings().logoPosition === 'top-right'">
+            <img [src]="logoUrl()" alt="Logo del consultorio" />
+          </div>
+        }
+
+        <div class="print-doctor-info">
+          @if (settings().showDoctorName && doctor) {
+            <div class="print-doctor-name">{{ doctor.sexo === Sexo.Femenino ? 'DRA.' : 'DR.' }} {{ doctor.name | uppercase }}</div>
+          }
+          @if (settings().showSpecialty) {
+            <div class="print-field">{{ doctor?.especialidad || 'Pediatría' }}</div>
+          }
+          @if (settings().showProfessionalId) {
+            <div class="print-field">CED. PROF. {{ doctor?.cedula || '1234567' }}</div>
+          }
+          @if (settings().showSpecialtyId) {
+            <div class="print-field">CED. ESP. {{ doctor?.cedulaEspecialidad || '9876543' }}</div>
+          }
+          @if (settings().showDoctorPhone) {
+            <div class="print-field">TEL. {{ doctor?.phone || '555-0000' }}</div>
+          }
+          @if (settings().showDoctorOffice) {
+            <div class="print-field">CONSULTORIO: {{ doctor?.consultorios || 'Consultorio A' }}</div>
+          }
+        </div>
+      </div>
+
+      <div class="print-gap-large"></div>
+
+      <div class="print-body-text">
+        <div class="print-patient-row">
+          @if (settings().showPatientName && patient) {
+            <span>NOMBRE DEL PACIENTE: {{ patient.name }} {{ patient.lastName }}</span>
+          }
+          @if (settings().showConsultDate) {
+            <span>FECHA: {{ record.date | date:'dd/MM/yyyy' }}</span>
+          }
+        </div>
+
+        <div class="print-gap-medium"></div>
+
+        <div class="print-patient-row">
+          @if (settings().showPatientAge) {
+            <span>EDAD: {{ patientAge }}</span>
+          }
+          @if (settings().showPatientWeight && record.weight) {
+            <span>PESO: {{ record.weight }} kg.</span>
+          }
+          @if (settings().showPatientHeight && record.height) {
+            <span>TALLA: {{ record.height }} cm.</span>
+          }
+          @if (settings().showPatientHeadCircumference && record.headCircumference) {
+            <span>PC: {{ record.headCircumference }} cm.</span>
+          }
+          @if (settings().showPatientTemperature && record.temperature) {
+            <span>TEMP: {{ record.temperature }} &deg;C</span>
+          }
+        </div>
+      </div>
+
+      <div class="print-divider"></div>
+    </header>
+  </ng-template>
+
+  <div class="print-preview-pages">
+    @for (page of pages(); track $index) {
+      <div class="screen-page-wrapper" [style]="screenPageWrapperStyle()">
+        <article class="print-page" [style]="pageStyle()">
+          <ng-container [ngTemplateOutlet]="printShell"></ng-container>
+          <main class="print-body" [innerHTML]="page.html"></main>
+        </article>
+      </div>
+    }
+  </div>
+
+  <div class="pagination-measure" aria-hidden="true">
+    <article #measurePage class="print-page" [style]="pageStyle()">
+      <ng-container [ngTemplateOutlet]="printShell"></ng-container>
+      <main #measureScratch class="print-body measure-scratch"></main>
+    </article>
+  </div>
+} @else if (!loading()) {
+  <div class="print-error">No se encontr&oacute; el registro</div>
+}

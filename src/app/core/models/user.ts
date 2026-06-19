@@ -2,7 +2,7 @@ import { Timestamp } from 'firebase/firestore';
 import { Sexo } from './sexo';
 import { PrintSettings } from './print-settings';
 
-export type UserRole = 'admin' | 'employee';
+export type UserRole = 'admin' | 'doctor' | 'assistant';
 
 export interface AppUser {
   uid: string;

@@ -1,10 +1,12 @@
 import { Component, inject, signal, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 import { PatientRepository } from '../../core/repositories/patient.repository';
 import { ClinicalRecordRepository } from '../../core/repositories/clinical-record.repository';
 import { AppointmentRepository } from '../../core/repositories/appointment.repository';
@@ -17,7 +19,8 @@ import { AppointmentFormDialog } from '../appointments/dialogs/appointment-form-
 import { EditPatientDialog } from '../patients/dialogs/edit-patient-dialog/edit-patient-dialog';
 import { CompleteProfileDialog } from '../patients/dialogs/complete-profile-dialog/complete-profile-dialog';
 import { ConfirmDialog, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog';
-import { AddClinicalEntry } from './dialogs/add-clinical-entry/add-clinical-entry';
+import { NewEntryDialog } from './dialogs/new-entry-dialog/new-entry-dialog';
+import { EditEntryDialog } from './dialogs/edit-entry-dialog/edit-entry-dialog';
 import { PatientHistoryCard } from './components/patient-history-card/patient-history-card';
 
 function calcAge(birthDate: unknown): string {
@@ -54,6 +57,7 @@ function calcAge(birthDate: unknown): string {
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
+    MatTabsModule,
     PatientHistoryCard,
   ],
 })
@@ -66,6 +70,7 @@ export class PatientHistory implements OnInit, OnDestroy {
   private auditRepo = inject(AuditRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
+  private sanitizer = inject(DomSanitizer);
 
   protected patient = signal<(Patient & { ageDisplay: string }) | null>(null);
   protected records = signal<ClinicalRecord[]>([]);
@@ -96,6 +101,10 @@ export class PatientHistory implements OnInit, OnDestroy {
     for (const s of this.subs) s.unsubscribe();
   }
 
+  protected sanitize(html: string | undefined): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(html ?? '');
+  }
+
   protected async openNewAppointment() {
     const allPatients = await this.patientRepo.getAllPatients();
     const dialogRef = this.dialog.open(AppointmentFormDialog, {
@@ -113,15 +122,37 @@ export class PatientHistory implements OnInit, OnDestroy {
   protected openAddEntry() {
     const patientId = this.route.snapshot.paramMap.get('patientId');
     if (!patientId) return;
+    const p = this.patient();
+    const age = p?.ageDisplay ?? '';
 
-    const dialogRef = this.dialog.open(AddClinicalEntry, {
-      width: '400px',
+    const dialogRef = this.dialog.open(NewEntryDialog, {
+      width: '736px',
       disableClose: true,
+      panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatientId(patientId);
+    dialogRef.componentInstance.setAge(age);
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.alert.success({ message: 'Entrada agregada', duration: 3000 });
+      }
+    });
+  }
+
+  protected openEditEntry(record: ClinicalRecord) {
+    const p = this.patient();
+    const age = p?.ageDisplay ?? '';
+
+    const dialogRef = this.dialog.open(EditEntryDialog, {
+      width: '736px',
+      disableClose: true,
+      panelClass: 'right-panel',
+    });
+    dialogRef.componentInstance.setRecord(record);
+    dialogRef.componentInstance.setAge(age);
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.alert.success({ message: 'Entrada actualizada', duration: 3000 });
       }
     });
   }

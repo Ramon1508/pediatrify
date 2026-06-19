@@ -1,4 +1,11 @@
-import { Component, inject, signal, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  OnInit,
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { sendPasswordResetEmail, confirmPasswordReset } from 'firebase/auth';
@@ -48,16 +55,23 @@ export class ResetPassword implements OnInit {
   });
 
   protected resetForm = this.fb.group({
-    newPassword: ['', [
-      Validators.required,
-      Validators.minLength(8),
-      Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_]).{8,}$/),
-    ]],
+    newPassword: [
+      '',
+      [
+        Validators.required,
+        Validators.minLength(8),
+        Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>_]).{8,}$/),
+      ],
+    ],
     confirmPassword: ['', Validators.required],
   });
 
-  get passwordControl() { return this.resetForm.get('newPassword')!; }
-  get confirmPasswordControl() { return this.resetForm.get('confirmPassword')!; }
+  get passwordControl() {
+    return this.resetForm.get('newPassword')!;
+  }
+  get confirmPasswordControl() {
+    return this.resetForm.get('confirmPassword')!;
+  }
 
   constructor() {
     this.confirmPasswordControl.setValidators([
@@ -90,18 +104,51 @@ export class ResetPassword implements OnInit {
     this.loading.set(true);
 
     try {
-      const actionCodeSettings = {
-        url: `${window.location.origin}/reset-password`,
-      };
-      await sendPasswordResetEmail(this.firebase.auth, email, actionCodeSettings);
-      this.alert.success({ message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.', duration: 5000 });
+      // Cuando el dominio esté configurado, cambiar esta condición para usar el SDK de Firebase directamente:
+      if (false) {
+        const url =
+          'https://us-central1-lilcare-afdf5.cloudfunctions.net/sendCustomPasswordResetEmail';
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: { email } }),
+        });
+
+        const result = await response.json();
+        if (result.error) throw new Error(result.error.message);
+      } else {
+        const actionCodeSettings = {
+          url: `${window.location.origin}/reset-password`,
+          handleCodeInApp: true,
+        };
+        await sendPasswordResetEmail(this.firebase.auth, email, actionCodeSettings);
+      }
+
+      this.alert.success({
+        message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.',
+        duration: 5000,
+      });
       this.requestForm.reset();
       this.submitted.set(false);
     } catch (e: any) {
-      if (e.code === 'auth/user-not-found') {
-        this.alert.error({ message: 'No se encontró una cuenta con este correo electrónico', duration: 5000 });
+      if (false) {
+        this.alert.error({
+          message: e.message || 'Error al enviar correo de recuperación',
+          duration: 5000,
+        });
       } else {
-        this.alert.error({ message: e.message || 'Error al enviar correo de recuperación', duration: 5000 });
+        if (e.code === 'auth/user-not-found') {
+          this.alert.error({
+            message: 'No se encontró una cuenta con este correo electrónico',
+            duration: 5000,
+          });
+        } else {
+          this.alert.error({
+            message: e.message || 'Error al enviar correo de recuperación',
+            duration: 5000,
+          });
+        }
       }
     } finally {
       this.loading.set(false);
@@ -117,15 +164,27 @@ export class ResetPassword implements OnInit {
 
     try {
       await confirmPasswordReset(this.firebase.auth, this.oobCode, newPassword);
-      this.alert.success({ message: 'Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.', duration: 5000 });
+      this.alert.success({
+        message: 'Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.',
+        duration: 5000,
+      });
       this.router.navigate(['/login']);
     } catch (e: any) {
       if (e.code === 'auth/expired-action-code') {
-        this.alert.error({ message: 'El enlace de recuperación ha expirado. Solicita uno nuevo.', duration: 5000 });
+        this.alert.error({
+          message: 'El enlace de recuperación ha expirado. Solicita uno nuevo.',
+          duration: 5000,
+        });
       } else if (e.code === 'auth/invalid-action-code') {
-        this.alert.error({ message: 'El enlace de recuperación no es válido. Solicita uno nuevo.', duration: 5000 });
+        this.alert.error({
+          message: 'El enlace de recuperación no es válido. Solicita uno nuevo.',
+          duration: 5000,
+        });
       } else {
-        this.alert.error({ message: e.message || 'Error al restablecer la contraseña', duration: 5000 });
+        this.alert.error({
+          message: e.message || 'Error al restablecer la contraseña',
+          duration: 5000,
+        });
       }
     } finally {
       this.loading.set(false);

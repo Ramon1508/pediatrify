@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "sendf": "firebase deploy --only functions",
+    "send": "ng build --configuration production && firebase deploy"
   },
   "prettier": {
     "printWidth": 100,
@@ -35,6 +37,7 @@
     "@popperjs/core": "^2.11.8",
     "bootstrap": "^5.3.3",
     "firebase": "^12.13.0",
+    "quill": "^2.0.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

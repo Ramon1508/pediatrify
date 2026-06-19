@@ -1,5 +1,5 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -37,14 +37,12 @@ export class AddClinicalEntry {
 
   protected patientId = '';
   protected saving = false;
-  protected submitted = false;
 
   protected form = this.fb.group({
-    date: ['', Validators.required],
-    motivoConsulta: ['', Validators.required],
+    date: [''],
+    motivoConsulta: [''],
     diagnosis: [''],
-    treatment: [''],
-    notes: [''],
+    notas: [''],
   });
 
   setPatientId(id: string) {
@@ -56,8 +54,7 @@ export class AddClinicalEntry {
   }
 
   async save() {
-    this.submitted = true;
-    if (this.form.invalid || !this.patientId) return;
+    if (!this.patientId) return;
 
     this.saving = true;
     try {
@@ -68,10 +65,9 @@ export class AddClinicalEntry {
         id,
         patientId: this.patientId,
         date: f.date!,
-        motivoConsulta: f.motivoConsulta!,
+        motivoConsulta: f.motivoConsulta ?? '',
         diagnosis: f.diagnosis || undefined,
-        treatment: f.treatment || undefined,
-        notes: f.notes || undefined,
+        notas: undefined,
         createdBy: doctor?.email ?? '',
       });
       this.alert.success({ message: 'Entrada agregada', duration: 3000 });

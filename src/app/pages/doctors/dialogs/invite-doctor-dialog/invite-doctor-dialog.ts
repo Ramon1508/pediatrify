@@ -44,7 +44,8 @@ export class InviteDoctorDialog {
 
   protected roles: { value: UserRole; label: string }[] = [
     { value: 'admin', label: 'Administrador' },
-    { value: 'employee', label: 'Asistente' },
+    { value: 'doctor', label: 'Doctor' },
+    { value: 'assistant', label: 'Asistente' },
   ];
 
   protected saving = false;
@@ -55,7 +56,7 @@ export class InviteDoctorDialog {
   protected form = this.fb.group({
     name: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
-    role: ['employee', Validators.required],
+    role: ['assistant', Validators.required],
   });
 
   close() {
@@ -77,7 +78,7 @@ export class InviteDoctorDialog {
         uid,
         email,
         name,
-        role: role ?? 'employee',
+        role: role ?? 'assistant',
         pending: true,
         createdAt: Timestamp.now(),
       });

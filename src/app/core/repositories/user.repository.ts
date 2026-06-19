@@ -46,6 +46,12 @@ export class UserRepository {
     return snap.empty ? null : (snap.docs[0].data() as AppUser);
   }
 
+  async getUserByEmail(email: string): Promise<AppUser | null> {
+    const q = query(this.userRef, where('email', '==', email));
+    const snap = await getDocs(q);
+    return snap.empty ? null : (snap.docs[0].data() as AppUser);
+  }
+
   async createUser(uid: string, data: Partial<AppUser>): Promise<void> {
     await setDoc(this.docRef(uid), {
       ...data,

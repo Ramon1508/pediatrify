@@ -47,8 +47,8 @@ describe('Header', () => {
     expect(component.roleLabel).toBe('Administrador');
   });
 
-  it('shows employee role label', () => {
-    setDoctor('Dr. López', 'employee');
+  it('shows doctor role label', () => {
+    setDoctor('Dr. López', 'doctor');
     expect(component.roleLabel).toBe('Doctor');
   });
 

@@ -26,6 +26,12 @@
             <mat-icon>calendar_today</mat-icon>
             Agendar consulta
           </button>
+          @if (records().length > 0) {
+            <button mat-unelevated-button class="btn-primary dialog-btn" (click)="openAddEntry()">
+              <mat-icon>add</mat-icon>
+              A&ntilde;adir entrada
+            </button>
+          }
         </div>
       </div>
 
@@ -37,44 +43,95 @@
             A&ntilde;adir entrada
           </button>
         </div>
-      } @else {
-        <button mat-unelevated-button class="btn-primary dialog-btn add-entry-btn" (click)="openAddEntry()">
-          <mat-icon>add</mat-icon>
-          A&ntilde;adir entrada
-        </button>
-
-        <div class="records-list">
-          @for (record of records(); track record.id) {
-            <div class="record-card">
-              <div class="record-header">
-                <span class="record-date">{{ record.date | date:'dd/MM/yyyy' }}</span>
-              </div>
-              <div class="record-field">
-                <span class="record-label">Motivo de consulta</span>
-                <span class="record-value">{{ record.motivoConsulta }}</span>
-              </div>
-              @if (record.diagnosis) {
-                <div class="record-field">
-                  <span class="record-label">Diagn&oacute;stico</span>
-                  <span class="record-value">{{ record.diagnosis }}</span>
-                </div>
-              }
-              @if (record.treatment) {
-                <div class="record-field">
-                  <span class="record-label">Tratamiento</span>
-                  <span class="record-value">{{ record.treatment }}</span>
-                </div>
-              }
-              @if (record.notes) {
-                <div class="record-field">
-                  <span class="record-label">Notas</span>
-                  <span class="record-value">{{ record.notes }}</span>
-                </div>
-              }
-            </div>
-          }
-        </div>
       }
+
+      <div class="records-list">
+        @for (record of records(); track record.id) {
+          <div class="record-card">
+            <div class="record-header">
+              <span class="record-date">{{ record.date | date:'dd/MM/yyyy' }}</span>
+              <button mat-icon-button class="btn-edit-entry" (click)="openEditEntry(record)" aria-label="Editar consulta">
+                <mat-icon>edit</mat-icon>
+              </button>
+            </div>
+
+            <mat-tab-group>
+              <mat-tab label="Datos y diagn&oacute;stico">
+                <div class="tab-content">
+                  <div class="record-fields">
+                    <div class="record-field">
+                      <span class="record-label">Per&iacute;metro cef&aacute;lico</span>
+                      <span class="record-value">{{ record.headCircumference ?? '' }}</span>
+                    </div>
+                    <div class="record-field">
+                      <span class="record-label">Peso</span>
+                      <span class="record-value">{{ record.weight ?? '' }}</span>
+                    </div>
+                    <div class="record-field">
+                      <span class="record-label">Talla</span>
+                      <span class="record-value">{{ record.height ?? '' }}</span>
+                    </div>
+                    <div class="record-field">
+                      <span class="record-label">IMC</span>
+                      <span class="record-value">{{ record.bmi ?? '' }}</span>
+                    </div>
+                    <div class="record-field">
+                      <span class="record-label">Saturaci&oacute;n</span>
+                      <span class="record-value">{{ record.saturation ?? '' }}</span>
+                    </div>
+                    <div class="record-field">
+                      <span class="record-label">Temperatura</span>
+                      <span class="record-value">{{ record.temperature ?? '' }}</span>
+                    </div>
+                    <div class="record-field">
+                      <span class="record-label">Motivo de consulta</span>
+                      <span class="record-value">{{ record.motivoConsulta }}</span>
+                    </div>
+                    <div class="record-field">
+                      <span class="record-label">Diagn&oacute;stico</span>
+                      <span class="record-value">{{ record.diagnosis ?? '' }}</span>
+                    </div>
+                    @if (record.notas) {
+                      <div class="record-field">
+                        <span class="record-label">Notas generales</span>
+                        <span class="record-value">{{ record.notas }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </mat-tab>
+
+              <mat-tab label="Recomendaciones">
+                <div class="tab-content">
+                  @if (record.visibleUntil) {
+                    <div class="visible-until">
+                      Visible hasta: {{ record.visibleUntil | date:'dd/MM/yyyy' }}
+                    </div>
+                  }
+                  <div class="rich-content" [innerHTML]="sanitize(record.recommendations)"></div>
+                </div>
+              </mat-tab>
+
+              <mat-tab label="Receta">
+                <div class="tab-content">
+                  @if (record.visibleUntilRx) {
+                    <div class="visible-until">
+                      Visible hasta: {{ record.visibleUntilRx | date:'dd/MM/yyyy' }}
+                    </div>
+                  }
+                  <div class="rich-content" [innerHTML]="sanitize(record.prescription)"></div>
+                </div>
+              </mat-tab>
+
+              <mat-tab label="Gr&aacute;ficas">
+                <div class="tab-content placeholder-tab">
+                  <span class="placeholder-text">Gr&aacute;ficas pr&oacute;ximamente</span>
+                </div>
+              </mat-tab>
+            </mat-tab-group>
+          </div>
+        }
+      </div>
     </section>
   }
 </div>

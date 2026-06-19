@@ -151,6 +151,33 @@ mat-dialog-actions {
   gap: 8px;
 }
 
+.view-field {
+  margin-bottom: 16px;
+
+  .view-label {
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.4px;
+    color: #49454F;
+    display: block;
+  }
+
+  .view-value {
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0.5px;
+    color: #000;
+    display: block;
+    margin-top: 4px;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
 .save-success {
   position: absolute;
   bottom: 24px;

@@ -1,0 +1,186 @@
+<div class="dialog-title-container">
+  <h2 class="dialog-title">Nueva entrada</h2>
+  <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<mat-dialog-content>
+  <div class="entry-meta">
+    <div class="entry-meta-item">
+      <span class="entry-meta-label">Edad del paciente</span>
+      <span class="entry-meta-value">{{ ageDisplay }}</span>
+    </div>
+    <div class="entry-meta-item">
+      <span class="entry-meta-label">Fecha de la consulta</span>
+      <span class="entry-meta-value">{{ today | date:'dd/MM/yyyy' }}</span>
+    </div>
+  </div>
+
+  <div class="step-header">
+    <span class="step-title">{{ stepLabel }}</span>
+    <span class="step-num">{{ step }} / 3</span>
+  </div>
+
+
+
+  @switch (step) {
+    @case (1) {
+      <form [formGroup]="step1Form" class="step-form">
+        <div class="form-row desktop-2col form-gap-40">
+          <mat-form-field appearance="outline" class="flex-field">
+            <mat-label>Per&iacute;metro cef&aacute;lico</mat-label>
+            <input matInput type="text" inputmode="decimal" formControlName="headCircumference" />
+            <mat-hint>En cent&iacute;metros</mat-hint>
+            @if (step1Form.get('headCircumference')?.invalid && submitted) {
+              @if (step1Form.get('headCircumference')?.errors?.['required']) {
+                <mat-error>Ingresa el per&iacute;metro cef&aacute;lico del paciente</mat-error>
+              }
+              @if (step1Form.get('headCircumference')?.errors?.['pattern']) {
+                <mat-error>Ingresa un valor num&eacute;rico v&aacute;lido</mat-error>
+              }
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="flex-field">
+            <mat-label>Peso</mat-label>
+            <input matInput type="text" inputmode="decimal" formControlName="weight" (input)="calcBMI()" />
+            <mat-hint>En kilogramos</mat-hint>
+            @if (step1Form.get('weight')?.invalid && submitted) {
+              @if (step1Form.get('weight')?.errors?.['required']) {
+                <mat-error>Ingresa el peso del paciente</mat-error>
+              }
+              @if (step1Form.get('weight')?.errors?.['pattern']) {
+                <mat-error>Ingresa un valor num&eacute;rico v&aacute;lido</mat-error>
+              }
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-row desktop-2col form-gap-40">
+          <mat-form-field appearance="outline" class="flex-field">
+            <mat-label>Talla</mat-label>
+            <input matInput type="text" inputmode="decimal" formControlName="height" (input)="calcBMI()" />
+            <mat-hint>En cent&iacute;metros</mat-hint>
+            @if (step1Form.get('height')?.invalid && submitted) {
+              @if (step1Form.get('height')?.errors?.['required']) {
+                <mat-error>Ingresa la talla del paciente</mat-error>
+              }
+              @if (step1Form.get('height')?.errors?.['pattern']) {
+                <mat-error>Ingresa un valor num&eacute;rico v&aacute;lido</mat-error>
+              }
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="flex-field">
+            <mat-label>IMC</mat-label>
+            <input matInput type="text" formControlName="bmi" readonly />
+            <mat-hint>Calculado autom&aacute;ticamente</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row desktop-2col form-gap-40">
+          <mat-form-field appearance="outline" class="flex-field">
+            <mat-label>Saturaci&oacute;n</mat-label>
+            <input matInput type="text" inputmode="decimal" formControlName="saturation" />
+            <mat-hint>En porcentaje</mat-hint>
+            @if (step1Form.get('saturation')?.invalid && submitted) {
+              @if (step1Form.get('saturation')?.errors?.['required']) {
+                <mat-error>Ingresa la saturaci&oacute;n del paciente</mat-error>
+              }
+              @if (step1Form.get('saturation')?.errors?.['pattern']) {
+                <mat-error>Ingresa un valor num&eacute;rico v&aacute;lido</mat-error>
+              }
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="flex-field">
+            <mat-label>Temperatura</mat-label>
+            <input matInput type="text" inputmode="decimal" formControlName="temperature" />
+            <mat-hint>En grados cent&iacute;grados</mat-hint>
+            @if (step1Form.get('temperature')?.invalid && submitted) {
+              @if (step1Form.get('temperature')?.errors?.['required']) {
+                <mat-error>Ingresa la temperatura del paciente</mat-error>
+              }
+              @if (step1Form.get('temperature')?.errors?.['pattern']) {
+                <mat-error>Ingresa un valor num&eacute;rico v&aacute;lido</mat-error>
+              }
+            }
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Motivo de consulta</mat-label>
+          <textarea matInput formControlName="motivoConsulta" cdkTextareaAutosize cdkAutosizeMinRows="2" cdkAutosizeMaxRows="10"></textarea>
+          @if (step1Form.get('motivoConsulta')?.invalid && submitted) {
+            <mat-error>Ingresa el motivo de consulta</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Diagn&oacute;stico</mat-label>
+          <textarea matInput formControlName="diagnosis" cdkTextareaAutosize cdkAutosizeMinRows="3" cdkAutosizeMaxRows="15"></textarea>
+          @if (step1Form.get('diagnosis')?.invalid && submitted) {
+            <mat-error>Ingresa el diagn&oacute;stico del paciente</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Notas generales (opcional)</mat-label>
+          <textarea matInput formControlName="notas" cdkTextareaAutosize cdkAutosizeMinRows="3" cdkAutosizeMaxRows="10"></textarea>
+        </mat-form-field>
+      </form>
+    }
+
+    @case (2) {
+      <form [formGroup]="step2Form" class="step-form">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Visible para el paciente hasta</mat-label>
+          <input matInput [matDatepicker]="dpRec" formControlName="visibleUntil" placeholder="DD/MM/AAAA" (click)="dpRec.open()" [matDatepickerFilter]="noPastDates" />
+          <mat-icon matSuffix (click)="dpRec.open()">calendar_today</mat-icon>
+          <mat-datepicker #dpRec></mat-datepicker>
+          @if (step2Form.get('visibleUntil')?.invalid && submitted) {
+            <mat-error>Selecciona la fecha l&iacute;mite de visualizaci&oacute;n</mat-error>
+          }
+        </mat-form-field>
+
+        <app-rich-text-editor formControlName="recommendations" />
+      </form>
+    }
+
+    @case (3) {
+      <form [formGroup]="step3Form" class="step-form">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Visible para el paciente hasta</mat-label>
+          <input matInput [matDatepicker]="dpRx" formControlName="visibleUntilRx" placeholder="DD/MM/AAAA" (click)="dpRx.open()" [matDatepickerFilter]="noPastDates" />
+          <mat-icon matSuffix (click)="dpRx.open()">calendar_today</mat-icon>
+          <mat-datepicker #dpRx></mat-datepicker>
+          @if (step3Form.get('visibleUntilRx')?.invalid && submitted) {
+            <mat-error>Selecciona la fecha l&iacute;mite de visualizaci&oacute;n</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="editor-label">Receta</div>
+        <app-rich-text-editor formControlName="prescription" />
+      </form>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (step > 1) {
+    <button mat-stroked-button class="btn-tertiary dialog-btn" (click)="prevStep()">Anterior</button>
+  }
+  @if (step < 3) {
+    <button mat-unelevated-button class="btn-primary dialog-btn btn-step" (click)="nextStep()">Siguiente</button>
+  }
+  @if (step === 3) {
+    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="saveAndPrint()" [disabled]="saving">
+      @if (saving) {
+        <mat-spinner diameter="18" />
+      } @else {
+        Guardar e imprimir
+      }
+    </button>
+  }
+</mat-dialog-actions>

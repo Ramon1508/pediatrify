@@ -267,6 +267,7 @@ export class Patients implements OnInit, OnDestroy {
 
   async deletePatient(patient: Patient) {
     const dialogRef = this.dialog.open(ConfirmDialog, {
+      panelClass: 'cancel-dialog',
       data: {
         title: 'Eliminar paciente',
         message: `¿Eliminar a ${patient.name} ${patient.lastName}?`,

@@ -47,19 +47,39 @@ describe('Sidebar', () => {
     });
     fixture.detectChanges();
 
-    expect(component.showAdminItems).toBe(true);
+    expect(component.isAdmin).toBe(true);
+    expect(component.isAdminOrDoctor).toBe(true);
     expect(fixture.nativeElement.textContent).toContain('Asistentes');
+    expect(fixture.nativeElement.textContent).toContain('Impresión');
+    expect(fixture.nativeElement.textContent).toContain('Bitácora');
   });
 
-  it('hides admin items when user is not admin', () => {
+  it('shows doctor items for doctor role', () => {
     Object.defineProperty(authService, 'currentDoctor', {
-      get: () => ({ role: 'employee' }) as any,
+      get: () => ({ role: 'doctor' }) as any,
       configurable: true,
     });
     fixture.detectChanges();
 
-    expect(component.showAdminItems).toBe(false);
+    expect(component.isAdmin).toBe(false);
+    expect(component.isAdminOrDoctor).toBe(true);
     expect(fixture.nativeElement.textContent).not.toContain('Asistentes');
+    expect(fixture.nativeElement.textContent).toContain('Impresión');
+    expect(fixture.nativeElement.textContent).not.toContain('Bitácora');
+  });
+
+  it('hides admin/doctor items for assistant role', () => {
+    Object.defineProperty(authService, 'currentDoctor', {
+      get: () => ({ role: 'assistant' }) as any,
+      configurable: true,
+    });
+    fixture.detectChanges();
+
+    expect(component.isAdmin).toBe(false);
+    expect(component.isAdminOrDoctor).toBe(false);
+    expect(fixture.nativeElement.textContent).not.toContain('Asistentes');
+    expect(fixture.nativeElement.textContent).not.toContain('Impresión');
+    expect(fixture.nativeElement.textContent).not.toContain('Bitácora');
   });
 
   it('calls logout and navigates to login', () => {

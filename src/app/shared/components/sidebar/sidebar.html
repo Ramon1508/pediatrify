@@ -23,20 +23,21 @@
     <span class="nav-label">Pacientes</span>
   </a>
 
-  @if (showAdminItems) {
+  @if (isAdmin) {
     <a
       class="nav-item"
       routerLink="/app/doctors"
       routerLinkActive="active"
       [routerLinkActiveOptions]="{ exact: false }"
-      
     >
       <div class="icon-wrapper">
         <mat-icon>call_end</mat-icon>
       </div>
       <span class="nav-label">Asistentes</span>
     </a>
+  }
 
+  @if (isAdminOrDoctor) {
     <a
       class="nav-item"
       routerLink="/app/impresion"
@@ -48,7 +49,9 @@
       </div>
       <span class="nav-label">Impresión</span>
     </a>
+  }
 
+  @if (isAdmin) {
     <a
       class="nav-item"
       routerLink="/app/audit-log"

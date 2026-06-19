@@ -1,0 +1,273 @@
+@page {
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+app-print-preview {
+  display: block;
+  min-height: 100vh;
+  padding: 16px;
+  background: #f4f5f7;
+}
+
+.print-preview-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.screen-page-wrapper {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.print-page {
+  width: var(--paper-width);
+  height: var(--paper-height);
+  padding: var(--margin-top) var(--margin-right) var(--margin-bottom) var(--margin-left);
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0px 1px 2px 0px #0000004d, 0px 2px 6px 2px #00000026;
+  color: #000;
+  font-family: 'Roboto', sans-serif;
+}
+
+.screen-page-wrapper .print-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: scale(var(--screen-scale));
+  transform-origin: top left;
+}
+
+.pagination-measure {
+  position: fixed;
+  top: 0;
+  left: -200vw;
+  z-index: -1;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.pagination-measure .print-page {
+  box-shadow: none;
+}
+
+.print-shell,
+.print-body {
+  width: 100%;
+}
+
+.print-top-section {
+  position: relative;
+  min-height: 1.1cm;
+}
+
+.print-logo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: var(--logo-width);
+
+  img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    max-height: 2.5cm;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
+.print-logo-right {
+  right: 0;
+  left: auto;
+}
+
+.print-doctor-info {
+  color: #333;
+  text-align: center;
+  font-size: var(--font-doctor);
+  line-height: 1.25;
+
+  .print-doctor-name {
+    margin-bottom: 0.1cm;
+    font-size: var(--font-doctor-name);
+    font-weight: 500;
+    letter-spacing: 0.15px;
+  }
+
+  .print-field {
+    margin-bottom: 0.04cm;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+}
+
+.print-gap-large {
+  height: 0.65cm;
+}
+
+.print-gap-medium {
+  height: 0.28cm;
+}
+
+.print-body-text {
+  clear: both;
+  color: #444;
+  font-size: var(--font-body);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.15px;
+}
+
+.print-patient-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.16cm 0.45cm;
+  text-align: left;
+
+  span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.print-divider {
+  clear: both;
+  margin: 0.24cm 0 0;
+  border-top: 1px solid #000;
+}
+
+.print-body {
+  padding-top: 0.28cm;
+}
+
+.print-section-label {
+  margin: 0 0 0.16cm;
+  color: #000;
+  font-size: var(--font-section-label);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.print-rich-content {
+  margin: 0;
+  padding: 0;
+  color: #000;
+  font-size: var(--font-rich);
+  font-weight: 400;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+
+  p,
+  ul,
+  ol,
+  blockquote,
+  pre,
+  h1,
+  h2,
+  h3 {
+    margin-top: 0;
+    margin-bottom: 0.18cm;
+  }
+
+  ul,
+  ol {
+    padding-left: 0.6cm;
+  }
+
+  img,
+  table {
+    max-width: 100%;
+  }
+
+  img {
+    display: block;
+    height: auto;
+    max-height: calc(var(--content-height) - 1cm);
+    object-fit: contain;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  a {
+    color: #000;
+    text-decoration: underline;
+  }
+}
+
+.print-separator {
+  width: 100%;
+  margin: 0.28cm 0;
+  border-top: 1px dashed #999;
+}
+
+.print-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: #666;
+  font-family: 'Roboto', sans-serif;
+  font-size: 18px;
+}
+
+@media print {
+  html,
+  body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  app-print-preview {
+    min-height: auto;
+    padding: 0;
+    background: #fff;
+  }
+
+  .print-preview-pages {
+    display: block;
+  }
+
+  .screen-page-wrapper {
+    width: auto !important;
+    height: auto !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .screen-page-wrapper:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .screen-page-wrapper .print-page {
+    position: relative;
+    transform: none;
+  }
+
+  .print-page {
+    width: var(--paper-width);
+    height: var(--paper-height);
+    margin: 0;
+    box-shadow: none;
+  }
+
+  .pagination-measure {
+    display: none;
+  }
+}

@@ -32,7 +32,7 @@
       @for (doctor of filteredDoctors(); track doctor.uid) {
         <mat-card class="doctor-card" [class.empty]="filteredDoctors().length === 0">
           <div class="card-header">
-            <span class="card-name" [matTooltip]="doctor.name">{{ doctor.name }}</span>
+            <span class="title-large card-name" [matTooltip]="doctor.name">{{ doctor.name }}</span>
             <button mat-icon-button [matMenuTriggerFor]="doctorMenu" class="card-menu-btn">
               <mat-icon>more_vert</mat-icon>
             </button>

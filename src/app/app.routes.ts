@@ -17,32 +17,42 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/otp-login/otp-login').then((m) => m.OtpLogin),
   },
   {
-    path: 'setup-profile',
+    path: 'auth-handler',
     loadComponent: () =>
-      import('./pages/setup-profile/setup-profile').then((m) => m.SetupProfile),
+      import('./pages/auth-handler/auth-handler').then((m) => m.AuthHandlerComponent),
+  },
+  {
+    path: 'setup-profile',
+    loadComponent: () => import('./pages/setup-profile/setup-profile').then((m) => m.SetupProfile),
+  },
+  {
+    path: 'app/secret/housekeeping/initialize_if_errors/approve',
+    loadComponent: () =>
+      import('./pages/housekeeping/admin-initialize/admin-initialize').then(
+        (m) => m.AdminInitialize,
+      ),
   },
   {
     path: 'app',
-    loadComponent: () =>
-      import('./pages/doctor-layout/doctor-layout').then((m) => m.DoctorLayout),
+    loadComponent: () => import('./pages/doctor-layout/doctor-layout').then((m) => m.DoctorLayout),
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'calendar', pathMatch: 'full' },
       {
         path: 'calendar',
-        loadComponent: () =>
-          import('./pages/calendar/calendar').then((m) => m.Calendar),
-        canActivate: [roleGuard(['admin', 'employee'])],
+        loadComponent: () => import('./pages/calendar/calendar').then((m) => m.Calendar),
+        canActivate: [roleGuard(['admin', 'doctor', 'assistant'])],
       },
       {
         path: 'patients',
         loadComponent: () => import('./pages/patients/patients').then((m) => m.Patients),
-        canActivate: [roleGuard(['admin', 'employee'])],
+        canActivate: [roleGuard(['admin', 'doctor', 'assistant'])],
       },
       {
         path: 'patients/history/:patientId',
-        loadComponent: () => import('./pages/patient-history/patient-history').then((m) => m.PatientHistory),
-        canActivate: [roleGuard(['admin', 'employee'])],
+        loadComponent: () =>
+          import('./pages/patient-history/patient-history').then((m) => m.PatientHistory),
+        canActivate: [roleGuard(['admin', 'doctor', 'assistant'])],
       },
       {
         path: 'doctors',
@@ -52,7 +62,7 @@ export const routes: Routes = [
       {
         path: 'impresion',
         loadComponent: () => import('./pages/impresion/impresion').then((m) => m.Impresion),
-        canActivate: [roleGuard(['admin'])],
+        canActivate: [roleGuard(['admin', 'doctor'])],
       },
       {
         path: 'audit-log',
@@ -63,8 +73,12 @@ export const routes: Routes = [
   },
   {
     path: 'otp-dashboard',
-    loadComponent: () =>
-      import('./pages/otp-dashboard/otp-dashboard').then((m) => m.OtpDashboard),
+    loadComponent: () => import('./pages/otp-dashboard/otp-dashboard').then((m) => m.OtpDashboard),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'print/:recordId',
+    loadComponent: () => import('./pages/print-preview/print-preview').then((m) => m.PrintPreview),
     canActivate: [authGuard],
   },
   { path: 'dashboard', redirectTo: '/app/calendar', pathMatch: 'full' },

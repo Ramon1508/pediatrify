@@ -1,0 +1,37 @@
+.housekeeping-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f7fafc;
+}
+
+.housekeeping-panel {
+  width: min(100%, 428px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+  color: #1d1b20;
+  font-family: Roboto, sans-serif;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 28px;
+  letter-spacing: 0;
+}
+
+.status-icon {
+  width: 40px;
+  height: 40px;
+  color: #0d6e8f;
+  font-size: 40px;
+}
+
+.status-icon.error {
+  color: #b3261e;
+}

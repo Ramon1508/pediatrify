@@ -45,7 +45,7 @@ export class SetupProfile implements OnInit {
 
   protected mode = signal<'invitation' | 'existing' | 'invalid'>('invalid');
   protected pendingUid = '';
-  protected pendingRole: UserRole = 'employee';
+  protected pendingRole: UserRole = 'assistant';
   protected displayName = signal('');
   protected displayEmail = signal('');
 

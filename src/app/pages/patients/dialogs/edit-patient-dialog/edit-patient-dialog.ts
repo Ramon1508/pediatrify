@@ -1,4 +1,5 @@
 import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -93,6 +94,7 @@ function toDateString(birthDate: unknown): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
+    DatePipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -132,6 +134,10 @@ export class EditPatientDialog {
 
   protected readOnly = true;
 
+  protected get sexoLabel(): string {
+    return this.patient?.sex ? SexoLabel[this.patient.sex] : '';
+  }
+
   setMode(mode: 'view' | 'edit') {
     this.readOnly = mode === 'view';
     if (this.readOnly) {
@@ -168,6 +174,7 @@ export class EditPatientDialog {
     email: ['', [Validators.email]],
     secondaryEmail: ['', [Validators.email]],
     phone: [''],
+    secondaryPhone: [''],
     fatherName: [''],
     motherName: [''],
     referredBy: [''],
@@ -198,6 +205,7 @@ export class EditPatientDialog {
       email: p.email ?? '',
       secondaryEmail: p.secondaryEmail ?? '',
       phone: p.phone ?? '',
+      secondaryPhone: p.secondaryPhone ?? '',
       fatherName: p.fatherName ?? '',
       motherName: p.motherName ?? '',
       referredBy: p.referredBy ?? '',
@@ -388,6 +396,7 @@ export class EditPatientDialog {
         email: v.email ?? '',
         secondaryEmail: v.secondaryEmail ?? undefined,
         phone: v.phone ?? '',
+        secondaryPhone: v.secondaryPhone ?? undefined,
         fatherName: v.fatherName ?? '',
         motherName: v.motherName ?? '',
         referredBy: v.referredBy ?? undefined,

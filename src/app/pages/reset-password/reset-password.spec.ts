@@ -5,9 +5,11 @@ import { ResetPassword } from './reset-password';
 import { FirebaseService } from '../../core/firebase/firebase.service';
 import { AlertService } from '../../core/services/alert.service';
 
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
+
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn().mockReturnValue({}),
-  sendPasswordResetEmail: vi.fn(),
   confirmPasswordReset: vi.fn(),
 }));
 
@@ -40,6 +42,7 @@ describe('ResetPassword', () => {
     component = fixture.componentInstance;
     alertService = TestBed.inject(AlertService);
     router = TestBed.inject(Router);
+    mockFetch.mockReset();
     fixture.detectChanges();
   });
 
@@ -66,50 +69,49 @@ describe('ResetPassword', () => {
     expect(email.valid).toBe(true);
   });
 
-  it('does not call sendPasswordResetEmail when form is invalid', async () => {
+  it('does not call fetch when form is invalid', async () => {
     await (component as any).onRequestLink();
     expect((component as any).loading()).toBe(false);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('calls sendPasswordResetEmail when form is valid', async () => {
+  it('calls fetch with correct data when form is valid', async () => {
     (component as any).requestForm.setValue({ email: 'doc@test.com' });
-
-    const { sendPasswordResetEmail } = await import('firebase/auth');
-    (sendPasswordResetEmail as any).mockResolvedValue(undefined);
+    mockFetch.mockResolvedValue({ json: () => Promise.resolve({ result: {} }) });
 
     await (component as any).onRequestLink();
 
-    expect(sendPasswordResetEmail).toHaveBeenCalledWith(
-      (component as any).firebase.auth,
-      'doc@test.com',
-      { url: `${window.location.origin}/reset-password` }
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { email: 'doc@test.com' } }),
+      }),
     );
   });
 
   it('shows success alert on email sent', async () => {
     (component as any).requestForm.setValue({ email: 'doc@test.com' });
-    const { sendPasswordResetEmail } = await import('firebase/auth');
-    (sendPasswordResetEmail as any).mockResolvedValue(undefined);
+    mockFetch.mockResolvedValue({ json: () => Promise.resolve({ result: {} }) });
 
     await (component as any).onRequestLink();
 
     expect(alertService.success).toHaveBeenCalledWith({ message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.', duration: 5000 });
   });
 
-  it('shows error alert on user not found', async () => {
+  it('shows error alert on function error', async () => {
     (component as any).requestForm.setValue({ email: 'missing@test.com' });
-    const { sendPasswordResetEmail } = await import('firebase/auth');
-    (sendPasswordResetEmail as any).mockRejectedValue({ code: 'auth/user-not-found' });
+    mockFetch.mockResolvedValue({ json: () => Promise.resolve({ error: { message: 'No user found' } }) });
 
     await (component as any).onRequestLink();
 
-    expect(alertService.error).toHaveBeenCalledWith({ message: 'No se encontró una cuenta con este correo electrónico', duration: 5000 });
+    expect(alertService.error).toHaveBeenCalledWith({ message: 'No user found', duration: 5000 });
   });
 
-  it('shows generic error on unknown error code', async () => {
+  it('shows error alert on fetch failure', async () => {
     (component as any).requestForm.setValue({ email: 'doc@test.com' });
-    const { sendPasswordResetEmail } = await import('firebase/auth');
-    (sendPasswordResetEmail as any).mockRejectedValue({ code: 'auth/too-many-requests', message: 'Demasiados intentos' });
+    mockFetch.mockRejectedValue({ message: 'Demasiados intentos' });
 
     await (component as any).onRequestLink();
 
@@ -118,8 +120,7 @@ describe('ResetPassword', () => {
 
   it('resets form after successful email send', async () => {
     (component as any).requestForm.setValue({ email: 'doc@test.com' });
-    const { sendPasswordResetEmail } = await import('firebase/auth');
-    (sendPasswordResetEmail as any).mockResolvedValue(undefined);
+    mockFetch.mockResolvedValue({ json: () => Promise.resolve({ result: {} }) });
     const resetSpy = vi.spyOn((component as any).requestForm, 'reset');
 
     await (component as any).onRequestLink();
@@ -152,6 +153,7 @@ describe('ResetPassword', () => {
       component = fixture.componentInstance;
       router = TestBed.inject(Router);
       alertService = TestBed.inject(AlertService);
+      mockFetch.mockReset();
       fixture.detectChanges();
     });
 

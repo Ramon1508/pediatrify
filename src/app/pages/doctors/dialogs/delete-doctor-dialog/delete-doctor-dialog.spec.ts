@@ -7,7 +7,7 @@ import { AlertService } from '../../../../core/services/alert.service';
 import { AppUser } from '../../../../core/models/user';
 
 describe('DeleteDoctorDialog', () => {
-  const mockDoctor: AppUser = { uid: 'd1', name: 'Dr. Test', email: 'test@mail.com', role: 'employee', pending: false };
+  const mockDoctor: AppUser = { uid: 'd1', name: 'Dr. Test', email: 'test@mail.com', role: 'doctor', pending: false };
 
   function createFixture() {
     const userRepo = { deleteUser: vi.fn().mockResolvedValue(undefined) };

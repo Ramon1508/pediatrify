@@ -123,6 +123,7 @@
 - Calendar uses 7-day grid starting Sunday; `isDayAvailable()` checks `availableDays` from doctor settings; `canInteractWithCell()` allows admins to click greyed cells
 - Admin doctor selector in calendar toolbar; `onDoctorSelected()` reloads that doctor's appointments+settings; `loadDoctorData()` called on init and on selection change
 - `updatedBy` is set on every `createAppointment()` call; detail card conditionally displays it
+- **Print preview**: Route `/print/:recordId` loads record + patient + doctor's print settings, renders full-page framed layout (logo/header/patient info + recommendations/prescription), auto-triggers `window.print()` after 500ms. Paper size injected via dynamic `<style>@page { size: ... }`.
 
 ## Typography
 

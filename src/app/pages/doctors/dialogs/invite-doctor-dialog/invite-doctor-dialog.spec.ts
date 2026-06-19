@@ -43,16 +43,17 @@ describe('InviteDoctorDialog', () => {
     expect(el.textContent).toContain('Rol del usuario');
   });
 
-  it('defaults role to employee', () => {
+  it('defaults role to assistant', () => {
     const { component } = createFixture();
-    expect(component.form.value.role).toBe('employee');
+    expect(component.form.value.role).toBe('assistant');
   });
 
-  it('shows admin/employee role options', () => {
+  it('shows role options', () => {
     const { component } = createFixture();
     expect(component.roles).toEqual([
       { value: 'admin', label: 'Administrador' },
-      { value: 'employee', label: 'Asistente' },
+      { value: 'doctor', label: 'Doctor' },
+      { value: 'assistant', label: 'Asistente' },
     ]);
   });
 

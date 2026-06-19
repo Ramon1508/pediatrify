@@ -8,13 +8,16 @@
     </mat-card-header>
 
     <mat-card-content>
-      <div class="role-badge" [class.admin]="doctor?.role === 'admin'" [class.employee]="doctor?.role === 'employee'">
+      <div class="role-badge" [class.admin]="doctor?.role === 'admin'">
         @if (doctor?.role === 'admin') {
           <mat-icon>verified</mat-icon>
           <span>Administrador</span>
-        } @else {
+        } @else if (doctor?.role === 'doctor') {
           <mat-icon>medical_services</mat-icon>
           <span>Doctor</span>
+        } @else {
+          <mat-icon>support</mat-icon>
+          <span>Asistente</span>
         }
       </div>
 
@@ -41,7 +44,7 @@
           Registrar paciente
         </button>
 
-        @if (doctor?.role === 'employee') {
+        @if (doctor?.role === 'assistant') {
           <p class="restricted-notice">
             <mat-icon>lock</mat-icon>
             Algunas funciones están restringidas para tu perfil. Contacta al administrador si necesitas acceso adicional.

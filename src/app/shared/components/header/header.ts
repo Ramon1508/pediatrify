@@ -45,7 +45,10 @@ export class Header {
   get roleLabel(): string {
     if (!this.authService.isAuthenticated) return '';
     if (this.authService.currentDoctor) {
-      return this.authService.currentDoctor.role === 'admin' ? 'Administrador' : 'Doctor';
+      const role = this.authService.currentDoctor.role;
+      if (role === 'admin') return 'Administrador';
+      if (role === 'doctor') return 'Doctor';
+      return 'Asistente';
     }
     return 'Paciente';
   }

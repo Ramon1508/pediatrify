@@ -46,20 +46,12 @@ describe('AddClinicalEntry', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Motivo de consulta');
     expect(el.textContent).toContain('Diagnóstico');
-    expect(el.textContent).toContain('Tratamiento');
-    expect(el.textContent).toContain('Notas');
-  });
-
-  it('shows validation errors when submitted empty', () => {
-    const { component } = createFixture();
-    component.submitted = true;
-    component.form.patchValue({ date: '', motivoConsulta: '' });
-    expect(component.form.invalid).toBe(true);
+    expect(el.textContent).toContain('Notas generales');
   });
 
   it('calls create on save', async () => {
     const { component, repo, alertService, dialogRef } = createFixture();
-    component.form.setValue({ date: '2026-06-15', motivoConsulta: 'Dolor de cabeza', diagnosis: '', treatment: '', notes: '' });
+    component.form.setValue({ date: '2026-06-15', motivoConsulta: 'Dolor de cabeza', diagnosis: '', notas: '' });
     await component.save();
     expect(repo.create).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
       patientId: 'p1',
@@ -72,7 +64,7 @@ describe('AddClinicalEntry', () => {
   it('shows error on save failure', async () => {
     const { component, repo, alertService } = createFixture();
     repo.create.mockRejectedValue(new Error('fail'));
-    component.form.setValue({ date: '2026-06-15', motivoConsulta: 'Dolor', diagnosis: '', treatment: '', notes: '' });
+    component.form.setValue({ date: '2026-06-15', motivoConsulta: 'Dolor', diagnosis: '', notas: '' });
     await component.save();
     expect(alertService.error).toHaveBeenCalledWith({ message: 'Error al guardar la entrada', duration: 5000 });
   });
