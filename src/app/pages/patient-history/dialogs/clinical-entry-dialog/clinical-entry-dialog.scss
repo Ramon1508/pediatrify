@@ -35,6 +35,28 @@
   color: #000000;
 }
 
+.step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.step-title,
+.step-num {
+  font-family: Roboto, sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.15px;
+  color: #49454F;
+}
+
+.step-form {
+  display: flex;
+  flex-direction: column;
+}
+
 .tab-form {
   padding: 24px 0;
   display: flex;
@@ -64,6 +86,10 @@
   margin-bottom: 0.75rem;
 }
 
+.btn-step {
+  font-weight: 500;
+}
+
 .editor-label {
   font-family: Roboto, sans-serif;
   font-weight: 500;
@@ -85,6 +111,16 @@ textarea {
 
 mat-dialog-actions {
   gap: 8px;
+}
+
+.tab-error-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #B3261E;
+  margin-left: 6px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {

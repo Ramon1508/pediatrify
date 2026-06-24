@@ -89,6 +89,9 @@
 - Appointments spec file rewritten to test dialog-based flow (mock `MatDialog.open` instead of inline dialog state)
 - All 141 tests pass across 20 files (0 failures)
 
+### Done
+- Print preview fixed: CSS `page-break-after` / `page-break-before` / named `@page` didn't work in Angular context (Chrome ignored page breaks). Solution: `printViaNewWindow()` opens a new tab, clones the rendered `app-print-preview` DOM, injects fresh `@page { size }` + print CSS directly, and calls `print()` from the new window. 3 pages print correctly. Debug info div hidden with `.print-debug { display: none; }`.
+
 ### Blocked
 - (none)
 
@@ -96,6 +99,7 @@
 - Wire up "Ver historial" action in appointment detail card (currently logs to console)
 - Replace `<div>` click handlers with `<button>` in calendar (date picker, time slot cells, appointment blocks, mobile cards)
 - Add dialog component spec files for individual coverage (appointment-form-dialog, invite-doctor-dialog, etc.)
+- Investigate alert-overlay z-index behind dialog — check if `<app-root>` or CDK container creates unexpected stacking context
 - Verify composite Firestore index `appointments` `doctorId ASC + disabled ASC` is deployed
 - Consider Cloud Function or Admin SDK for old auth cleanup when email changes
 
@@ -123,7 +127,7 @@
 - Calendar uses 7-day grid starting Sunday; `isDayAvailable()` checks `availableDays` from doctor settings; `canInteractWithCell()` allows admins to click greyed cells
 - Admin doctor selector in calendar toolbar; `onDoctorSelected()` reloads that doctor's appointments+settings; `loadDoctorData()` called on init and on selection change
 - `updatedBy` is set on every `createAppointment()` call; detail card conditionally displays it
-- **Print preview**: Route `/print/:recordId` loads record + patient + doctor's print settings, renders full-page framed layout (logo/header/patient info + recommendations/prescription), auto-triggers `window.print()` after 500ms. Paper size injected via dynamic `<style>@page { size: ... }`.
+- **Print preview**: Route `/print/:recordId` loads record + patient + doctor's print settings, renders full-page framed layout (logo/header/patient info + recommendations/prescription). Prints via `printViaNewWindow()`: opens a new tab, clones the rendered DOM, injects `@page { size }` + print CSS directly, calls `print()` from the new window (bypasses Angular CSS page-break issues).
 
 ## Typography
 

@@ -5,6 +5,7 @@ import {
   computed,
   OnInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   ViewChild,
   ElementRef,
   ViewEncapsulation,
@@ -73,10 +74,12 @@ export class PrintPreview implements OnInit {
   private auth = inject(AuthService);
   private sanitizer = inject(DomSanitizer);
   private defaultLogo = inject(DEFAULT_LOGO_URL);
+  private cdr = inject(ChangeDetectorRef);
 
   protected readonly Sexo = Sexo;
   protected readonly paperSizes = PAPER_SIZES;
   protected loading = signal(true);
+  protected debugInfo = signal('');
 
   protected record: ClinicalRecord | null = null;
   protected patient: Patient | null = null;
@@ -191,12 +194,13 @@ export class PrintPreview implements OnInit {
     }
 
     this.loading.set(false);
+    this.cdr.markForCheck();
     await this.waitForPrintableLayout();
     this.paginateContent();
+    this.cdr.markForCheck();
 
-    this.injectPageSize();
     setTimeout(() => {
-      window.print();
+      this.printViaNewWindow();
     }, 500);
   }
 
@@ -293,14 +297,22 @@ export class PrintPreview implements OnInit {
       parseFloat(pageStyles.paddingTop || '0') + parseFloat(pageStyles.paddingBottom || '0');
     const shell = measurePage.querySelector<HTMLElement>('.print-shell');
     const shellHeight = shell?.getBoundingClientRect().height ?? 0;
-    const availableHeight = measurePage.getBoundingClientRect().height - verticalPadding - shellHeight;
+    const rawAvailable = measurePage.getBoundingClientRect().height - verticalPadding - shellHeight;
+    const availableHeight = rawAvailable;
     const units = this.buildPrintUnits();
     const pageHtml: string[] = [];
     let currentUnits: string[] = [];
 
+    let debugLines = [
+      `paperH=${measurePage.getBoundingClientRect().height.toFixed(1)} pad=${verticalPadding.toFixed(1)} shell=${shellHeight.toFixed(1)} rawAvail=${rawAvailable.toFixed(1)}`,
+      `units=${units.length}`,
+    ];
+
     for (const unit of units) {
       scratch.innerHTML = [...currentUnits, unit].join('');
-      const fits = scratch.scrollHeight <= availableHeight + 1;
+      void scratch.offsetHeight;
+      const contentHeight = scratch.getBoundingClientRect().height;
+      const fits = contentHeight <= availableHeight;
 
       if (fits || currentUnits.length === 0) {
         currentUnits.push(unit);
@@ -316,7 +328,28 @@ export class PrintPreview implements OnInit {
       pageHtml.push(currentUnits.join(''));
     }
 
+    debugLines.push(`pages before merge=${pageHtml.length}`);
+    // merge trailing pages that fit without the buffer
+    while (pageHtml.length > 1) {
+      const last = pageHtml[pageHtml.length - 1];
+      const prev = pageHtml[pageHtml.length - 2];
+      scratch.innerHTML = prev + last;
+      void scratch.offsetHeight;
+      const mergedH = scratch.getBoundingClientRect().height;
+      if (mergedH <= rawAvailable) {
+        debugLines.push(`merged page ${pageHtml.length - 1} into ${pageHtml.length}: ${mergedH.toFixed(1)} <= ${rawAvailable.toFixed(1)}`);
+        pageHtml.pop();
+        pageHtml[pageHtml.length - 1] = prev + last;
+      } else {
+        debugLines.push(`merge FAIL ${pageHtml.length - 1}: ${mergedH.toFixed(1)} > ${rawAvailable.toFixed(1)}`);
+        break;
+      }
+    }
+
     scratch.innerHTML = '';
+    debugLines.push(`final pages=${pageHtml.length}`);
+    this.debugInfo.set(debugLines.join(' | '));
+    this.cdr.markForCheck();
     this.pages.set(
       pageHtml.map((html) => ({
         html: this.sanitizer.bypassSecurityTrustHtml(html || '&nbsp;'),
@@ -330,24 +363,78 @@ export class PrintPreview implements OnInit {
     return div.innerHTML;
   }
 
-  private injectPageSize() {
+  private printViaNewWindow() {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const previewEl = document.querySelector('app-print-preview');
+    if (!previewEl) return;
+
     const s = this.settings();
     const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
-    const style = document.createElement('style');
-    style.id = 'print-preview-page-size';
-    document.getElementById(style.id)?.remove();
-    style.textContent = `
-      @page {
-        size: ${dim.width}cm ${dim.height}cm;
-        margin: 0;
-        @top-left { content: none; }
-        @top-center { content: none; }
-        @top-right { content: none; }
-        @bottom-left { content: none; }
-        @bottom-center { content: none; }
-        @bottom-right { content: none; }
-      }
-    `;
-    document.head.appendChild(style);
+
+    const allStyles = Array.from(document.head.querySelectorAll('style'))
+      .map((el) => el.innerHTML)
+      .join('\n');
+
+    const clone = previewEl.cloneNode(true) as HTMLElement;
+    const html = clone.outerHTML;
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+${allStyles}
+</style>
+<style>
+@page {
+  size: ${dim.width}cm ${dim.height}cm;
+  margin: 0;
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@media print {
+  app-print-preview { padding: 0; background: #fff; min-height: auto; }
+  .print-preview-pages { display: block; }
+  .screen-page-wrapper {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    page-break-after: always;
+  }
+  .screen-page-wrapper:last-of-type {
+    page-break-after: auto;
+  }
+  .screen-page-wrapper .print-page {
+    position: static !important;
+    transform: none !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0;
+    padding: var(--margin-top) var(--margin-right) var(--margin-bottom) var(--margin-left);
+    box-shadow: none;
+    overflow: visible;
+  }
+  .pagination-measure, .print-debug { display: none; }
+}
+</style>
+</head>
+<body>
+${html}
+</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 800);
   }
 }

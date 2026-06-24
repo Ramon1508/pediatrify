@@ -19,8 +19,7 @@ import { AppointmentFormDialog } from '../appointments/dialogs/appointment-form-
 import { EditPatientDialog } from '../patients/dialogs/edit-patient-dialog/edit-patient-dialog';
 import { CompleteProfileDialog } from '../patients/dialogs/complete-profile-dialog/complete-profile-dialog';
 import { ConfirmDialog, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog';
-import { NewEntryDialog } from './dialogs/new-entry-dialog/new-entry-dialog';
-import { EditEntryDialog } from './dialogs/edit-entry-dialog/edit-entry-dialog';
+import { ClinicalEntryDialog } from './dialogs/clinical-entry-dialog/clinical-entry-dialog';
 import { PatientHistoryCard } from './components/patient-history-card/patient-history-card';
 
 function calcAge(birthDate: unknown): string {
@@ -125,7 +124,7 @@ export class PatientHistory implements OnInit, OnDestroy {
     const p = this.patient();
     const age = p?.ageDisplay ?? '';
 
-    const dialogRef = this.dialog.open(NewEntryDialog, {
+    const dialogRef = this.dialog.open(ClinicalEntryDialog, {
       width: '736px',
       disableClose: true,
       panelClass: 'right-panel',
@@ -143,7 +142,7 @@ export class PatientHistory implements OnInit, OnDestroy {
     const p = this.patient();
     const age = p?.ageDisplay ?? '';
 
-    const dialogRef = this.dialog.open(EditEntryDialog, {
+    const dialogRef = this.dialog.open(ClinicalEntryDialog, {
       width: '736px',
       disableClose: true,
       panelClass: 'right-panel',

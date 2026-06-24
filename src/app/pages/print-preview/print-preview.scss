@@ -49,7 +49,7 @@ app-print-preview {
   top: 0;
   left: -200vw;
   z-index: -1;
-  visibility: hidden;
+  opacity: 0.001;
   pointer-events: none;
 }
 
@@ -224,50 +224,4 @@ app-print-preview {
   font-size: 18px;
 }
 
-@media print {
-  html,
-  body {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    background: #fff;
-  }
 
-  app-print-preview {
-    min-height: auto;
-    padding: 0;
-    background: #fff;
-  }
-
-  .print-preview-pages {
-    display: block;
-  }
-
-  .screen-page-wrapper {
-    width: auto !important;
-    height: auto !important;
-    break-after: page;
-    page-break-after: always;
-  }
-
-  .screen-page-wrapper:last-child {
-    break-after: auto;
-    page-break-after: auto;
-  }
-
-  .screen-page-wrapper .print-page {
-    position: relative;
-    transform: none;
-  }
-
-  .print-page {
-    width: var(--paper-width);
-    height: var(--paper-height);
-    margin: 0;
-    box-shadow: none;
-  }
-
-  .pagination-measure {
-    display: none;
-  }
-}

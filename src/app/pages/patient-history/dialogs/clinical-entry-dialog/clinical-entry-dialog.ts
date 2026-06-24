@@ -9,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { TextFieldModule, CdkTextareaAutosize } from '@angular/cdk/text-field';
 import { ClinicalRecordRepository } from '../../../../core/repositories/clinical-record.repository';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -18,9 +18,9 @@ import { ClinicalRecord } from '../../../../core/models/clinical-record';
 import { RichTextEditor } from '../../../../shared/components/rich-text-editor/rich-text-editor';
 
 @Component({
-  selector: 'app-edit-entry-dialog',
-  templateUrl: './edit-entry-dialog.html',
-  styleUrl: './edit-entry-dialog.scss',
+  selector: 'app-clinical-entry-dialog',
+  templateUrl: './clinical-entry-dialog.html',
+  styleUrl: './clinical-entry-dialog.scss',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -40,20 +40,34 @@ import { RichTextEditor } from '../../../../shared/components/rich-text-editor/r
     RichTextEditor,
   ],
 })
-export class EditEntryDialog {
+export class ClinicalEntryDialog {
   private fb = inject(FormBuilder);
   private repo = inject(ClinicalRecordRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
-  private snackBar = inject(MatSnackBar);
-  private dialogRef = inject(MatDialogRef<EditEntryDialog>);
+  private dialogRef = inject(MatDialogRef<ClinicalEntryDialog>);
   private cdr = inject(ChangeDetectorRef);
 
   protected record: ClinicalRecord | null = null;
+  protected patientId = '';
   protected ageDisplay = '';
+  protected today = new Date();
+  protected step = 1;
   protected selectedTab = 0;
   protected saving = false;
   protected submitted = false;
+
+  protected get isEdit(): boolean {
+    return this.record !== null;
+  }
+
+  protected tabHasInvalid(index: number): boolean {
+    if (!this.submitted) return false;
+    const forms = [this.step1Form, this.step2Form, this.step3Form];
+    const form = forms[index];
+    if (!form) return false;
+    return Object.values(form.controls).some((c) => c.invalid);
+  }
 
   protected noPastDates = (date: Date | null): boolean => {
     return date ? date >= new Date(new Date().toDateString()) : true;
@@ -81,10 +95,17 @@ export class EditEntryDialog {
     prescription: [''],
   });
 
-  private parseDate(value: string | undefined): string {
-    if (!value) return '';
-    const d = new Date(value);
-    return isNaN(d.getTime()) ? '' : value;
+  get stepLabel(): string {
+    switch (this.step) {
+      case 1: return 'Datos y diagnóstico';
+      case 2: return 'Recomendaciones';
+      case 3: return 'Receta';
+      default: return '';
+    }
+  }
+
+  setPatientId(id: string) {
+    this.patientId = id;
   }
 
   setRecord(record: ClinicalRecord) {
@@ -129,6 +150,29 @@ export class EditEntryDialog {
     }
   }
 
+  nextStep() {
+    this.submitted = true;
+    this.cdr.markForCheck();
+    if (this.step === 1 && this.step1Form.invalid) return;
+    if (this.step === 2 && this.step2Form.invalid) return;
+    if (this.step === 3 && this.step3Form.invalid) return;
+    if (this.step < 3) {
+      this.step++;
+      this.submitted = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  prevStep() {
+    if (this.step > 1) this.step--;
+  }
+
+  private parseDate(value: string | undefined): string {
+    if (!value) return '';
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? '' : value;
+  }
+
   private toDateString(value: unknown): string | undefined {
     if (!value) return undefined;
     if (typeof value === 'string') return value;
@@ -138,9 +182,24 @@ export class EditEntryDialog {
 
   async save() {
     this.submitted = true;
-    if (this.step1Form.invalid || this.step2Form.invalid || this.step3Form.invalid) return;
-    if (!this.record) return;
+    this.cdr.markForCheck();
+    if (this.isEdit) {
+      if (this.step1Form.invalid || this.step2Form.invalid || this.step3Form.invalid) {
+        this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+        return;
+      }
+      if (!this.record) return;
+    } else {
+      if (this.step3Form.invalid) {
+        this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+        return;
+      }
+      if (!this.patientId) {
+        throw new Error('No hay paciente seleccionado');
+      }
+    }
     this.saving = true;
+    this.cdr.markForCheck();
     try {
       const s1 = this.step1Form.getRawValue();
       const s2 = this.step2Form.value;
@@ -149,7 +208,8 @@ export class EditEntryDialog {
       if (!doctor?.email) {
         throw new Error('No hay doctor autenticado');
       }
-      await this.repo.update(this.record.id, {
+
+      const data = {
         headCircumference: s1.headCircumference ? parseFloat(s1.headCircumference) : undefined,
         weight: s1.weight ? parseFloat(s1.weight) : undefined,
         height: s1.height ? parseFloat(s1.height) : undefined,
@@ -158,17 +218,29 @@ export class EditEntryDialog {
         temperature: s1.temperature ? parseFloat(s1.temperature) : undefined,
         motivoConsulta: s1.motivoConsulta ?? '',
         diagnosis: s1.diagnosis ?? '',
-        notas: s1.notas || undefined,
-        recommendations: s2.recommendations || undefined,
+        notas: s1.notas ?? '',
+        recommendations: s2.recommendations ?? '',
         visibleUntil: this.toDateString(s2.visibleUntil),
-        prescription: s3.prescription || undefined,
+        prescription: s3.prescription ?? '',
         visibleUntilRx: this.toDateString(s3.visibleUntilRx),
-        updatedBy: doctor.email,
-      });
-      this.snackBar.open('Se han guardado los cambios.', 'Cerrar', {
-        duration: 5000,
-        panelClass: 'success-snackbar',
-      });
+      };
+
+      if (this.isEdit) {
+        await this.repo.update(this.record!.id, {
+          ...data,
+          updatedBy: doctor.email,
+        });
+      } else {
+        const id = crypto.randomUUID();
+        await this.repo.create(id, {
+          id,
+          ...data,
+          patientId: this.patientId,
+          date: this.today.toISOString().split('T')[0],
+          createdBy: doctor.email,
+        });
+      }
+
       this.dialogRef.close(true);
     } catch (e) {
       console.error('Save error:', e);
@@ -176,20 +248,36 @@ export class EditEntryDialog {
       this.alert.error({ message: msg, duration: 5000 });
     } finally {
       this.saving = false;
+      this.cdr.markForCheck();
     }
   }
 
   async saveAndPrint() {
     this.submitted = true;
-    if (this.step1Form.invalid || this.step2Form.invalid || this.step3Form.invalid) return;
-    if (!this.record) return;
-    // Open popup before async to avoid popup blockers
+    this.cdr.markForCheck();
+    if (this.isEdit) {
+      if (this.step1Form.invalid || this.step2Form.invalid || this.step3Form.invalid) {
+        this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+        return;
+      }
+      if (!this.record) return;
+    } else {
+      if (this.step3Form.invalid) {
+        this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+        return;
+      }
+      if (!this.patientId) {
+        throw new Error('No hay paciente seleccionado');
+      }
+    }
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       this.alert.error({ message: 'Permite ventanas emergentes para imprimir', duration: 5000 });
       return;
     }
     this.saving = true;
+    this.cdr.markForCheck();
     try {
       const s1 = this.step1Form.getRawValue();
       const s2 = this.step2Form.value;
@@ -198,7 +286,8 @@ export class EditEntryDialog {
       if (!doctor?.email) {
         throw new Error('No hay doctor autenticado');
       }
-      await this.repo.update(this.record.id, {
+
+      const data = {
         headCircumference: s1.headCircumference ? parseFloat(s1.headCircumference) : undefined,
         weight: s1.weight ? parseFloat(s1.weight) : undefined,
         height: s1.height ? parseFloat(s1.height) : undefined,
@@ -207,15 +296,34 @@ export class EditEntryDialog {
         temperature: s1.temperature ? parseFloat(s1.temperature) : undefined,
         motivoConsulta: s1.motivoConsulta ?? '',
         diagnosis: s1.diagnosis ?? '',
-        notas: s1.notas || undefined,
-        recommendations: s2.recommendations || undefined,
+        notas: s1.notas ?? '',
+        recommendations: s2.recommendations ?? '',
         visibleUntil: this.toDateString(s2.visibleUntil),
-        prescription: s3.prescription || undefined,
+        prescription: s3.prescription ?? '',
         visibleUntilRx: this.toDateString(s3.visibleUntilRx),
-        updatedBy: doctor.email,
-      });
+      };
+
+      let recordId: string;
+
+      if (this.isEdit) {
+        recordId = this.record!.id;
+        await this.repo.update(recordId, {
+          ...data,
+          updatedBy: doctor.email,
+        });
+      } else {
+        recordId = crypto.randomUUID();
+        await this.repo.create(recordId, {
+          id: recordId,
+          ...data,
+          patientId: this.patientId,
+          date: this.today.toISOString().split('T')[0],
+          createdBy: doctor.email,
+        });
+      }
+
       this.dialogRef.close(true);
-      printWindow.location.href = `/print/${this.record.id}`;
+      printWindow.location.href = `/print/${recordId}`;
       printWindow.focus();
     } catch (e) {
       console.error('Save and print error:', e);
@@ -224,6 +332,7 @@ export class EditEntryDialog {
       this.alert.error({ message: msg, duration: 5000 });
     } finally {
       this.saving = false;
+      this.cdr.markForCheck();
     }
   }
 

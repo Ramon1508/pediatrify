@@ -66,8 +66,8 @@ export class AddClinicalEntry {
         patientId: this.patientId,
         date: f.date!,
         motivoConsulta: f.motivoConsulta ?? '',
-        diagnosis: f.diagnosis || undefined,
-        notas: undefined,
+        diagnosis: f.diagnosis ?? '',
+        notas: f.notas ?? '',
         createdBy: doctor?.email ?? '',
       });
       this.alert.success({ message: 'Entrada agregada', duration: 3000 });
