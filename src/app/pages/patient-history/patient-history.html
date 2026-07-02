@@ -1,4 +1,4 @@
-<div class="history-container">
+<div class="history-container" #historyContainer>
   @if (loading()) {
     <mat-progress-bar mode="indeterminate" />
   }
@@ -42,59 +42,83 @@
             <mat-icon>add</mat-icon>
             A&ntilde;adir entrada
           </button>
+          <button class="btn-tertiary seed-btn" (click)="seedTestData()">Insertar datos de prueba</button>
         </div>
       }
 
-      <div class="records-list">
-        @for (record of records(); track record.id) {
-          <div class="record-card">
-            <div class="record-header">
-              <span class="record-date">{{ record.date | date:'dd/MM/yyyy' }}</span>
-              <button mat-icon-button class="btn-edit-entry" (click)="openEditEntry(record)" aria-label="Editar consulta">
-                <mat-icon>edit</mat-icon>
-              </button>
+      @if (sortedRecords().length > 0 && selectedRecord(); as record) {
+        <div class="record-card">
+          <div>
+            <div class="record-date-header">
+              Fecha de la consulta
             </div>
+            <div class="records-container">
+              <mat-radio-group
+                [value]="selectedRecordId()"
+                (change)="selectRecord($event.value)"
+                class="date-radio-group"
+              >
+                @for (rec of sortedRecords(); track rec.id) {
+                  <mat-radio-button [value]="rec.id" class="date-radio">
+                    {{ rec.date | date:'dd/MM/yyyy' }}
+                  </mat-radio-button>
+                }
+              </mat-radio-group>
+            </div>
+          </div>
 
             <mat-tab-group>
               <mat-tab label="Datos y diagn&oacute;stico">
                 <div class="tab-content">
-                  <div class="record-fields">
-                    <div class="record-field">
-                      <span class="record-label">Per&iacute;metro cef&aacute;lico</span>
-                      <span class="record-value">{{ record.headCircumference ?? '' }}</span>
+                  <div class="entry-actions">
+                    <button class="blue-icon-text-button btn-tertiary" (click)="openEditEntry(record)" aria-label="Editar consulta">
+                      <mat-icon>edit</mat-icon> Editar
+                    </button>
+                  </div>
+                  <div class="quick-values-row" #quickValues>
+                    <div class="qv-item" [class.row-end]="rowEndIndices().has(0)">
+                      <span class="qv-label">Edad</span>
+                      <span class="qv-value">{{ getAgeAtRecord(record) }}</span>
                     </div>
-                    <div class="record-field">
-                      <span class="record-label">Peso</span>
-                      <span class="record-value">{{ record.weight ?? '' }}</span>
+                    <div class="qv-item" [class.row-end]="rowEndIndices().has(1)">
+                      <span class="qv-label">Per&iacute;metro cef&aacute;lico</span>
+                      <span class="qv-value">{{ record.headCircumference ?? '' }}</span>
                     </div>
-                    <div class="record-field">
-                      <span class="record-label">Talla</span>
-                      <span class="record-value">{{ record.height ?? '' }}</span>
+                    <div class="qv-item" [class.row-end]="rowEndIndices().has(2)">
+                      <span class="qv-label">Peso</span>
+                      <span class="qv-value">{{ record.weight ?? '' }}</span>
                     </div>
-                    <div class="record-field">
-                      <span class="record-label">IMC</span>
-                      <span class="record-value">{{ record.bmi ?? '' }}</span>
+                    <div class="qv-item" [class.row-end]="rowEndIndices().has(3)">
+                      <span class="qv-label">Talla</span>
+                      <span class="qv-value">{{ record.height ?? '' }}</span>
                     </div>
-                    <div class="record-field">
-                      <span class="record-label">Saturaci&oacute;n</span>
-                      <span class="record-value">{{ record.saturation ?? '' }}</span>
+                    <div class="qv-item" [class.row-end]="rowEndIndices().has(4)">
+                      <span class="qv-label">IMC</span>
+                      <span class="qv-value">{{ record.bmi ?? '' }}</span>
                     </div>
-                    <div class="record-field">
-                      <span class="record-label">Temperatura</span>
-                      <span class="record-value">{{ record.temperature ?? '' }}</span>
+                    <div class="qv-item" [class.row-end]="rowEndIndices().has(5)">
+                      <span class="qv-label">Saturaci&oacute;n</span>
+                      <span class="qv-value">{{ record.saturation ?? '' }}</span>
                     </div>
-                    <div class="record-field">
-                      <span class="record-label">Motivo de consulta</span>
-                      <span class="record-value">{{ record.motivoConsulta }}</span>
+                    <div class="qv-item" [class.row-end]="rowEndIndices().has(6)">
+                      <span class="qv-label">Temperatura</span>
+                      <span class="qv-value">{{ record.temperature ?? '' }}</span>
                     </div>
-                    <div class="record-field">
-                      <span class="record-label">Diagn&oacute;stico</span>
-                      <span class="record-value">{{ record.diagnosis ?? '' }}</span>
+                  </div>
+
+                  <div class="detail-fields">
+                    <div class="detail-field">
+                      <span class="detail-label">Motivo de consulta</span>
+                      <span class="detail-value">{{ record.motivoConsulta }}</span>
+                    </div>
+                    <div class="detail-field">
+                      <span class="detail-label">Diagn&oacute;stico</span>
+                      <span class="detail-value">{{ record.diagnosis ?? '' }}</span>
                     </div>
                     @if (record.notas) {
-                      <div class="record-field">
-                        <span class="record-label">Notas generales</span>
-                        <span class="record-value">{{ record.notas }}</span>
+                      <div class="detail-field">
+                        <span class="detail-label">Notas generales</span>
+                        <span class="detail-value">{{ record.notas }}</span>
                       </div>
                     }
                   </div>
@@ -124,14 +148,18 @@
               </mat-tab>
 
               <mat-tab label="Gr&aacute;ficas">
-                <div class="tab-content placeholder-tab">
-                  <span class="placeholder-text">Gr&aacute;ficas pr&oacute;ximamente</span>
+                <div class="tab-content">
+                  <app-growth-charts
+                    [records]="records()"
+                    [selectedRecord]="selectedRecord()"
+                    [patientSex]="patient()?.sex"
+                    [birthDate]="(patient()?.birthDate) ?? ''"
+                  />
                 </div>
               </mat-tab>
             </mat-tab-group>
           </div>
         }
-      </div>
     </section>
   }
 </div>

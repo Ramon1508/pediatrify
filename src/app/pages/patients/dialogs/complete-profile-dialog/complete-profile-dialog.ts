@@ -358,6 +358,12 @@ export class CompleteProfileDialog {
     if (this.step > 1) this.step--;
   }
 
+  protected stepHasInvalid(step: number): boolean {
+    if (step === 1) return this.submittedSteps[1] && this.isStep1Invalid();
+    if (step === 2) return this.submittedSteps[2] && this.isStep2Invalid();
+    return false;
+  }
+
   private isStep1Invalid(): boolean {
     const c = this.form.controls;
     const step1Fields = [

@@ -70,6 +70,7 @@ export class ClinicalEntryDialog {
   }
 
   protected noPastDates = (date: Date | null): boolean => {
+    if (this.isEdit) return true;
     return date ? date >= new Date(new Date().toDateString()) : true;
   };
 

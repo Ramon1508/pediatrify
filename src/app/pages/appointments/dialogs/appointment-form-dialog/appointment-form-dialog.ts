@@ -56,6 +56,10 @@ export class AppointmentFormDialog {
     this.allPatients = patients;
   }
 
+  selectPatient(patientId: string) {
+    this.form.patchValue({ patientId });
+  }
+
   setEditData(appointment: Appointment) {
     this.editingAppointment = appointment;
     this.form.setValue({

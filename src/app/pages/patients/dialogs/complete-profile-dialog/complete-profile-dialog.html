@@ -13,7 +13,14 @@
       @else { Esquema de vacunación }
     </span>
 
-    <span>{{ step }}/3</span>
+    <span class="step-indicator">
+      @for (s of [1, 2, 3]; track s) {
+        <span class="step-num" [class.step-error]="stepHasInvalid(s)">
+          {{ s }}
+        </span>
+        @if (s < 3) { <span class="step-sep">—</span> }
+      }
+    </span>
   </p>
 
   @if (step === 1) {

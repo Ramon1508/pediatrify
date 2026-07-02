@@ -1,0 +1,68 @@
+<div class="growth-charts">
+  <div class="charts-header">
+    <div class="charts-tabs">
+      <button class="chart-chip" [class.active]="activeTab === 'weightHeight'" (click)="switchTab('weightHeight')">
+        @if (activeTab === 'weightHeight') { <mat-icon>check</mat-icon> }
+        Peso y talla
+      </button>
+      <button class="chart-chip" [class.active]="activeTab === 'headCircumference'" (click)="switchTab('headCircumference')">
+        @if (activeTab === 'headCircumference') { <mat-icon>check</mat-icon> }
+        Circunferencia
+      </button>
+      <button class="chart-chip" [class.active]="activeTab === 'bmi'" (click)="switchTab('bmi')">
+        @if (activeTab === 'bmi') { <mat-icon>check</mat-icon> }
+        IMC
+      </button>
+    </div>
+    @if (hasData) {
+      <button class="btn-tertiary print-btn" (click)="printChart()">
+        <mat-icon>print</mat-icon> Imprimir
+      </button>
+    }
+  </div>
+
+  <div class="chart-body">
+    @if (activeTab === 'weightHeight') {
+      <div class="cdc-container">
+        <div class="cdc-bg" [innerHTML]="cdcBgSvg"></div>
+        @if (hasData) {
+          <div class="cdc-overlay">
+            <div class="cdc-overlay-length" [innerHTML]="lengthSvg"></div>
+            <div class="cdc-overlay-weight" [innerHTML]="weightSvg"></div>
+          </div>
+        }
+        @if (!hasData) {
+          <div class="empty-overlay">
+            <span class="empty-chart-text">
+              No existen datos suficientes para visualizar la evolución del paciente.
+            </span>
+          </div>
+        }
+      </div>
+    } @else if (activeTab === 'headCircumference') {
+      <div class="simple-chart">
+        @if (hcSvg) {
+          <div [innerHTML]="hcSvg"></div>
+        } @else {
+          <div class="empty-chart">
+            <span class="empty-chart-text">
+              No existen datos suficientes para visualizar la evolución del paciente.
+            </span>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="simple-chart">
+        @if (bmiSvg) {
+          <div [innerHTML]="bmiSvg"></div>
+        } @else {
+          <div class="empty-chart">
+            <span class="empty-chart-text">
+              No existen datos suficientes para visualizar la evolución del paciente.
+            </span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

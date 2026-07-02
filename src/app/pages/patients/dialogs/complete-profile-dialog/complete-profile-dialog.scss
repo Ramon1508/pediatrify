@@ -7,9 +7,39 @@
 .step-indicator {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  margin: 0 0 12px;
+}
+
+.step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9CA3AF;
+  border: 2px solid #9CA3AF;
+  line-height: 1;
+  position: relative;
+
+  &.step-error::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 8px;
+    height: 8px;
+    background: #B3261E;
+    border-radius: 50%;
+  }
+}
+
+.step-sep {
+  color: #9CA3AF;
+  font-size: 12px;
 }
 
 .step-badge {

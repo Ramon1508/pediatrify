@@ -7,7 +7,13 @@
 
 <mat-dialog-content>
   <mat-tab-group>
-    <mat-tab label="Datos generales">
+    <mat-tab>
+      <ng-template mat-tab-label>
+        Datos generales
+        @if (tabHasInvalid(0)) {
+          <span class="tab-error-dot"></span>
+        }
+      </ng-template>
       @if (readOnly) {
         <div class="tab-content">
           <div class="form-row desktop-2col form-gap-40">
@@ -276,7 +282,13 @@
       }
     </mat-tab>
 
-    <mat-tab label="Datos de contacto">
+    <mat-tab>
+      <ng-template mat-tab-label>
+        Datos de contacto
+        @if (tabHasInvalid(1)) {
+          <span class="tab-error-dot"></span>
+        }
+      </ng-template>
       @if (readOnly) {
         <div class="tab-content">
           <div class="view-field">
@@ -359,7 +371,13 @@
       }
     </mat-tab>
 
-    <mat-tab label="Esquema de vacunaci&oacute;n">
+    <mat-tab>
+      <ng-template mat-tab-label>
+        Esquema de vacunaci&oacute;n
+        @if (tabHasInvalid(2)) {
+          <span class="tab-error-dot"></span>
+        }
+      </ng-template>
       <div class="tab-content vac-content">
         <h3 class="vac-title">Esquema de vacunaci&oacute;n</h3>
         <div class="vac-table-wrap">

@@ -120,6 +120,17 @@ export class EditPatientDialog {
 
   protected SexoLabel = SexoLabel;
   protected bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+  private tabControls = [
+    ['name', 'lastName', 'birthDate', 'bloodType', 'birthWeight', 'birthHeight', 'headCircumference', 'sex', 'birthMethod', 'hasAllergies', 'allergies', 'hasBeenHospitalized', 'hospitalizationReason', 'hasDisease', 'diseaseDescription', 'takesMedication', 'medicationDescription'],
+    ['email', 'secondaryEmail', 'phone', 'secondaryPhone', 'fatherName', 'motherName', 'referredBy'],
+    [],
+  ];
+
+  protected tabHasInvalid(index: number): boolean {
+    if (!this.saved) return false;
+    return this.tabControls[index].some((name) => this.form.get(name)?.invalid ?? false);
+  }
   protected vaccines = VACCINES;
   protected ages = AGES;
   protected submitting = false;

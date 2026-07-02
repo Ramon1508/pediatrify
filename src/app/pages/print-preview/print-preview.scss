@@ -26,6 +26,7 @@ app-print-preview {
 }
 
 .print-page {
+  position: relative;
   width: var(--paper-width);
   height: var(--paper-height);
   padding: var(--margin-top) var(--margin-right) var(--margin-bottom) var(--margin-left);
@@ -150,6 +151,17 @@ app-print-preview {
   padding-top: 0.28cm;
 }
 
+.print-page-num {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 10px;
+  color: #999;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .print-section-label {
   margin: 0 0 0.16cm;
   color: #000;
@@ -183,7 +195,23 @@ app-print-preview {
 
   ul,
   ol {
-    padding-left: 0.6cm;
+    padding-left: 1.2em;
+  }
+
+  ul {
+    list-style: disc;
+  }
+
+  ol {
+    list-style: decimal;
+  }
+
+  li {
+    list-style: inherit;
+  }
+
+  li::before {
+    display: none !important;
   }
 
   img,

@@ -251,14 +251,27 @@ export class PrintPreview implements OnInit {
 
         if (!(node instanceof HTMLElement)) continue;
         if (node.tagName === 'UL' || node.tagName === 'OL') {
-          const tag = node.tagName.toLowerCase();
           const items = Array.from(node.children).filter((child) => child.tagName === 'LI');
           if (!items.length) {
-            units.push(`<div class="print-rich-content ql-editor">${node.outerHTML}</div>`);
+            const clean = node.cloneNode(true) as HTMLElement;
+            clean.querySelectorAll('.ql-ui').forEach((el) => el.remove());
+            Array.from(clean.querySelectorAll('[data-list]')).forEach((el) => el.removeAttribute('data-list'));
+            units.push(`<div class="print-rich-content ql-editor">${clean.outerHTML}</div>`);
             continue;
           }
+          let orderedIndex = 0;
           for (const item of items) {
-            units.push(`<div class="print-rich-content ql-editor"><${tag}>${item.outerHTML}</${tag}></div>`);
+            const isOrdered = item.getAttribute('data-list') === 'ordered';
+            const cleanLi = item.cloneNode(true) as HTMLElement;
+            cleanLi.querySelectorAll('.ql-ui').forEach((el) => el.remove());
+            cleanLi.removeAttribute('data-list');
+            if (isOrdered) {
+              orderedIndex++;
+              const start = orderedIndex > 1 ? ` start="${orderedIndex}"` : '';
+              units.push(`<div class="print-rich-content ql-editor"><ol${start}>${cleanLi.outerHTML}</ol></div>`);
+            } else {
+              units.push(`<div class="print-rich-content ql-editor"><ul>${cleanLi.outerHTML}</ul></div>`);
+            }
           }
           continue;
         }
@@ -377,6 +390,10 @@ export class PrintPreview implements OnInit {
       .map((el) => el.innerHTML)
       .join('\n');
 
+    const styleLinks = Array.from(document.head.querySelectorAll('link[rel="stylesheet"]'))
+      .map((link) => `<link rel="stylesheet" href="${(link as HTMLLinkElement).href}">`)
+      .join('\n');
+
     const clone = previewEl.cloneNode(true) as HTMLElement;
     const html = clone.outerHTML;
 
@@ -384,6 +401,7 @@ export class PrintPreview implements OnInit {
 <html>
 <head>
 <meta charset="utf-8">
+${styleLinks}
 <style>
 ${allStyles}
 </style>
@@ -402,20 +420,28 @@ ${allStyles}
 @media print {
   app-print-preview { padding: 0; background: #fff; min-height: auto; }
   .print-preview-pages { display: block; }
-  .screen-page-wrapper {
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    position: static !important;
-    page-break-after: always;
-  }
-  .screen-page-wrapper:last-of-type {
-    page-break-after: auto;
-  }
-  .screen-page-wrapper .print-page {
-    position: static !important;
+   .screen-page-wrapper {
+     display: block !important;
+     width: 100% !important;
+     height: auto !important;
+     margin: 0 !important;
+     padding: 0 !important;
+     position: relative !important;
+     page-break-after: always;
+   }
+   .screen-page-wrapper:last-of-type {
+     page-break-after: auto;
+   }
+   .screen-page-wrapper .print-page-num {
+     position: absolute;
+     top: 10px;
+     right: 10px;
+     font-family: 'Roboto', sans-serif;
+     font-size: 10px;
+     color: #999;
+   }
+   .screen-page-wrapper .print-page {
+     position: static !important;
     transform: none !important;
     display: block !important;
     width: 100% !important;

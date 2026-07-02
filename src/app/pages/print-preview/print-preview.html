@@ -70,6 +70,9 @@
   <div class="print-preview-pages">
     @for (page of pages(); track $index) {
       <div class="screen-page-wrapper" [style]="screenPageWrapperStyle()">
+        @if (pages().length > 1) {
+          <div class="print-page-num">{{ $index + 1 }}/{{ pages().length }}</div>
+        }
         <article class="print-page" [style]="pageStyle()">
           <ng-container [ngTemplateOutlet]="printShell"></ng-container>
           <main class="print-body" [innerHTML]="page.html"></main>
