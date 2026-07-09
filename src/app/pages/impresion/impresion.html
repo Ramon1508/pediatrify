@@ -227,7 +227,7 @@
         <div class="preview-content" [style]="previewContentStyle()">
           <div class="preview-top-section">
             @if (showLogo()) {
-              <div class="preview-logo" [style.width.px]="previewLogoWidthPx()">
+              <div class="preview-logo" [class.preview-logo-right]="settings().logoPosition === 'top-right'" [style.width.px]="previewLogoWidthPx()">
                 <img [src]="logoUrl()" alt="Logo" />
               </div>
             }

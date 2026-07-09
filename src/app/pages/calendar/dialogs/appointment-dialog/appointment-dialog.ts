@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
@@ -16,7 +17,6 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { Appointment, Patient, TimeSegment } from '../../../../core/models/user';
 import { NewPatientDialog } from '../new-patient-dialog/new-patient-dialog';
-import { ConfirmDialog, ConfirmDialogData } from '../../../../shared/components/confirm-dialog/confirm-dialog';
 import { MatDialog } from '@angular/material/dialog';
 
 @Component({
@@ -36,6 +36,7 @@ import { MatDialog } from '@angular/material/dialog';
     MatAutocompleteModule,
     MatDatepickerModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
   ],
 })
 export class AppointmentDialog {
@@ -53,11 +54,16 @@ export class AppointmentDialog {
   protected selectedDoctorId = '';
   protected editingAppointment: Appointment | null = null;
   protected timeSegments: TimeSegment[] = [];
+  protected consultationDuration = 30;
+  protected timeSlots: string[] = [];
   protected error = '';
   protected submitted = false;
   protected saving = false;
   protected patientSearchControl = new FormControl('');
   protected filteredPatients: Patient[] = [];
+  protected overlapWarning = '';
+  private existingAppointments: Appointment[] = [];
+  private overlapSub: any = null;
 
   protected form = this.fb.group({
     patientId: ['', Validators.required],
@@ -86,12 +92,17 @@ export class AppointmentDialog {
     selectedDoctorId: string;
     editingAppointment?: Appointment | null;
     timeSegments?: TimeSegment[];
+    consultationDuration?: number;
+    existingAppointments?: Appointment[];
   }) {
     this.allPatients = data.allPatients;
     this.filteredPatients = data.allPatients;
     this.selectedDoctorId = data.selectedDoctorId;
     this.editingAppointment = data.editingAppointment ?? null;
     this.timeSegments = data.timeSegments ?? [];
+    this.consultationDuration = data.consultationDuration ?? 30;
+    this.existingAppointments = data.existingAppointments ?? [];
+    this.computeTimeSlots();
 
     if (data.editingAppointment) {
       const apt = data.editingAppointment;
@@ -107,6 +118,31 @@ export class AppointmentDialog {
     }
 
     this.patientSearchControl.valueChanges.subscribe((val) => this.filterPatients(val || ''));
+    this.setupOverlapDetection();
+  }
+
+  private setupOverlapDetection() {
+    this.overlapSub?.unsubscribe();
+    this.overlapSub = this.form.valueChanges.subscribe(() => this.checkOverlap());
+  }
+
+  private checkOverlap() {
+    const date = this.form.get('date')?.value;
+    const time = this.form.get('time')?.value;
+    if (!date || !time) {
+      this.overlapWarning = '';
+      return;
+    }
+    const dateStr = this.toDateStr(date);
+    const editingId = this.editingAppointment?.id;
+    console.log(this.existingAppointments);
+    const conflicted = this.existingAppointments.some(
+      (a) => a.date === dateStr && a.time === time && a.id !== editingId
+    );
+    this.overlapWarning = conflicted
+      ? 'Ya existe una cita agendada en esta fecha y hora. La nueva cita se sobrepondrá a la existente.'
+      : '';
+    this.cdr.markForCheck();
   }
 
   setPrefill(date: string, time: string) {
@@ -114,53 +150,37 @@ export class AppointmentDialog {
     this.form.markAsDirty();
   }
 
+  private computeTimeSlots() {
+    if (!this.timeSegments.length) {
+      this.timeSlots = [];
+      return;
+    }
+    const duration = this.consultationDuration;
+    const slots: string[] = [];
+    for (const seg of this.timeSegments) {
+      const [sh, sm] = seg.startTime.split(':').map(Number);
+      let [eh, em] = seg.endTime.split(':').map(Number);
+      if (eh === 0 && em === 0) eh = 24;
+      let startMinutes = sh * 60 + sm;
+      const endMinutes = eh * 60 + em;
+      while (startMinutes + duration <= endMinutes) {
+        const hour = Math.floor(startMinutes / 60);
+        const minute = startMinutes % 60;
+        slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+        startMinutes += duration;
+      }
+    }
+    this.timeSlots = slots;
+  }
+
   close() {
     this.dialogRef.close();
   }
 
-  private isTimeWithinSegments(time: string): boolean {
-    if (!this.timeSegments.length) return true;
-    const [h, m] = time.split(':').map(Number);
-    const totalMinutes = h * 60 + m;
-    return this.timeSegments.some((seg) => {
-      const [sh, sm] = seg.startTime.split(':').map(Number);
-      let [eh, em] = seg.endTime.split(':').map(Number);
-      if (eh === 0 && em === 0) eh = 24;
-      const startMinutes = sh * 60 + sm;
-      const endMinutes = eh * 60 + em;
-      return totalMinutes >= startMinutes && totalMinutes < endMinutes;
-    });
-  }
-
-  protected onTimeBlur() {
-    const time = this.form.value.time;
-    if (time && !this.isTimeWithinSegments(time)) {
-      this.alert.warning({ message: 'La hora seleccionada está fuera del horario laboral configurado', duration: 5000 });
-    }
-  }
-
   async save() {
     this.submitted = true;
+    this.form.markAllAsTouched();
     if (this.form.invalid) return;
-
-    const time = this.form.value.time;
-    const outsideHours = !!time && !this.isTimeWithinSegments(time);
-
-    const data: ConfirmDialogData = {
-      title: outsideHours ? 'Fuera del horario laboral' : `${this.editingAppointment ? 'Reagendar' : 'Agendar'} cita`,
-      message: outsideHours
-        ? 'La hora seleccionada está fuera del horario laboral configurado. ¿Guardar de todas formas?'
-        : `¿Confirmas ${this.editingAppointment ? 'la modificación de' : 'agendar'} esta cita?`,
-      confirmLabel: 'Confirmar',
-      cancelLabel: 'Cancelar',
-      confirmButtonClass: outsideHours ? 'btn-danger dialog-btn' : 'btn-primary dialog-btn',
-    };
-    const dialogRef = this.dialog.open(ConfirmDialog, { disableClose: true, data });
-    const confirmed = await dialogRef.afterClosed().toPromise();
-    if (!confirmed) {
-      this.submitted = false;
-      return;
-    }
 
     this.saving = true;
     this.error = '';
@@ -183,7 +203,7 @@ export class AppointmentDialog {
           patientMotherName: patient.motherName ?? '',
           patientBirthDate: patient.birthDate,
           patientPhone: patient.phone ?? '',
-          doctorId: targetDoctor.uid,
+          doctorId: targetDoctor.firebaseUid ?? targetDoctor.uid,
           doctorName: targetDoctor.name,
           date: date!,
           time: time!,
@@ -205,7 +225,7 @@ export class AppointmentDialog {
         patientMotherName: patient.motherName ?? '',
         patientBirthDate: patient.birthDate,
         patientPhone: patient.phone ?? '',
-        doctorId: targetDoctor.uid,
+        doctorId: targetDoctor.firebaseUid ?? targetDoctor.uid,
         doctorName: targetDoctor.name,
         date: date!,
         time: time!,

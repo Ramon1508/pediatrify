@@ -1,34 +1,31 @@
 <div class="dialog-title-container">
-    <h2 class="dialog-title">{{ editingPatient ? 'Editar paciente' : 'Añadir nuevo paciente' }}</h2>
-    <button mat-icon-button class="btn-close-dialog" [mat-dialog-close]="false" aria-label="Cerrar">
-      <mat-icon>close</mat-icon>
-    </button>
-  </div>
+  <h2 class="dialog-title">{{ editingPatient ? 'Editar paciente' : 'Añadir nuevo paciente' }}</h2>
+  <button mat-icon-button class="btn-close-dialog" [mat-dialog-close]="false" aria-label="Cerrar">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
 
-  <mat-dialog-content>
-  <span class="panel-subtitle">Mediante los correos electrónicos proporcionados, se crearán el o los usuarios de consulta de los padres o tutores.</span>
+<mat-dialog-content>
+  <span class="panel-subtitle"
+    >Mediante los correos electrónicos proporcionados, se crearán el o los usuarios de consulta de
+    los padres o tutores.</span
+  >
 
   @if (alertMsg) {
     <div class="new-patient-alert">
       {{ alertMsg }}
-      <button type="button" class="alert-continue-btn" (click)="continueWithExisting()">Continuar</button>
+      <button type="button" class="alert-continue-btn" (click)="continueWithExisting()">
+        Continuar
+      </button>
     </div>
   }
 
   <form [formGroup]="form">
     <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Nombre(s)</mat-label>
-      <input matInput formControlName="name" />
-      @if (form.get('name')?.invalid && (form.get('name')?.touched || submitted)) {
-        <mat-error>Ingresa el nombre del paciente</mat-error>
-      }
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Apellidos</mat-label>
-      <input matInput formControlName="lastName" />
-      @if (form.get('lastName')?.invalid && (form.get('lastName')?.touched || submitted)) {
-        <mat-error>Ingresa los apellidos del paciente</mat-error>
+      <mat-label>Nombre completo</mat-label>
+      <input matInput formControlName="fullName" />
+      @if (form.get('fullName')?.invalid && (form.get('fullName')?.touched || submitted)) {
+        <mat-error>Ingresa el nombre completo del paciente</mat-error>
       }
     </mat-form-field>
 
@@ -40,14 +37,6 @@
       <mat-hint>DD/MM/AAAA</mat-hint>
       @if (form.get('birthDate')?.invalid && (form.get('birthDate')?.touched || submitted)) {
         <mat-error>Selecciona la fecha de nacimiento</mat-error>
-      }
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Teléfono</mat-label>
-      <input matInput type="tel" formControlName="phone" />
-      @if (form.get('phone')?.invalid && (form.get('phone')?.touched || submitted)) {
-        <mat-error>Ingresa el teléfono del paciente</mat-error>
       }
     </mat-form-field>
 
@@ -79,12 +68,27 @@
         <mat-error>Ingresa el nombre de la madre</mat-error>
       }
     </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Teléfono</mat-label>
+      <input matInput type="tel" formControlName="phone" />
+      @if (form.get('phone')?.invalid && (form.get('phone')?.touched || submitted)) {
+        <mat-error>Ingresa el teléfono del paciente</mat-error>
+      }
+    </mat-form-field>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-stroked-button class="btn-secondary dialog-btn" [mat-dialog-close]="false">Cancelar</button>
-  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+  <button mat-stroked-button class="btn-secondary dialog-btn" [mat-dialog-close]="false">
+    Cancelar
+  </button>
+  <button
+    mat-unelevated-button
+    class="btn-primary dialog-btn"
+    (click)="save()"
+    [disabled]="saving"
+  >
     @if (saving) {
       <mat-spinner diameter="18" />
     } @else {

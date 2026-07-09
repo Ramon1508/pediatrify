@@ -109,19 +109,18 @@ export class CompleteProfileDialog {
   protected vaccines = VACCINES;
   protected ages = AGES;
   protected hasDoseAt = hasDoseAt;
-  protected step = 1;
   protected submitting = false;
-  protected submittedSteps = { 1: false, 2: false };
   protected patient: Patient | null = null;
   protected vaccinationMap = new Map<string, VaccineDose>();
+  protected step = 1;
+  protected submittedSteps: [boolean, boolean, boolean] = [false, false, false];
 
   protected referredBySearchControl = new FormControl('');
   protected filteredPatients: Patient[] = [];
   private allPatients: Patient[] = [];
 
   protected form = this.fb.group({
-    name: ['', Validators.required],
-    lastName: ['', Validators.required],
+    fullName: ['', Validators.required],
     birthDate: ['', Validators.required],
     bloodType: ['', Validators.required],
     birthWeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
@@ -146,13 +145,19 @@ export class CompleteProfileDialog {
     referredBy: [''],
   });
 
+  private splitFullName(fullName: string): { name: string; lastName: string } {
+    const trimmed = fullName.trim();
+    const lastSpace = trimmed.lastIndexOf(' ');
+    if (lastSpace === -1) return { name: trimmed, lastName: '' };
+    return { name: trimmed.substring(0, lastSpace), lastName: trimmed.substring(lastSpace + 1) };
+  }
+
   setPatient(patient: Patient): void {
     this.patient = patient;
     const p = patient;
     const dateStr = toDateString(p.birthDate);
     this.form.patchValue({
-      name: p.name ?? '',
-      lastName: p.lastName ?? '',
+      fullName: `${p.name} ${p.lastName}`.trim(),
       birthDate: dateStr,
       bloodType: p.bloodType ?? '',
       birthWeight: p.birthWeight ?? null,
@@ -239,7 +244,7 @@ export class CompleteProfileDialog {
     for (const vac of VACCINES) {
       const validAges = VACCINE_AGES[vac] ?? [];
       for (const age of validAges) {
-        const key = `${vac}|${age}`;
+        const key = `${vac}|${ age}`;
         const dose: VaccineDose = record?.[vac]?.[age] ?? { applied: false };
         this.vaccinationMap.set(key, dose);
       }
@@ -248,7 +253,7 @@ export class CompleteProfileDialog {
 
   protected isVaccineApplied(vaccine: string, age: string): boolean {
     if (!hasDoseAt(vaccine, age)) return false;
-    return this.vaccinationMap.get(`${vaccine}|${age}`)?.applied ?? false;
+    return this.vaccinationMap.get(`${vaccine}|${ age}`)?.applied ?? false;
   }
 
   protected toggleDose(vaccine: string, age: string): void {
@@ -302,6 +307,39 @@ export class CompleteProfileDialog {
     c?.updateValueAndValidity();
   }
 
+  protected stepFields: Record<number, string[]> = {
+    1: ['fullName', 'birthDate', 'bloodType', 'birthWeight', 'birthHeight', 'sex', 'birthMethod', 'hasAllergies', 'allergies', 'hasBeenHospitalized', 'hospitalizationReason', 'hasDisease', 'diseaseDescription', 'takesMedication', 'medicationDescription'],
+    2: ['email', 'phone', 'fatherName', 'motherName'],
+    3: [],
+  };
+
+  protected nextStep(): void {
+    const idx = this.step === 1 ? 0 : 1;
+    const fields = this.stepFields[this.step];
+    this.submittedSteps[idx] = true;
+    for (const f of fields) {
+      const ctrl = this.form.get(f);
+      if (!ctrl?.valid) {
+        ctrl?.markAsTouched();
+      }
+    }
+    this.form.markAllAsTouched();
+    const invalid = fields.some((f) => this.form.get(f)?.invalid);
+    if (invalid) {
+      this.cdr.markForCheck();
+      return;
+    }
+    this.step++;
+    window.scrollTo(0, 0);
+    this.cdr.markForCheck();
+  }
+
+  protected prevStep(): void {
+    this.step--;
+    window.scrollTo(0, 0);
+    this.cdr.markForCheck();
+  }
+
   private buildVaccinationRecord(): Record<string, Record<string, VaccineDose>> {
     const record: Record<string, Record<string, VaccineDose>> = {};
     for (const vac of VACCINES) {
@@ -317,73 +355,8 @@ export class CompleteProfileDialog {
     return record;
   }
 
-  protected nextStep(): void {
-    this.submittedSteps[this.step as 1 | 2] = true;
-    if (this.step === 1) {
-      this.markStep1Touched();
-      if (this.isStep1Invalid()) { this.cdr.markForCheck(); return; }
-    }
-    if (this.step === 2) {
-      this.markStep2Touched();
-      if (this.isStep2Invalid()) { this.cdr.markForCheck(); return; }
-    }
-    this.step++;
-    this.cdr.markForCheck();
-  }
-
-  private markStep1Touched(): void {
-    const c = this.form.controls;
-    c.name.markAsTouched();
-    c.birthDate.markAsTouched();
-    c.bloodType.markAsTouched();
-    c.birthWeight.markAsTouched();
-    c.birthHeight.markAsTouched();
-    c.sex.markAsTouched();
-    c.birthMethod.markAsTouched();
-    c.hasAllergies.markAsTouched();
-    c.hasBeenHospitalized.markAsTouched();
-    c.hasDisease.markAsTouched();
-    c.takesMedication.markAsTouched();
-  }
-
-  private markStep2Touched(): void {
-    const c = this.form.controls;
-    c.email.markAsTouched();
-    c.phone.markAsTouched();
-    c.fatherName.markAsTouched();
-    c.motherName.markAsTouched();
-  }
-
-  protected prevStep(): void {
-    if (this.step > 1) this.step--;
-  }
-
-  protected stepHasInvalid(step: number): boolean {
-    if (step === 1) return this.submittedSteps[1] && this.isStep1Invalid();
-    if (step === 2) return this.submittedSteps[2] && this.isStep2Invalid();
-    return false;
-  }
-
-  private isStep1Invalid(): boolean {
-    const c = this.form.controls;
-    const step1Fields = [
-      c.name, c.birthDate, c.bloodType, c.birthWeight, c.birthHeight,
-      c.sex, c.birthMethod, c.hasAllergies, c.hasBeenHospitalized,
-      c.hasDisease, c.takesMedication,
-    ];
-    if (c.hasAllergies.value && !c.allergies.value) return true;
-    if (c.hasBeenHospitalized.value && !c.hospitalizationReason.value) return true;
-    if (c.hasDisease.value && !c.diseaseDescription.value) return true;
-    if (c.takesMedication.value && !c.medicationDescription.value) return true;
-    return step1Fields.some((f) => f.invalid);
-  }
-
-  private isStep2Invalid(): boolean {
-    const c = this.form.controls;
-    return !!(!c.email.value || c.email.invalid || !c.phone.value || !c.fatherName.value || !c.motherName.value);
-  }
-
   async save(): Promise<void> {
+    this.submittedSteps[2] = true;
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
     const p = this.patient;
@@ -391,11 +364,12 @@ export class CompleteProfileDialog {
 
     this.submitting = true;
     const v = this.form.value;
+    const { name, lastName } = this.splitFullName(v.fullName!);
 
     try {
       await this.patientRepo.updatePatient(p.id, {
-        name: v.name ?? '',
-        lastName: v.lastName ?? '',
+        name,
+        lastName,
         birthDate: typeof v.birthDate === 'string' ? v.birthDate : p.birthDate,
         bloodType: v.bloodType ?? '',
         birthWeight: v.birthWeight ?? 0,

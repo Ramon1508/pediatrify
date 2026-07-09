@@ -9,7 +9,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AppointmentRepository } from '../../../../core/repositories/appointment.repository';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
-import { Appointment, Patient } from '../../../../core/models/user';
+import { UserRepository } from '../../../../core/repositories/user.repository';
+import { Appointment, Patient, TimeSegment } from '../../../../core/models/user';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 
@@ -34,6 +35,7 @@ export class AppointmentFormDialog {
   private fb = inject(FormBuilder);
   private appointmentRepo = inject(AppointmentRepository);
   private patientRepo = inject(PatientRepository);
+  private userRepo = inject(UserRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
   private cdr = inject(ChangeDetectorRef);
@@ -44,6 +46,7 @@ export class AppointmentFormDialog {
   protected saving = false;
   protected submitted = false;
   protected error = '';
+  protected timeSlots: string[] = [];
 
   protected form = this.fb.group({
     patientId: ['', Validators.required],
@@ -51,6 +54,34 @@ export class AppointmentFormDialog {
     time: ['', Validators.required],
     notes: [''],
   });
+
+  constructor() {
+    this.loadDoctorSettings();
+  }
+
+  private async loadDoctorSettings() {
+    const doctor = this.authService.currentDoctor;
+    if (!doctor) return;
+    const user = await this.userRepo.getUser(doctor.uid);
+    if (!user) return;
+    const segments = user.timeSegments?.length ? user.timeSegments : [{ startTime: '06:00', endTime: '00:00' }];
+    const duration = user.consultationDuration ?? 30;
+    const slots: string[] = [];
+    for (const seg of segments) {
+      const [sh, sm] = seg.startTime.split(':').map(Number);
+      let [eh, em] = seg.endTime.split(':').map(Number);
+      if (eh === 0 && em === 0) eh = 24;
+      let startMinutes = sh * 60 + sm;
+      const endMinutes = eh * 60 + em;
+      while (startMinutes + duration <= endMinutes) {
+        const hour = Math.floor(startMinutes / 60);
+        const minute = startMinutes % 60;
+        slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+        startMinutes += duration;
+      }
+    }
+    this.timeSlots = slots;
+  }
 
   setPatients(patients: Patient[]) {
     this.allPatients = patients;
@@ -76,6 +107,7 @@ export class AppointmentFormDialog {
 
   async save() {
     this.submitted = true;
+    this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
     this.saving = true;
@@ -95,7 +127,7 @@ export class AppointmentFormDialog {
           patientMotherName: patient.motherName ?? '',
           patientBirthDate: patient.birthDate,
           patientPhone: patient.phone ?? '',
-          doctorId: doctor.uid,
+          doctorId: doctor.firebaseUid ?? doctor.uid,
           doctorName: doctor.name,
           date: date!,
           time: time!,
@@ -117,7 +149,7 @@ export class AppointmentFormDialog {
         patientMotherName: patient.motherName ?? '',
         patientBirthDate: patient.birthDate,
         patientPhone: patient.phone ?? '',
-        doctorId: doctor.uid,
+        doctorId: doctor.firebaseUid ?? doctor.uid,
         doctorName: doctor.name,
         date: date!,
         time: time!,

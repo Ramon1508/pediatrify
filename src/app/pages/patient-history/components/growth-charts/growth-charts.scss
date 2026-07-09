@@ -71,17 +71,15 @@ $pink: #E91E63;
   border: 1px solid $pink;
   border-radius: 4px;
   overflow: hidden;
-
-  svg {
-    display: block;
-    width: 100% !important;
-    height: auto !important;
-    max-width: 100%;
-  }
+  line-height: 0;
+  box-sizing: border-box;
 }
 
-.cdc-bg {
-  line-height: 0;
+.cdc-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
 }
 
 .cdc-overlay {

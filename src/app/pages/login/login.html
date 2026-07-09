@@ -41,7 +41,7 @@
         <button mat-unelevated-button class="btn-secondary" type="button" (click)="goToResetPassword()">
           Olvidé mi contraseña
         </button>
-        <button mat-unelevated-button class="btn-primary login-submit-btn" type="submit" [disabled]="loginForm.invalid || loginForm.pristine || loading()">
+        <button mat-unelevated-button class="btn-primary login-submit-btn" type="submit">
           @if (loading()) {
             <mat-spinner diameter="20" />
           } @else {

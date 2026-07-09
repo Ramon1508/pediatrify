@@ -12,25 +12,17 @@
       @else if (step === 2) { Datos de contacto }
       @else { Esquema de vacunación }
     </span>
-
-    <span class="step-indicator">
-      @for (s of [1, 2, 3]; track s) {
-        <span class="step-num" [class.step-error]="stepHasInvalid(s)">
-          {{ s }}
-        </span>
-        @if (s < 3) { <span class="step-sep">—</span> }
-      }
-    </span>
+    <span class="step-indicator">{{ step }}/3</span>
   </p>
 
   @if (step === 1) {
-    <form [formGroup]="form" class="tab-content">
+    <form [formGroup]="form">
       <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
-          <mat-label>Nombre del paciente</mat-label>
-          <input matInput formControlName="name" />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <mat-error>Ingresa el nombre del paciente</mat-error>
+          <mat-label>Nombre completo</mat-label>
+          <input matInput formControlName="fullName" />
+          @if (form.get('fullName')?.invalid && (form.get('fullName')?.touched || submittedSteps[0])) {
+            <mat-error>Ingresa el nombre completo del paciente</mat-error>
           }
         </mat-form-field>
 
@@ -39,7 +31,7 @@
           <input matInput [matDatepicker]="dp" formControlName="birthDate" placeholder="DD/MM/AAAA" (click)="dp.open()" />
           <mat-datepicker #dp></mat-datepicker>
           <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
-          @if (form.get('birthDate')?.invalid && (form.get('birthDate')?.touched)) {
+          @if (form.get('birthDate')?.invalid && (form.get('birthDate')?.touched || submittedSteps[0])) {
             <mat-error>Selecciona la fecha de nacimiento</mat-error>
           }
         </mat-form-field>
@@ -53,35 +45,35 @@
               <mat-option [value]="bt">{{ bt }}</mat-option>
             }
           </mat-select>
-          @if (form.get('bloodType')?.invalid && (form.get('bloodType')?.touched)) {
+          @if (form.get('bloodType')?.invalid && (form.get('bloodType')?.touched || submittedSteps[0])) {
             <mat-error>Selecciona el grupo sangu&iacute;neo</mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Peso al nacer</mat-label>
-            <input matInput type="text" inputmode="decimal" formControlName="birthWeight" />
-            <mat-hint>En kilogramos</mat-hint>
-            @if (form.get('birthWeight')?.invalid && (form.get('birthWeight')?.touched)) {
-              <mat-error>Ingresa un peso v&aacute;lido (n&uacute;mero positivo)</mat-error>
-            }
+          <mat-label>Peso al nacer</mat-label>
+          <input matInput type="text" inputmode="decimal" formControlName="birthWeight" />
+          <mat-hint>En kilogramos</mat-hint>
+          @if (form.get('birthWeight')?.invalid && (form.get('birthWeight')?.touched || submittedSteps[0])) {
+            <mat-error>Ingresa un peso v&aacute;lido (n&uacute;mero positivo)</mat-error>
+          }
         </mat-form-field>
       </div>
 
       <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Talla al nacer</mat-label>
-            <input matInput type="text" inputmode="decimal" formControlName="birthHeight" />
-            <mat-hint>En cent&iacute;metros</mat-hint>
-            @if (form.get('birthHeight')?.invalid && (form.get('birthHeight')?.touched)) {
-              <mat-error>Ingresa una talla v&aacute;lida (n&uacute;mero positivo)</mat-error>
-            }
+          <mat-label>Talla al nacer</mat-label>
+          <input matInput type="text" inputmode="decimal" formControlName="birthHeight" />
+          <mat-hint>En cent&iacute;metros</mat-hint>
+          @if (form.get('birthHeight')?.invalid && (form.get('birthHeight')?.touched || submittedSteps[0])) {
+            <mat-error>Ingresa una talla v&aacute;lida (n&uacute;mero positivo)</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Per&iacute;metro cef&aacute;lico al nacer (opcional)</mat-label>
-            <input matInput type="text" inputmode="decimal" formControlName="headCircumference" />
-            <mat-hint>En cent&iacute;metros</mat-hint>
+          <mat-label>Per&iacute;metro cef&aacute;lico al nacer (opcional)</mat-label>
+          <input matInput type="text" inputmode="decimal" formControlName="headCircumference" />
+          <mat-hint>En cent&iacute;metros</mat-hint>
         </mat-form-field>
       </div>
 
@@ -92,7 +84,7 @@
             <mat-radio-button [value]="1">Masculino</mat-radio-button>
             <mat-radio-button [value]="2">Femenino</mat-radio-button>
           </mat-radio-group>
-          @if (form.get('sex')?.invalid && submittedSteps[1]) {
+          @if (form.get('sex')?.invalid && submittedSteps[0]) {
             <span class="radio-error">Selecciona el sexo del paciente</span>
           }
         </div>
@@ -103,7 +95,7 @@
             <mat-radio-button value="vaginal">Parto</mat-radio-button>
             <mat-radio-button value="cesarean">Ces&aacute;rea</mat-radio-button>
           </mat-radio-group>
-          @if (form.get('birthMethod')?.invalid && submittedSteps[1]) {
+          @if (form.get('birthMethod')?.invalid && submittedSteps[0]) {
             <span class="radio-error">Selecciona el m&eacute;todo de nacimiento</span>
           }
         </div>
@@ -115,7 +107,7 @@
           <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
           <mat-radio-button [value]="false">No</mat-radio-button>
         </mat-radio-group>
-        @if (form.get('hasAllergies')?.invalid && submittedSteps[1]) {
+        @if (form.get('hasAllergies')?.invalid && submittedSteps[0]) {
           <span class="radio-error">Selecciona si el paciente tiene alergias</span>
         }
       </div>
@@ -124,8 +116,8 @@
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Alergias del paciente</mat-label>
           <textarea matInput formControlName="allergies" rows="3"></textarea>
-          <mat-hint>Penicilina, Polen, Lactosa</mat-hint>
-          @if (form.get('allergies')?.invalid && submittedSteps[1]) {
+          <mat-hint>Ej. Penicilina, Polen, Lactosa</mat-hint>
+          @if (form.get('allergies')?.hasError('required') && (form.get('allergies')?.touched || submittedSteps[0])) {
             <mat-error>Describe las alergias del paciente</mat-error>
           }
         </mat-form-field>
@@ -137,7 +129,7 @@
           <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
           <mat-radio-button [value]="false">No</mat-radio-button>
         </mat-radio-group>
-        @if (form.get('hasBeenHospitalized')?.invalid && submittedSteps[1]) {
+        @if (form.get('hasBeenHospitalized')?.invalid && submittedSteps[0]) {
           <span class="radio-error">Selecciona si el paciente ha sido hospitalizado</span>
         }
       </div>
@@ -146,7 +138,7 @@
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Motivo de hospitalizaci&oacute;n</mat-label>
           <textarea matInput formControlName="hospitalizationReason" rows="3"></textarea>
-          @if (form.get('hospitalizationReason')?.invalid && submittedSteps[1]) {
+          @if (form.get('hospitalizationReason')?.hasError('required') && (form.get('hospitalizationReason')?.touched || submittedSteps[0])) {
             <mat-error>Describe el motivo de hospitalizaci&oacute;n</mat-error>
           }
         </mat-form-field>
@@ -158,7 +150,7 @@
           <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
           <mat-radio-button [value]="false">No</mat-radio-button>
         </mat-radio-group>
-        @if (form.get('hasDisease')?.invalid && submittedSteps[1]) {
+        @if (form.get('hasDisease')?.invalid && submittedSteps[0]) {
           <span class="radio-error">Selecciona si el paciente tiene alguna enfermedad</span>
         }
       </div>
@@ -167,7 +159,7 @@
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Enfermedad que padece el paciente</mat-label>
           <textarea matInput formControlName="diseaseDescription" rows="3"></textarea>
-          @if (form.get('diseaseDescription')?.invalid && submittedSteps[1]) {
+          @if (form.get('diseaseDescription')?.hasError('required') && (form.get('diseaseDescription')?.touched || submittedSteps[0])) {
             <mat-error>Describe la enfermedad del paciente</mat-error>
           }
         </mat-form-field>
@@ -179,7 +171,7 @@
           <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
           <mat-radio-button [value]="false">No</mat-radio-button>
         </mat-radio-group>
-        @if (form.get('takesMedication')?.invalid && submittedSteps[1]) {
+        @if (form.get('takesMedication')?.invalid && submittedSteps[0]) {
           <span class="radio-error">Selecciona si el paciente toma medicamentos</span>
         }
       </div>
@@ -188,8 +180,8 @@
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Medicamentos que toma el paciente</mat-label>
           <textarea matInput formControlName="medicationDescription" rows="3"></textarea>
-          @if (form.get('medicationDescription')?.invalid && submittedSteps[1]) {
-            <mat-error>Describe los medicamentos del paciente</mat-error>
+          @if (form.get('medicationDescription')?.hasError('required') && (form.get('medicationDescription')?.touched || submittedSteps[0])) {
+            <mat-error>Describe los medicamentos que toma el paciente</mat-error>
           }
         </mat-form-field>
       }
@@ -197,17 +189,17 @@
   }
 
   @if (step === 2) {
-    <form [formGroup]="form" class="tab-content">
+    <form [formGroup]="form">
       <p class="info-message">Mediante los correos electr&oacute;nicos proporcionados, se crear&aacute;n el o los usuarios de consulta de los padres o tutores.</p>
 
       <div class="form-row desktop-2col form-gap-40">
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Correo electr&oacute;nico principal</mat-label>
-            <input matInput type="email" formControlName="email" />
-            @if (form.get('email')?.invalid && submittedSteps[2]) {
-              <mat-error>Ingresa un correo electr&oacute;nico v&aacute;lido</mat-error>
-            }
-          </mat-form-field>
+        <mat-form-field appearance="outline" class="flex-field">
+          <mat-label>Correo electr&oacute;nico principal</mat-label>
+          <input matInput type="email" formControlName="email" />
+          @if (form.get('email')?.invalid && submittedSteps[1]) {
+            <mat-error>Ingresa un correo electr&oacute;nico v&aacute;lido</mat-error>
+          }
+        </mat-form-field>
 
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Correo secundario (opcional)</mat-label>
@@ -216,19 +208,19 @@
       </div>
 
       <div class="form-row desktop-2col form-gap-40">
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Nombre del padre</mat-label>
-            <input matInput formControlName="fatherName" />
-            @if (form.get('fatherName')?.invalid && submittedSteps[2]) {
-              <mat-error>Ingresa el nombre del padre</mat-error>
-            }
-          </mat-form-field>
+        <mat-form-field appearance="outline" class="flex-field">
+          <mat-label>Nombre del padre</mat-label>
+          <input matInput formControlName="fatherName" />
+          @if (form.get('fatherName')?.invalid && submittedSteps[1]) {
+            <mat-error>Ingresa el nombre del padre</mat-error>
+          }
+        </mat-form-field>
 
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Nombre de la madre</mat-label>
-            <input matInput formControlName="motherName" />
-            @if (form.get('motherName')?.invalid && submittedSteps[2]) {
-              <mat-error>Ingresa el nombre de la madre</mat-error>
+        <mat-form-field appearance="outline" class="flex-field">
+          <mat-label>Nombre de la madre</mat-label>
+          <input matInput formControlName="motherName" />
+          @if (form.get('motherName')?.invalid && submittedSteps[1]) {
+            <mat-error>Ingresa el nombre de la madre</mat-error>
           }
         </mat-form-field>
       </div>
@@ -237,7 +229,7 @@
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Tel&eacute;fono principal</mat-label>
           <input matInput type="tel" formControlName="phone" />
-          @if (form.get('phone')?.invalid && submittedSteps[2]) {
+          @if (form.get('phone')?.invalid && submittedSteps[1]) {
             <mat-error>Ingresa el tel&eacute;fono</mat-error>
           }
         </mat-form-field>
@@ -261,7 +253,7 @@
   }
 
   @if (step === 3) {
-    <div class="tab-content vac-content">
+    <div class="vac-content">
       <div class="vac-table-wrap">
         <table class="vac-table">
           <thead>

@@ -144,6 +144,33 @@
 
 .tab-content {
   padding: 16px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.detail-fields {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rich-content {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+::ng-deep mat-tab-group {
+  width: 100%;
+}
+
+::ng-deep .mat-mdc-tab-body-wrapper,
+::ng-deep mat-tab-group .mat-mdc-tab-body {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+::ng-deep .mat-mdc-tab-body-content {
+  width: 100% !important;
+  min-width: 100% !important;
 }
 
 .entry-actions {

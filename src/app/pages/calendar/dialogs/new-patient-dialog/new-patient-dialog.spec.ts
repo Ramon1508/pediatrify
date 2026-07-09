@@ -42,22 +42,21 @@ describe('NewPatientDialog', () => {
   it('renders form fields', () => {
     const { fixture } = createFixture();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('input[formcontrolname="name"]')).toBeTruthy();
-    expect(el.querySelector('input[formcontrolname="lastName"]')).toBeTruthy();
+    expect(el.querySelector('input[formcontrolname="fullName"]')).toBeTruthy();
     expect(el.querySelector('input[formcontrolname="email"]')).toBeTruthy();
   });
 
   it('shows validation errors when submitted empty', () => {
     const { component } = createFixture();
     component.submitted = true;
-    component.form.patchValue({ name: '', lastName: '', email: '', birthDate: '', fatherName: '', motherName: '', phone: '' });
+    component.form.patchValue({ fullName: '', email: '', birthDate: '', fatherName: '', motherName: '', phone: '' });
     expect(component.form.invalid).toBe(true);
   });
 
   it('calls createPatient on save for new patient', async () => {
     const { component, patientRepo, dialogRef, alertService } = createFixture();
     component.form.setValue({
-      name: 'Ana', lastName: 'López', birthDate: '2020-01-01',
+      fullName: 'Ana López', birthDate: '2020-01-01',
       email: 'ana@mail.com', secondaryEmail: '', fatherName: 'Luis', motherName: 'María', phone: '5555555555',
     });
     await component.save();
@@ -70,7 +69,7 @@ describe('NewPatientDialog', () => {
     const existingPatient: Patient = { ...basePatient, birthDate: '2020-01-01', fatherName: 'Luis', motherName: 'María', phone: '5555555555' };
     const { component } = createFixture([existingPatient]);
     component.form.setValue({
-      name: 'Ana', lastName: 'López', birthDate: '2020-01-01',
+      fullName: 'Ana López', birthDate: '2020-01-01',
       email: 'juan@mail.com', secondaryEmail: '', fatherName: 'Luis', motherName: 'María', phone: '5555555555',
     });
     await component.save();
@@ -80,15 +79,14 @@ describe('NewPatientDialog', () => {
   it('pre-fills form with edit data', () => {
     const editPatient: Patient = { ...basePatient, id: 'p2', name: 'Ana', lastName: 'López', email: 'ana@mail.com', fatherName: 'Luis', motherName: 'María', birthDate: '2020-01-01', phone: '5555555555' };
     const { component } = createFixture([], editPatient);
-    expect(component.form.value.name).toBe('Ana');
-    expect(component.form.value.lastName).toBe('López');
+    expect(component.form.value.fullName).toBe('Ana López');
   });
 
   it('calls updatePatient on save for existing patient', async () => {
     const editPatient: Patient = { ...basePatient, id: 'p2', name: 'Ana', lastName: 'López', email: 'ana@mail.com', fatherName: 'Luis', motherName: 'María', birthDate: '2020-01-01', phone: '5555555555' };
     const { component, patientRepo, dialogRef, alertService } = createFixture([], editPatient);
     component.form.setValue({
-      name: 'Ana', lastName: 'López', birthDate: '2020-01-01',
+      fullName: 'Ana López', birthDate: '2020-01-01',
       email: 'ana@mail.com', secondaryEmail: '', fatherName: 'Luis', motherName: 'María', phone: '5555555555',
     });
     await component.save();

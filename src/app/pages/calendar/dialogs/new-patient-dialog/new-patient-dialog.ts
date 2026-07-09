@@ -44,8 +44,7 @@ export class NewPatientDialog {
   protected alertMsg = '';
 
   protected form = this.fb.group({
-    name: ['', Validators.required],
-    lastName: ['', Validators.required],
+    fullName: ['', Validators.required],
     birthDate: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
     secondaryEmail: ['', Validators.email],
@@ -62,8 +61,7 @@ export class NewPatientDialog {
     this.editingPatient = patient;
     this.allPatients = this.allPatients.filter((p) => p.id !== patient.id);
     this.form.patchValue({
-      name: patient.name,
-      lastName: patient.lastName,
+      fullName: `${patient.name} ${patient.lastName}`.trim(),
       birthDate: patient.birthDate,
       email: patient.email,
       secondaryEmail: patient.secondaryEmail || '',
@@ -73,17 +71,26 @@ export class NewPatientDialog {
     });
   }
 
+  private splitFullName(fullName: string): { name: string; lastName: string } {
+    const trimmed = fullName.trim();
+    const lastSpace = trimmed.lastIndexOf(' ');
+    if (lastSpace === -1) return { name: trimmed, lastName: '' };
+    return { name: trimmed.substring(0, lastSpace), lastName: trimmed.substring(lastSpace + 1) };
+  }
+
   close() {
     this.dialogRef.close();
   }
 
   async save() {
     this.submitted = true;
+    this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
     const f = this.form.value;
     const email = normalizeEmail(f.email!);
     const secondaryEmail = f.secondaryEmail ? normalizeEmail(f.secondaryEmail) : '';
+    const { name, lastName } = this.splitFullName(f.fullName!);
 
     if (!this.editingPatient) {
       const existingByEmail = this.allPatients.filter(
@@ -97,7 +104,7 @@ export class NewPatientDialog {
       }
 
       const nameExists = this.allPatients.some(
-        (p) => p.name.toLowerCase() === f.name!.toLowerCase() && p.lastName.toLowerCase() === f.lastName!.toLowerCase()
+        (p) => p.name.toLowerCase() === name.toLowerCase() && p.lastName.toLowerCase() === lastName.toLowerCase()
       );
 
       if (nameExists && !this.alertMsg) {
@@ -111,8 +118,8 @@ export class NewPatientDialog {
     try {
       if (this.editingPatient) {
         const updated: Partial<Patient> = {
-          name: f.name!,
-          lastName: f.lastName!,
+          name,
+          lastName,
           birthDate: f.birthDate!,
           email,
           secondaryEmail,
@@ -128,8 +135,8 @@ export class NewPatientDialog {
         const otpPassword = this.generateOtpPassword();
         const newPatient: Patient = {
           id,
-          name: f.name!,
-          lastName: f.lastName!,
+          name,
+          lastName,
           birthDate: f.birthDate!,
           email,
           secondaryEmail,

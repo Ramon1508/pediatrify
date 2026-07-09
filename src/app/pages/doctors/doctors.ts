@@ -62,7 +62,7 @@ export class Doctors implements OnInit, OnDestroy {
       })
     );
     this.userRepo.watchAllUsers().subscribe((users) => {
-      this.doctors.set(users);
+      this.doctors.set(users.filter(u => u.role === 'assistant'));
       this.loading.set(false);
     });
   }

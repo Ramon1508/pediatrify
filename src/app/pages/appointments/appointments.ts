@@ -10,8 +10,9 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AppointmentRepository } from '../../core/repositories/appointment.repository';
 import { PatientRepository } from '../../core/repositories/patient.repository';
+import { UserRepository } from '../../core/repositories/user.repository';
 import { AuditRepository } from '../../core/repositories/audit.repository';
-import { Appointment, Patient } from '../../core/models/user';
+import { Appointment, Patient, TimeSegment } from '../../core/models/user';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
 import { AppointmentFormDialog } from './dialogs/appointment-form-dialog/appointment-form-dialog';
@@ -39,6 +40,7 @@ export class Appointments implements OnInit {
   private fb = inject(FormBuilder);
   private appointmentRepo = inject(AppointmentRepository);
   private patientRepo = inject(PatientRepository);
+  private userRepo = inject(UserRepository);
   private auditRepo = inject(AuditRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
@@ -48,6 +50,7 @@ export class Appointments implements OnInit {
   protected allPatients = signal<Patient[]>([]);
   protected selectedTab = signal(0);
   protected isAdmin = false;
+  protected walkInTimeSlots: string[] = [];
 
   protected showWalkIn = signal(false);
   protected submitted = signal(false);
@@ -78,6 +81,27 @@ export class Appointments implements OnInit {
     this.appointmentRepo.watchAppointmentsByDoctor(doctor.uid).subscribe((apps) => {
       this.allAppointments.set(apps);
     });
+
+    const user = await this.userRepo.getUser(doctor.uid);
+    if (user) {
+      const segments = user.timeSegments?.length ? user.timeSegments : [{ startTime: '06:00', endTime: '00:00' }];
+      const duration = user.consultationDuration ?? 30;
+      const slots: string[] = [];
+      for (const seg of segments) {
+        const [sh, sm] = seg.startTime.split(':').map(Number);
+        let [eh, em] = seg.endTime.split(':').map(Number);
+        if (eh === 0 && em === 0) eh = 24;
+        let startMinutes = sh * 60 + sm;
+        const endMinutes = eh * 60 + em;
+        while (startMinutes + duration <= endMinutes) {
+          const hour = Math.floor(startMinutes / 60);
+          const minute = startMinutes % 60;
+          slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
+          startMinutes += duration;
+        }
+      }
+      this.walkInTimeSlots = slots;
+    }
   }
 
   async openNewAppointment() {
@@ -124,6 +148,7 @@ export class Appointments implements OnInit {
 
   async registerWalkIn() {
     this.submitted.set(true);
+    this.walkInForm.markAllAsTouched();
     if (this.walkInForm.invalid) return;
 
     this.saving.set(true);
@@ -146,7 +171,7 @@ export class Appointments implements OnInit {
         patientMotherName: patient.motherName ?? '',
         patientBirthDate: patient.birthDate,
         patientPhone: patient.phone ?? '',
-        doctorId: doctor.uid,
+        doctorId: doctor.firebaseUid ?? doctor.uid,
         doctorName: doctor.name,
         date: finalDate,
         time: finalTime,

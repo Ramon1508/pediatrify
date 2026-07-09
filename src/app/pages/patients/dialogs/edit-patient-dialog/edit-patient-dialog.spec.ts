@@ -84,8 +84,7 @@ describe('EditPatientDialog', () => {
   it('pre-fills form with patient data', () => {
     const { component } = createFixture();
     initComponent(component);
-    expect(component.form.value.name).toBe('Juan');
-    expect(component.form.value.lastName).toBe('Pérez');
+    expect(component.form.value.fullName).toBe('Juan Pérez');
     expect(component.form.value.bloodType).toBe('O+');
   });
 
@@ -130,7 +129,7 @@ describe('EditPatientDialog', () => {
     const { component } = createFixture();
     initComponent(component);
     component.switchToEdit();
-    component.form.patchValue({ name: 'Juan Updated' });
+    component.form.patchValue({ fullName: 'Juan Updated Pérez' });
     await component.save();
     expect(patientRepo.updatePatient).toHaveBeenCalledWith('p1', expect.objectContaining({ name: 'Juan Updated' }));
   });
@@ -139,7 +138,7 @@ describe('EditPatientDialog', () => {
     const { component } = createFixture();
     initComponent(component);
     component.switchToEdit();
-    component.form.patchValue({ name: 'Juan Updated' });
+    component.form.patchValue({ fullName: 'Juan Updated Pérez' });
     await component.save();
     expect(component.saveSuccess).toBe('Cambios del perfil guardados.');
   });
@@ -148,7 +147,7 @@ describe('EditPatientDialog', () => {
     const { component } = createFixture();
     initComponent(component);
     component.switchToEdit();
-    component.form.patchValue({ name: 'Juan Updated' });
+    component.form.patchValue({ fullName: 'Juan Updated Pérez' });
     await component.save();
     expect(component.readOnly).toBe(true);
   });
@@ -158,7 +157,7 @@ describe('EditPatientDialog', () => {
     initComponent(component);
     patientRepo.updatePatient.mockRejectedValue(new Error('fail'));
     component.switchToEdit();
-    component.form.patchValue({ name: 'Juan Updated' });
+    component.form.patchValue({ fullName: 'Juan Updated Pérez' });
     await component.save();
     expect(alertService.error).toHaveBeenCalled();
   });
@@ -183,7 +182,7 @@ describe('EditPatientDialog', () => {
     const { component } = createFixture();
     initComponent(component);
     component.switchToEdit();
-    component.form.patchValue({ name: '' });
+    component.form.patchValue({ fullName: '' });
     component.saved = true;
     expect(component.form.invalid).toBe(true);
   });

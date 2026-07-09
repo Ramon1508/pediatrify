@@ -130,6 +130,7 @@ export class SetupProfile implements OnInit {
 
   async finish() {
     this.submitted.set(true);
+    this.form.markAllAsTouched();
 
     if (this.form.invalid) return;
 

@@ -48,7 +48,7 @@
           mat-unelevated-button
           class="btn-primary full-width"
           type="submit"
-          [disabled]="form.invalid || form.pristine || loading()"
+          [disabled]="loading()"
         >
           @if (loading()) {
             <mat-spinner diameter="20" />

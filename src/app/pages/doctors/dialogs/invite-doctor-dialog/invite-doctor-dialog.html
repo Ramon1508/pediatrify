@@ -57,7 +57,7 @@
 
 <mat-dialog-actions align="end">
   @if (!invitationLink) {
-    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="saving">
       @if (saving) {
         <mat-spinner diameter="18" />
       } @else {

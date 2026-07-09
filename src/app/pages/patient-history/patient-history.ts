@@ -309,16 +309,4 @@ export class PatientHistory implements OnInit, OnDestroy {
       this.alert.error({ message: 'Error al eliminar paciente', duration: 5000 });
     }
   }
-
-  protected async seedTestData() {
-    const patientId = this.route.snapshot.paramMap.get('patientId');
-    const p = this.patient();
-    if (!patientId || !p?.birthDate) return;
-    try {
-      await this.clinicalRepo.seedTestRecords(patientId, p.birthDate);
-      this.alert.success({ message: 'Datos de prueba insertados correctamente', duration: 5000 });
-    } catch {
-      this.alert.error({ message: 'Error al insertar datos de prueba', duration: 5000 });
-    }
-  }
 }

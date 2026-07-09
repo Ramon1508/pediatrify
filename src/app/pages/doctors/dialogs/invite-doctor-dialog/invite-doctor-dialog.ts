@@ -14,6 +14,7 @@ import { setDoc, doc, Timestamp } from 'firebase/firestore';
 import { FirebaseService } from '../../../../core/firebase/firebase.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { UserRole } from '../../../../core/models/user';
+import { normalizeEmail } from '../../../../core/utils/normalize-email';
 
 @Component({
   selector: 'app-invite-doctor-dialog',
@@ -65,6 +66,7 @@ export class InviteDoctorDialog {
 
   async save() {
     this.submitted = true;
+    this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
     this.saving = true;
@@ -74,9 +76,10 @@ export class InviteDoctorDialog {
       const { name, email, role } = this.form.value;
 
       const uid = crypto.randomUUID();
+      const normalizedEmail = normalizeEmail(email ?? '');
       await setDoc(doc(this.firebase.firestore, 'users', uid), {
         uid,
-        email,
+        email: normalizedEmail,
         name,
         role: role ?? 'assistant',
         pending: true,

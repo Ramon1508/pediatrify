@@ -122,7 +122,7 @@ export class EditPatientDialog {
   protected bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   private tabControls = [
-    ['name', 'lastName', 'birthDate', 'bloodType', 'birthWeight', 'birthHeight', 'headCircumference', 'sex', 'birthMethod', 'hasAllergies', 'allergies', 'hasBeenHospitalized', 'hospitalizationReason', 'hasDisease', 'diseaseDescription', 'takesMedication', 'medicationDescription'],
+    ['fullName', 'birthDate', 'bloodType', 'birthWeight', 'birthHeight', 'headCircumference', 'sex', 'birthMethod', 'hasAllergies', 'allergies', 'hasBeenHospitalized', 'hospitalizationReason', 'hasDisease', 'diseaseDescription', 'takesMedication', 'medicationDescription'],
     ['email', 'secondaryEmail', 'phone', 'secondaryPhone', 'fatherName', 'motherName', 'referredBy'],
     [],
   ];
@@ -142,6 +142,13 @@ export class EditPatientDialog {
   protected patient: Patient | null = null;
   protected vaccinationMap = new Map<VaccineKey, VaccineDose>();
   private initialFormValue: Record<string, any> | null = null;
+
+  private splitFullName(fullName: string): { name: string; lastName: string } {
+    const trimmed = fullName.trim();
+    const lastSpace = trimmed.lastIndexOf(' ');
+    if (lastSpace === -1) return { name: trimmed, lastName: '' };
+    return { name: trimmed.substring(0, lastSpace), lastName: trimmed.substring(lastSpace + 1) };
+  }
 
   protected readOnly = true;
 
@@ -165,8 +172,7 @@ export class EditPatientDialog {
   }
 
   protected form = this.fb.group({
-    name: ['', Validators.required],
-    lastName: ['', Validators.required],
+    fullName: ['', Validators.required],
     birthDate: ['', Validators.required],
     bloodType: ['', Validators.required],
     birthWeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
@@ -196,8 +202,7 @@ export class EditPatientDialog {
     const p = patient;
     const dateStr = toDateString(p.birthDate);
     this.form.patchValue({
-      name: p.name ?? '',
-      lastName: p.lastName ?? '',
+      fullName: `${p.name} ${p.lastName}`.trim(),
       birthDate: dateStr,
       bloodType: p.bloodType ?? '',
       birthWeight: p.birthWeight ?? null,
@@ -385,11 +390,13 @@ export class EditPatientDialog {
 
     this.submitting = true;
     const v = this.form.value;
+    const { name, lastName } = this.splitFullName(v.fullName!);
 
     try {
       await this.patientRepo.updatePatient(p.id, {
-        name: v.name ?? '',
-        lastName: v.lastName ?? '',
+        name,
+        lastName,
+        birthDate: typeof v.birthDate === 'string' ? v.birthDate : p.birthDate,
         bloodType: v.bloodType ?? '',
         birthWeight: v.birthWeight ?? 0,
         birthHeight: v.birthHeight ?? 0,

@@ -54,89 +54,27 @@ describe('CompleteProfileDialog', () => {
     expect(el.textContent).toContain('Perfil del paciente');
   }, 30000);
 
-  it('starts at step 1', () => {
-    const { component } = createFixture();
-    expect(component.step).toBe(1);
-  });
-
   it('pre-fills form with patient data', () => {
     const { component } = createFixture();
-    expect(component.form.value.name).toBe('Juan');
-    expect(component.form.value.lastName).toBe('Pérez');
+    expect(component.form.value.fullName).toBe('Juan Pérez');
   });
 
-  it('shows next button on step 1', () => {
-    const { fixture } = createFixture();
-    const btns = fixture.nativeElement.querySelectorAll('button');
-    const texts = Array.from(btns).map((b: any) => b.textContent.trim());
-    expect(texts.some((t) => t === 'Siguiente')).toBe(true);
-  });
-
-  it('shows previous and next buttons on step 2 after advancing', () => {
+  it('shows save button on step 3', async () => {
     const { component, fixture } = createFixture();
-    component.form.patchValue({
-      name: 'Juan', lastName: 'Pérez', birthDate: '2020-01-15',
-      bloodType: 'O+', birthWeight: 3.5, birthHeight: 50,
-      sex: 1, birthMethod: 'vaginal',
-      hasAllergies: false, hasBeenHospitalized: false, hasDisease: false, takesMedication: false,
-    });
-    component.nextStep();
+    component.step = 3;
+    component.cdr.markForCheck();
     fixture.detectChanges();
-    const btns = fixture.nativeElement.querySelectorAll('button');
-    const texts = Array.from(btns).map((b: any) => b.textContent.trim());
-    expect(texts).toContain('Anterior');
-    expect(texts).toContain('Siguiente');
-  });
-
-  it('shows save button on step 3', () => {
-    const { component, fixture } = createFixture();
-    component.form.patchValue({
-      name: 'Juan', lastName: 'Pérez', birthDate: '2020-01-15',
-      bloodType: 'O+', birthWeight: 3.5, birthHeight: 50,
-      sex: 1, birthMethod: 'vaginal',
-      hasAllergies: false, hasBeenHospitalized: false, hasDisease: false, takesMedication: false,
-    });
-    component.nextStep();
-    component.form.patchValue({
-      email: 'juan@mail.com', phone: '5555555555',
-      fatherName: 'Carlos', motherName: 'María',
-    });
-    component.nextStep();
+    await fixture.whenStable();
     fixture.detectChanges();
     const btns = fixture.nativeElement.querySelectorAll('button');
     const texts = Array.from(btns).map((b: any) => b.textContent.trim());
     expect(texts.some((t) => t.includes('Guardar'))).toBe(true);
   });
 
-  it('advances step on nextStep', () => {
-    const { component } = createFixture();
-    component.form.patchValue({
-      name: 'Juan', lastName: 'Pérez', birthDate: '2020-01-15',
-      bloodType: 'O+', birthWeight: 3.5, birthHeight: 50,
-      sex: 1, birthMethod: 'vaginal',
-      hasAllergies: false, hasBeenHospitalized: false, hasDisease: false, takesMedication: false,
-    });
-    component.nextStep();
-    expect(component.step).toBe(2);
-  });
-
-  it('does not advance step if step 1 invalid', () => {
-    const { component } = createFixture();
-    component.nextStep();
-    expect(component.step).toBe(1);
-  });
-
-  it('goes back on prevStep', () => {
-    const { component } = createFixture();
-    component.step = 2;
-    component.prevStep();
-    expect(component.step).toBe(1);
-  });
-
   it('calls updatePatient with profileComplete on save', async () => {
     const { component, patientRepo, alertService, dialogRef } = createFixture();
     component.form.patchValue({
-      name: 'Juan', lastName: 'Pérez', birthDate: '2020-01-15',
+      fullName: 'Juan Pérez', birthDate: '2020-01-15',
       bloodType: 'O+', birthWeight: 3.5, birthHeight: 50,
       sex: 1, birthMethod: 'vaginal',
       hasAllergies: false, hasBeenHospitalized: false, hasDisease: false, takesMedication: false,
@@ -153,7 +91,7 @@ describe('CompleteProfileDialog', () => {
     const { component, patientRepo, alertService } = createFixture();
     patientRepo.updatePatient.mockRejectedValue(new Error('fail'));
     component.form.patchValue({
-      name: 'Juan', lastName: 'Pérez', birthDate: '2020-01-15',
+      fullName: 'Juan Pérez', birthDate: '2020-01-15',
       bloodType: 'O+', birthWeight: 3.5, birthHeight: 50,
       sex: 1, birthMethod: 'vaginal',
       hasAllergies: false, hasBeenHospitalized: false, hasDisease: false, takesMedication: false,

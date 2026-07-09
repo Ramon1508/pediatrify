@@ -10,7 +10,6 @@ import {
   onSnapshot,
   query,
   where,
-  orderBy,
   getDocs,
 } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
@@ -87,6 +86,20 @@ export class AppointmentRepository {
         this.appointmentRef,
         where('doctorId', '==', doctorId),
         where('disabled', '==', false),
+      );
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map((doc) => doc.data() as Appointment);
+        subscriber.next(items);
+      });
+      return { unsubscribe };
+    });
+  }
+
+  watchAppointmentsByUpdatedBy(email: string): Observable<Appointment[]> {
+    return new Observable((subscriber) => {
+      const q = query(
+        this.appointmentRef,
+        where('updatedBy', '==', email),
       );
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const items = snapshot.docs.map((doc) => doc.data() as Appointment);

@@ -59,9 +59,11 @@
   .actions {
     display: flex;
     justify-content: flex-end;
-    margin-top: 24px;
+    align-items: flex-end;
+    height: 100%;
 
     .btn-secondary {
+      height: fit-content !important;
       padding: 10px 16px !important;
     }
   }

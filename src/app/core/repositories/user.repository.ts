@@ -35,21 +35,25 @@ export class UserRepository {
     return doc(this.db, 'users', uid);
   }
 
+private mapDoc(doc: any): AppUser {
+    return { ...doc.data(), uid: doc.id } as AppUser;
+  }
+
   async getUser(uid: string): Promise<AppUser | null> {
     const snapshot = await getDoc(this.docRef(uid));
-    return snapshot.exists() ? (snapshot.data() as AppUser) : null;
+    return snapshot.exists() ? this.mapDoc(snapshot) : null;
   }
 
   async getUserByFirebaseUid(firebaseUid: string): Promise<AppUser | null> {
     const q = query(this.userRef, where('firebaseUid', '==', firebaseUid));
     const snap = await getDocs(q);
-    return snap.empty ? null : (snap.docs[0].data() as AppUser);
+    return snap.empty ? null : this.mapDoc(snap.docs[0]);
   }
 
   async getUserByEmail(email: string): Promise<AppUser | null> {
     const q = query(this.userRef, where('email', '==', email));
     const snap = await getDocs(q);
-    return snap.empty ? null : (snap.docs[0].data() as AppUser);
+    return snap.empty ? null : this.mapDoc(snap.docs[0]);
   }
 
   async createUser(uid: string, data: Partial<AppUser>): Promise<void> {

@@ -73,6 +73,7 @@ export class EditDoctorDialog {
 
   async save() {
     this.submitted = true;
+    this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
     this.saving = true;

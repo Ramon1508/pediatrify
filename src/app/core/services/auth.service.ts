@@ -18,6 +18,7 @@ import { UserRepository } from '../repositories/user.repository';
 import { PatientRepository } from '../repositories/patient.repository';
 import { AppUser, Patient, SessionUser, UserRole } from '../models/user';
 import { Sexo } from '../models/sexo';
+import { normalizeEmail } from '../utils/normalize-email';
 
 export interface ProfileData {
   name: string;
@@ -59,7 +60,7 @@ export class AuthService {
     onAuthStateChanged(auth, (firebaseUser) => {
       this.ngZone.run(() => {
         if (firebaseUser) {
-          this.loadDoctorSession(firebaseUser.uid);
+          this.loadDoctorSession(firebaseUser.email ?? firebaseUser.uid);
         } else if (!this.isPatientSession) {
           this.setSession(null);
         }
@@ -132,11 +133,14 @@ export class AuthService {
     return this.firebase.auth;
   }
 
-  private async loadDoctorSession(uid: string): Promise<void> {
+  private async loadDoctorSession(emailOrUid: string): Promise<void> {
     try {
-      let user = await this.userRepo.getUserByFirebaseUid(uid);
+      let user = await this.userRepo.getUserByEmail(normalizeEmail(emailOrUid));
       if (!user) {
-        user = await this.userRepo.getUser(uid);
+        user = await this.userRepo.getUserByFirebaseUid(emailOrUid);
+      }
+      if (!user) {
+        user = await this.userRepo.getUser(emailOrUid);
       }
       if (user) {
         this.setSession({ type: 'doctor', user });
@@ -152,7 +156,11 @@ export class AuthService {
 
   async loginDoctor(email: string, password: string): Promise<AppUser> {
     const credential = await signInWithEmailAndPassword(this.auth, email, password);
-    let user = await this.userRepo.getUserByFirebaseUid(credential.user.uid);
+    const normalizedEmail = normalizeEmail(email);
+    let user = await this.userRepo.getUserByEmail(normalizedEmail);
+    if (!user) {
+      user = await this.userRepo.getUserByFirebaseUid(credential.user.uid);
+    }
     if (!user) {
       user = await this.userRepo.getUser(credential.user.uid);
     }
@@ -160,6 +168,10 @@ export class AuthService {
       await signOut(this.auth);
       throw new Error('Usuario no encontrado');
     }
+    await this.userRepo.updateUser(user.uid, {
+      firebaseUid: credential.user.uid,
+      email: normalizedEmail,
+    });
     this.setSession({ type: 'doctor', user });
 
     if (!user.profileComplete) {
@@ -312,7 +324,7 @@ export class AuthService {
 
     await this.userRepo.updateUser(pendingUid, {
       firebaseUid: credential.user.uid,
-      email,
+      email: normalizeEmail(email),
       name: data.name,
       role: data.role,
       sexo: data.sexo,

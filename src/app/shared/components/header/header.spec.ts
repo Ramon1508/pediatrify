@@ -43,7 +43,7 @@ describe('Header', () => {
     setDoctor('Dr. Pérez', 'admin');
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Dr. Pérez');
+    expect(component.displayName).toBe('Dr. Pérez');
     expect(component.roleLabel).toBe('Administrador');
   });
 

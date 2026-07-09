@@ -47,6 +47,7 @@ export class OtpLogin {
 
   async onSubmit() {
     this.submitted.set(true);
+    this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
     this.loading.set(true);

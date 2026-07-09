@@ -24,14 +24,11 @@
   <div class="chart-body">
     @if (activeTab === 'weightHeight') {
       <div class="cdc-container">
-        <div class="cdc-bg" [innerHTML]="cdcBgSvg"></div>
+        <img [src]="cdcImgSrc" alt="CDC Growth Chart" class="cdc-img" width="612" height="792">
         @if (hasData) {
-          <div class="cdc-overlay">
-            <div class="cdc-overlay-length" [innerHTML]="lengthSvg"></div>
-            <div class="cdc-overlay-weight" [innerHTML]="weightSvg"></div>
-          </div>
-        }
-        @if (!hasData) {
+          <div class="cdc-overlay" [innerHTML]="lengthSvg"></div>
+          <div class="cdc-overlay" [innerHTML]="weightSvg"></div>
+        } @else {
           <div class="empty-overlay">
             <span class="empty-chart-text">
               No existen datos suficientes para visualizar la evolución del paciente.

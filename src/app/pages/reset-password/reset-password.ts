@@ -98,6 +98,7 @@ export class ResetPassword implements OnInit {
 
   async onRequestLink() {
     this.submitted.set(true);
+    this.requestForm.markAllAsTouched();
     if (this.requestForm.invalid) return;
 
     const email = this.requestForm.value.email!;
@@ -157,6 +158,7 @@ export class ResetPassword implements OnInit {
 
   async onResetPassword() {
     this.submitted.set(true);
+    this.resetForm.markAllAsTouched();
     if (this.resetForm.invalid) return;
 
     const newPassword = this.resetForm.value.newPassword!;

@@ -1210,6 +1210,28 @@
   resolved "https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-win32-x64/-/msgpackr-extract-win32-x64-3.0.3.tgz"
   integrity sha512-x0fWaQtYp4E6sktbsdAqnehxDgEc/VwM7uLsRCYWaiGu0ykYdZPiS8zCWdnjHwyiumousxfBm4SO31eXqwEZhQ==
 
+"@napi-rs/canvas-win32-x64-msvc@0.1.100":
+  version "0.1.100"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas-win32-x64-msvc/-/canvas-win32-x64-msvc-0.1.100.tgz"
+  integrity sha512-MyT1j3mHC2+Lu4pBi9mKyMJhtP6U7k7EldY7sj/uS5gJA65gTXt8MefJQXLJo5d/vZbuWmfxzkEUNc/urV3pHA==
+
+"@napi-rs/canvas@^0.1.96":
+  version "0.1.100"
+  resolved "https://registry.npmjs.org/@napi-rs/canvas/-/canvas-0.1.100.tgz"
+  integrity sha512-xglYA6q3XO5P3BNJYxVZ1IV7DLVjp1Py6nwag88YntrS+3vKHyYcMqXVS4ZztJmwz2uGvz1FWhI/4LgbR5uQDA==
+  optionalDependencies:
+    "@napi-rs/canvas-android-arm64" "0.1.100"
+    "@napi-rs/canvas-darwin-arm64" "0.1.100"
+    "@napi-rs/canvas-darwin-x64" "0.1.100"
+    "@napi-rs/canvas-linux-arm-gnueabihf" "0.1.100"
+    "@napi-rs/canvas-linux-arm64-gnu" "0.1.100"
+    "@napi-rs/canvas-linux-arm64-musl" "0.1.100"
+    "@napi-rs/canvas-linux-riscv64-gnu" "0.1.100"
+    "@napi-rs/canvas-linux-x64-gnu" "0.1.100"
+    "@napi-rs/canvas-linux-x64-musl" "0.1.100"
+    "@napi-rs/canvas-win32-arm64-msvc" "0.1.100"
+    "@napi-rs/canvas-win32-x64-msvc" "0.1.100"
+
 "@napi-rs/nice-win32-x64-msvc@1.1.1":
   version "1.1.1"
   resolved "https://registry.npmjs.org/@napi-rs/nice-win32-x64-msvc/-/nice-win32-x64-msvc-1.1.1.tgz"
@@ -3127,6 +3149,11 @@ node-gyp@^12.1.0:
     undici "^6.25.0"
     which "^6.0.0"
 
+node-readable-to-web-readable-stream@^0.4.2:
+  version "0.4.2"
+  resolved "https://registry.npmjs.org/node-readable-to-web-readable-stream/-/node-readable-to-web-readable-stream-0.4.2.tgz"
+  integrity sha512-/cMZNI34v//jUTrI+UIo4ieHAB5EZRY/+7OmXZgBxaWBMcW2tGdceIw06RFxWxrKZ5Jp3sI2i5TsRo+CBhtVLQ==
+
 node-releases@^2.0.36:
   version "2.0.44"
   resolved "https://registry.npmjs.org/node-releases/-/node-releases-2.0.44.tgz"
@@ -3345,6 +3372,21 @@ pathe@^2.0.3:
   version "2.0.3"
   resolved "https://registry.npmjs.org/pathe/-/pathe-2.0.3.tgz"
   integrity sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==
+
+pdf-to-img@^6.2.0:
+  version "6.2.0"
+  resolved "https://registry.npmjs.org/pdf-to-img/-/pdf-to-img-6.2.0.tgz"
+  integrity sha512-54CaUwpTXw0SkG6U3Twx7AJNM2ZuFNpDCJ7oHmmW113gT8RwLZSbzv4/GOr+H0PFpFisuHcUirZBKgXkJXA1zg==
+  dependencies:
+    pdfjs-dist "~5.6.205"
+
+pdfjs-dist@~5.6.205:
+  version "5.6.205"
+  resolved "https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-5.6.205.tgz"
+  integrity sha512-tlUj+2IDa7G1SbvBNN74UHRLJybZDWYom+k6p5KIZl7huBvsA4APi6mKL+zCxd3tLjN5hOOEE9Tv7VdzO88pfg==
+  optionalDependencies:
+    "@napi-rs/canvas" "^0.1.96"
+    node-readable-to-web-readable-stream "^0.4.2"
 
 picocolors@^1.1.1:
   version "1.1.1"

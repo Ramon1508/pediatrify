@@ -22,8 +22,8 @@ import { AlertService } from '../../core/services/alert.service';
 import { AppointmentDetailCard } from '../../shared/components/appointment-detail-card/appointment-detail-card';
 import { AppointmentDialog } from './dialogs/appointment-dialog/appointment-dialog';
 import { SettingsDialog, SettingsData } from './dialogs/settings-dialog/settings-dialog';
-import { CancelAppointmentDialog } from './dialogs/cancel-appointment-dialog/cancel-appointment-dialog';
-import { Subscription } from 'rxjs';
+
+import { Subscription, combineLatest } from 'rxjs';
 
 export interface TimeSlot {
   hour: number;
@@ -124,12 +124,14 @@ export class Calendar implements OnInit, OnDestroy {
   }
 
   protected openSettingsDialog() {
+    const selectedDoctor = this.allDoctors.find(d => d.uid === this.selectedDoctorId());
     const data: SettingsData = {
       consultationDuration: this.settingsForm.value.consultationDuration ?? 30,
       allowPatientScheduling: this.settingsForm.value.allowPatientScheduling ?? false,
       timeSegments: (this.settingsForm.value.timeSegments ?? []) as TimeSegment[],
       availableDays: this.availableDaysSignal(),
       doctorId: this.selectedDoctorId(),
+      doctorEmail: selectedDoctor?.email ?? this.authService.currentDoctor?.email,
     };
     const dialogRef = this.dialog.open(SettingsDialog, {
       width: '400px',
@@ -194,7 +196,7 @@ export class Calendar implements OnInit, OnDestroy {
     });
   });
 
-  protected gridTemplateColumns = '80px repeat(7, 1fr)';
+  protected gridTemplateColumns = '90px repeat(7, 1fr)';
 
   protected dateLabel = computed(() => {
     const start = this.weekStart();
@@ -223,7 +225,7 @@ export class Calendar implements OnInit, OnDestroy {
   protected timeSlots = computed(() => {
     const segments = this.timeSegmentsSignal();
     const duration = this.consultationDurationSignal();
-    const weekAppts = this.visibleWeekAppointments();
+    const allAppts = this.allAppointments();
 
     let overallStart = 1440;
     let overallEnd = 0;
@@ -234,7 +236,7 @@ export class Calendar implements OnInit, OnDestroy {
       overallStart = Math.min(overallStart, sh * 60 + sm);
       overallEnd = Math.max(overallEnd, eh * 60 + em);
     }
-    for (const apt of weekAppts) {
+    for (const apt of allAppts) {
       const [h, m] = apt.time.split(':').map(Number);
       const t = h * 60 + m;
       if (t < overallStart) overallStart = Math.floor(t / 30) * 30;
@@ -285,18 +287,33 @@ export class Calendar implements OnInit, OnDestroy {
   }
 
   private async loadDoctorData(doctorId: string) {
+    const user = await this.userRepo.getUser(doctorId);
+    const appointmentDoctorId = user?.firebaseUid ?? doctorId;
+    const email = user?.email ?? '';
+
     if (this.appointmentSub) {
       this.appointmentSub.unsubscribe();
       this.appointmentSub = null;
     }
 
-    this.appointmentSub = this.appointmentRepo.watchAppointmentsByDoctor(doctorId).subscribe((apps) => {
-      this.allAppointments.set(apps);
+    const byDoctor = this.appointmentRepo.watchAppointmentsByDoctor(appointmentDoctorId);
+    const byEmail = email
+      ? this.appointmentRepo.watchAppointmentsByUpdatedBy(email)
+      : byDoctor;
+
+    this.appointmentSub = combineLatest([byDoctor, byEmail]).subscribe(([fromDoctor, fromEmail]) => {
+      const seen = new Set<string>();
+      const merged = [...fromDoctor, ...fromEmail].filter((a) => {
+        if (a.disabled) return false;
+        if (seen.has(a.id)) return false;
+        seen.add(a.id);
+        return true;
+      });
+      this.allAppointments.set(merged);
       this.scrollToCurrentHour();
       this.cdr.markForCheck();
     });
 
-    const user = await this.userRepo.getUser(doctorId);
     if (user) {
       this.settingsForm.patchValue({
         consultationDuration: user.consultationDuration ?? 30,
@@ -319,7 +336,7 @@ export class Calendar implements OnInit, OnDestroy {
 
   async ngOnInit() {
     const doctor = this.authService.currentDoctor;
-        
+
     if (!doctor) return;
 
     this.isAdmin = doctor.role === 'admin';
@@ -417,7 +434,8 @@ export class Calendar implements OnInit, OnDestroy {
   getAppointmentsForCell(date: Date, slot: TimeSlot): Appointment[] {
     const dateStr = this.formatDate(date);
     const timeStr = `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`;
-    const result = this.allAppointments().filter(
+    const all = this.allAppointments();
+    const result = all.filter(
       (a) => a.date === dateStr && a.time === timeStr && a.status !== 'cancelled'
     );
     return result;
@@ -440,29 +458,22 @@ export class Calendar implements OnInit, OnDestroy {
     const instance = dialogRef.componentInstance;
     const segments = this.timeSegmentsSignal();
 
+    const baseData = {
+      allPatients: this.allPatients,
+      selectedDoctorId: this.selectedDoctorId(),
+      timeSegments: segments,
+      consultationDuration: this.consultationDurationSignal(),
+      existingAppointments: this.allAppointments(),
+    };
     if (prefill) {
       const dateStr = this.formatDate(prefill.date);
       const timeStr = `${prefill.slot.hour.toString().padStart(2, '0')}:${prefill.slot.minute.toString().padStart(2, '0')}`;
-      instance.setData({
-        allPatients: this.allPatients,
-        selectedDoctorId: this.selectedDoctorId(),
-        editingAppointment: null,
-        timeSegments: segments,
-      });
+      instance.setData({ ...baseData, editingAppointment: null });
       instance.setPrefill(dateStr, timeStr);
     } else if (editingAppointment) {
-      instance.setData({
-        allPatients: this.allPatients,
-        selectedDoctorId: this.selectedDoctorId(),
-        editingAppointment,
-        timeSegments: segments,
-      });
+      instance.setData({ ...baseData, editingAppointment });
     } else {
-      instance.setData({
-        allPatients: this.allPatients,
-        selectedDoctorId: this.selectedDoctorId(),
-        timeSegments: segments,
-      });
+      instance.setData({ ...baseData, editingAppointment: null });
     }
 
     dialogRef.afterClosed().subscribe((result) => {
@@ -497,17 +508,9 @@ export class Calendar implements OnInit, OnDestroy {
   }
 
   protected cancelAppointment(apt: Appointment) {
-    const dialogRef = this.dialog.open(CancelAppointmentDialog, {
-      disableClose: true,
-      panelClass: 'cancel-dialog',
-    });
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.selectedAppointment.set(null);
-        this.overlayPosition.set(null);
-        this.doCancelAppointment(apt);
-      }
-    });
+    this.selectedAppointment.set(null);
+    this.overlayPosition.set(null);
+    this.doCancelAppointment(apt);
   }
 
   private async doCancelAppointment(apt: Appointment) {

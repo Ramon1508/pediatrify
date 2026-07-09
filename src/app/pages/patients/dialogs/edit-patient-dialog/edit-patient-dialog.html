@@ -112,10 +112,10 @@
         <form [formGroup]="form" class="tab-content">
           <div class="form-row desktop-2col form-gap-40">
             <mat-form-field appearance="outline" class="flex-field">
-              <mat-label>Nombre del paciente</mat-label>
-              <input matInput formControlName="name" />
-              @if (form.get('name')?.invalid && (form.get('name')?.touched)) {
-                <mat-error>Ingresa el nombre del paciente</mat-error>
+              <mat-label>Nombre completo</mat-label>
+              <input matInput formControlName="fullName" />
+              @if (form.get('fullName')?.invalid && (form.get('fullName')?.touched)) {
+                <mat-error>Ingresa el nombre completo del paciente</mat-error>
               }
             </mat-form-field>
 
@@ -209,7 +209,7 @@
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Alergias del paciente</mat-label>
               <textarea matInput formControlName="allergies" rows="3"></textarea>
-              <mat-hint>Penicilina, Polen, Lactosa</mat-hint>
+              <mat-hint>Ej. Penicilina, Polen, Lactosa</mat-hint>
               @if (form.get('allergies')?.invalid && saved) {
                 <mat-error>Describe las alergias del paciente</mat-error>
               }
@@ -291,82 +291,95 @@
       </ng-template>
       @if (readOnly) {
         <div class="tab-content">
-          <div class="view-field">
-            <span class="view-label">Correo electr&oacute;nico</span>
-            <span class="view-value">{{ patient?.email }}</span>
+          <div class="form-row desktop-2col form-gap-40">
+            <div class="view-field">
+              <span class="view-label">Correo electr&oacute;nico</span>
+              <span class="view-value">{{ patient?.email }}</span>
+            </div>
+            <div class="view-field">
+              <span class="view-label">Correo secundario</span>
+              <span class="view-value">{{ patient?.secondaryEmail || '—' }}</span>
+            </div>
           </div>
 
-          <div class="view-field">
-            <span class="view-label">Correo secundario</span>
-            <span class="view-value">{{ patient?.secondaryEmail || '—' }}</span>
+          <div class="form-row desktop-2col form-gap-40">
+            <div class="view-field">
+              <span class="view-label">Tel&eacute;fono</span>
+              <span class="view-value">{{ patient?.phone || '—' }}</span>
+            </div>
+            <div class="view-field">
+              <span class="view-label">Tel&eacute;fono secundario</span>
+              <span class="view-value">{{ patient?.secondaryPhone || '—' }}</span>
+            </div>
           </div>
 
-          <div class="view-field">
-            <span class="view-label">Tel&eacute;fono</span>
-            <span class="view-value">{{ patient?.phone || '—' }}</span>
+          <div class="form-row desktop-2col form-gap-40">
+            <div class="view-field">
+              <span class="view-label">Nombre del padre</span>
+              <span class="view-value">{{ patient?.fatherName || '—' }}</span>
+            </div>
+            <div class="view-field">
+              <span class="view-label">Nombre de la madre</span>
+              <span class="view-value">{{ patient?.motherName || '—' }}</span>
+            </div>
           </div>
 
-          <div class="view-field">
-            <span class="view-label">Tel&eacute;fono secundario</span>
-            <span class="view-value">{{ patient?.secondaryPhone || '—' }}</span>
-          </div>
-
-          <div class="view-field">
-            <span class="view-label">Nombre del padre</span>
-            <span class="view-value">{{ patient?.fatherName || '—' }}</span>
-          </div>
-
-          <div class="view-field">
-            <span class="view-label">Nombre de la madre</span>
-            <span class="view-value">{{ patient?.motherName || '—' }}</span>
-          </div>
-
-          <div class="view-field">
-            <span class="view-label">Recomendado por</span>
-            <span class="view-value">{{ patient?.referredBy || '—' }}</span>
+          <div class="form-row desktop-2col form-gap-40">
+            <div class="view-field">
+              <span class="view-label">Recomendado por</span>
+              <span class="view-value">{{ patient?.referredBy || '—' }}</span>
+            </div>
           </div>
         </div>
       } @else {
         <form [formGroup]="form" class="tab-content">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Correo electr&oacute;nico</mat-label>
-            <input matInput type="email" formControlName="email" />
-          </mat-form-field>
+          <div class="form-row desktop-2col form-gap-40">
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Correo electr&oacute;nico</mat-label>
+              <input matInput type="email" formControlName="email" />
+            </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Correo secundario (opcional)</mat-label>
-            <input matInput type="email" formControlName="secondaryEmail" />
-          </mat-form-field>
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Correo secundario (opcional)</mat-label>
+              <input matInput type="email" formControlName="secondaryEmail" />
+            </mat-form-field>
+          </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Tel&eacute;fono</mat-label>
-            <input matInput type="tel" formControlName="phone" />
-          </mat-form-field>
+          <div class="form-row desktop-2col form-gap-40">
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Tel&eacute;fono</mat-label>
+              <input matInput type="tel" formControlName="phone" />
+            </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Tel&eacute;fono secundario (opcional)</mat-label>
-            <input matInput type="tel" formControlName="secondaryPhone" />
-          </mat-form-field>
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Tel&eacute;fono secundario (opcional)</mat-label>
+              <input matInput type="tel" formControlName="secondaryPhone" />
+            </mat-form-field>
+          </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Nombre del padre</mat-label>
-            <input matInput formControlName="fatherName" />
-          </mat-form-field>
+          <div class="form-row desktop-2col form-gap-40">
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Nombre del padre</mat-label>
+              <input matInput formControlName="fatherName" />
+            </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Nombre de la madre</mat-label>
-            <input matInput formControlName="motherName" />
-          </mat-form-field>
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Nombre de la madre</mat-label>
+              <input matInput formControlName="motherName" />
+            </mat-form-field>
+          </div>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Recomendado por (opcional)</mat-label>
-            <input matInput [matAutocomplete]="referredByAuto" [formControl]="referredBySearchControl" (input)="filterReferredBy($any($event.target).value)" (blur)="onReferredByBlur()" />
-            <mat-autocomplete #referredByAuto="matAutocomplete" [displayWith]="displayReferredBy" (optionSelected)="onReferredBySelected($event.option.value)">
-              @for (p of filteredPatients; track p.id) {
-                <mat-option [value]="p">{{ p.name }} {{ p.lastName }}</mat-option>
-              }
-            </mat-autocomplete>
-          </mat-form-field>
+          <div class="form-row desktop-2col form-gap-40">
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Recomendado por (opcional)</mat-label>
+              <input matInput [matAutocomplete]="referredByAuto" [formControl]="referredBySearchControl" (input)="filterReferredBy($any($event.target).value)" (blur)="onReferredByBlur()" />
+              <mat-autocomplete #referredByAuto="matAutocomplete" [displayWith]="displayReferredBy" (optionSelected)="onReferredBySelected($event.option.value)">
+                @for (p of filteredPatients; track p.id) {
+                  <mat-option [value]="p">{{ p.name }} {{ p.lastName }}</mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+          </div>
         </form>
       }
     </mat-tab>
@@ -431,7 +444,7 @@
     </button>
   } @else {
     <button mat-stroked-button class="btn-tertiary dialog-btn" (click)="close()">Cancelar</button>
-    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="form.invalid || submitting">
+    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="submitting">
       @if (submitting) {
         <mat-spinner diameter="18" />
       } @else {

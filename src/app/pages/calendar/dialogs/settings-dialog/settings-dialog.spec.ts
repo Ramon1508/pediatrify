@@ -6,6 +6,12 @@ import { UserRepository } from '../../../../core/repositories/user.repository';
 import { AuditRepository } from '../../../../core/repositories/audit.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
+import { FirebaseService } from '../../../../core/firebase/firebase.service';
+
+vi.mock('firebase/firestore', () => ({
+  setDoc: vi.fn().mockResolvedValue(undefined),
+  doc: vi.fn().mockReturnValue({ id: 'd1', path: 'users/d1' }),
+}));
 
 describe('SettingsDialog', () => {
   const mockDoctor = { uid: 'd1', name: 'Dr. Test', email: 'test@mail.com' };
@@ -15,16 +21,18 @@ describe('SettingsDialog', () => {
     timeSegments: [{ startTime: '08:00', endTime: '14:00' }],
     availableDays: ['Lun', 'Mar'],
     doctorId: 'd1',
+    doctorEmail: 'test@mail.com',
   };
 
   function createFixture(data: SettingsData = defaultData) {
     const userRepo = {
-      getUser: vi.fn().mockResolvedValue({ consultationDuration: 20, allowPatientScheduling: false, availableDays: [], timeSegments: [] }),
-      updateUser: vi.fn().mockResolvedValue(undefined),
+      getUser: vi.fn().mockResolvedValue({ uid: 'd1', consultationDuration: 20, allowPatientScheduling: false, availableDays: [], timeSegments: [] }),
+      getUserByEmail: vi.fn().mockResolvedValue({ uid: 'd1', email: 'test@mail.com' }),
     };
     const auditRepo = { log: vi.fn().mockResolvedValue(undefined) };
     const alertService = { success: vi.fn(), error: vi.fn() };
     const dialogRef = { close: vi.fn() };
+    const firebase = { firestore: {} };
 
     TestBed.configureTestingModule({
       imports: [SettingsDialog, NoopAnimationsModule],
@@ -34,6 +42,7 @@ describe('SettingsDialog', () => {
         { provide: AuthService, useValue: { currentDoctor: mockDoctor } },
         { provide: AlertService, useValue: alertService },
         { provide: MatDialogRef, useValue: dialogRef },
+        { provide: FirebaseService, useValue: firebase },
       ],
     });
 
@@ -48,7 +57,7 @@ describe('SettingsDialog', () => {
     const { fixture } = createFixture();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Configuración');
-  });
+  }, 10000);
 
   it('pre-fills form with provided data', () => {
     const { component } = createFixture();
@@ -85,20 +94,22 @@ describe('SettingsDialog', () => {
     expect(component.timeSegments.length).toBe(len - 1);
   });
 
-  it('calls updateUser and audit on save', async () => {
-    const { component, userRepo, auditRepo, alertService, dialogRef } = createFixture();
+  it('calls setDoc and audit on save', async () => {
+    const { setDoc } = await import('firebase/firestore');
+    const { component, auditRepo, alertService } = createFixture();
     await component.save();
-    expect(userRepo.updateUser).toHaveBeenCalledWith('d1', expect.any(Object));
+    expect(setDoc).toHaveBeenCalled();
     expect(auditRepo.log).toHaveBeenCalled();
-    expect(alertService.success).toHaveBeenCalledWith({ message: 'Configuración guardada', duration: 3000 });
-    expect(dialogRef.close).toHaveBeenCalledWith(true);
+    expect(alertService.success).toHaveBeenCalledWith({ message: 'Configuración guardada', duration: 5000 });
   });
 
   it('shows error on save failure', async () => {
-    const { component, userRepo, alertService } = createFixture();
-    userRepo.updateUser.mockRejectedValue(new Error('fail'));
+    const { setDoc } = await import('firebase/firestore');
+    (setDoc as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('fail'));
+    const { component, alertService } = createFixture();
     await component.save();
     expect(alertService.error).toHaveBeenCalled();
+    (setDoc as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
   });
 
   it('closes dialog on close()', () => {

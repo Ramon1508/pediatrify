@@ -6,6 +6,7 @@ import {
   OnInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  ApplicationRef,
   ViewChild,
   ElementRef,
   ViewEncapsulation,
@@ -75,6 +76,7 @@ export class PrintPreview implements OnInit {
   private sanitizer = inject(DomSanitizer);
   private defaultLogo = inject(DEFAULT_LOGO_URL);
   private cdr = inject(ChangeDetectorRef);
+  private appRef = inject(ApplicationRef);
 
   protected readonly Sexo = Sexo;
   protected readonly paperSizes = PAPER_SIZES;
@@ -194,9 +196,15 @@ export class PrintPreview implements OnInit {
     }
 
     this.loading.set(false);
-    this.cdr.markForCheck();
+    this.appRef.tick();
     await this.waitForPrintableLayout();
     this.paginateContent();
+    console.log('paginateContent result', {
+      pages: this.pages().length,
+      hasMeasurePage: !!this.measurePage?.nativeElement,
+      hasScratch: !!this.measureScratch?.nativeElement,
+      debug: this.debugInfo(),
+    });
     this.cdr.markForCheck();
 
     setTimeout(() => {
@@ -237,89 +245,56 @@ export class PrintPreview implements OnInit {
     );
   }
 
-  private buildPrintUnits(): string[] {
+  private contentToUnits(html: string): string[] {
     const units: string[] = [];
-    const addRichContent = (html: string) => {
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const nodes = Array.from(doc.body.childNodes);
-      for (const node of nodes) {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent?.trim();
-          if (text) units.push(`<div class="print-rich-content ql-editor"><p>${this.escapeHtml(text)}</p></div>`);
-          continue;
-        }
-
-        if (!(node instanceof HTMLElement)) continue;
-        if (node.tagName === 'UL' || node.tagName === 'OL') {
-          const items = Array.from(node.children).filter((child) => child.tagName === 'LI');
-          if (!items.length) {
-            const clean = node.cloneNode(true) as HTMLElement;
-            clean.querySelectorAll('.ql-ui').forEach((el) => el.remove());
-            Array.from(clean.querySelectorAll('[data-list]')).forEach((el) => el.removeAttribute('data-list'));
-            units.push(`<div class="print-rich-content ql-editor">${clean.outerHTML}</div>`);
-            continue;
-          }
-          let orderedIndex = 0;
-          for (const item of items) {
-            const isOrdered = item.getAttribute('data-list') === 'ordered';
-            const cleanLi = item.cloneNode(true) as HTMLElement;
-            cleanLi.querySelectorAll('.ql-ui').forEach((el) => el.remove());
-            cleanLi.removeAttribute('data-list');
-            if (isOrdered) {
-              orderedIndex++;
-              const start = orderedIndex > 1 ? ` start="${orderedIndex}"` : '';
-              units.push(`<div class="print-rich-content ql-editor"><ol${start}>${cleanLi.outerHTML}</ol></div>`);
-            } else {
-              units.push(`<div class="print-rich-content ql-editor"><ul>${cleanLi.outerHTML}</ul></div>`);
-            }
-          }
-          continue;
-        }
-
-        units.push(`<div class="print-rich-content ql-editor">${node.outerHTML}</div>`);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const nodes = Array.from(doc.body.childNodes);
+    for (const node of nodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        if (text) units.push(`<div class="print-rich-content ql-editor"><p>${this.escapeHtml(text)}</p></div>`);
+        continue;
       }
-    };
 
-    if (this.record?.recommendations) {
-      units.push('<h2 class="print-section-label">RECOMENDACIONES</h2>');
-      addRichContent(this.record.recommendations);
+      if (!(node instanceof HTMLElement)) continue;
+      if (node.tagName === 'UL' || node.tagName === 'OL') {
+        const items = Array.from(node.children).filter((child) => child.tagName === 'LI');
+        if (!items.length) {
+          const clean = node.cloneNode(true) as HTMLElement;
+          clean.querySelectorAll('.ql-ui').forEach((el) => el.remove());
+          Array.from(clean.querySelectorAll('[data-list]')).forEach((el) => el.removeAttribute('data-list'));
+          units.push(`<div class="print-rich-content ql-editor">${clean.outerHTML}</div>`);
+          continue;
+        }
+        let orderedIndex = 0;
+        for (const item of items) {
+          const isOrdered = item.getAttribute('data-list') === 'ordered';
+          const cleanLi = item.cloneNode(true) as HTMLElement;
+          cleanLi.querySelectorAll('.ql-ui').forEach((el) => el.remove());
+          cleanLi.removeAttribute('data-list');
+          if (isOrdered) {
+            orderedIndex++;
+            const start = orderedIndex > 1 ? ` start="${orderedIndex}"` : '';
+            units.push(`<div class="print-rich-content ql-editor"><ol${start}>${cleanLi.outerHTML}</ol></div>`);
+          } else {
+            units.push(`<div class="print-rich-content ql-editor"><ul>${cleanLi.outerHTML}</ul></div>`);
+          }
+        }
+        continue;
+      }
+
+      units.push(`<div class="print-rich-content ql-editor">${node.outerHTML}</div>`);
     }
-
-    if (this.record?.recommendations && this.record?.prescription) {
-      units.push('<div class="print-separator" aria-hidden="true"></div>');
-    }
-
-    if (this.record?.prescription) {
-      units.push('<h2 class="print-section-label">RECETA</h2>');
-      addRichContent(this.record.prescription);
-    }
-
     return units;
   }
 
-  private paginateContent(): void {
-    const measurePage = this.measurePage?.nativeElement;
-    const scratch = this.measureScratch?.nativeElement;
-    if (!measurePage || !scratch) {
-      this.pages.set([]);
-      return;
-    }
-
-    const pageStyles = getComputedStyle(measurePage);
-    const verticalPadding =
-      parseFloat(pageStyles.paddingTop || '0') + parseFloat(pageStyles.paddingBottom || '0');
-    const shell = measurePage.querySelector<HTMLElement>('.print-shell');
-    const shellHeight = shell?.getBoundingClientRect().height ?? 0;
-    const rawAvailable = measurePage.getBoundingClientRect().height - verticalPadding - shellHeight;
-    const availableHeight = rawAvailable;
-    const units = this.buildPrintUnits();
+  private paginateSection(
+    units: string[],
+    availableHeight: number,
+    scratch: HTMLElement,
+  ): string[] {
     const pageHtml: string[] = [];
     let currentUnits: string[] = [];
-
-    let debugLines = [
-      `paperH=${measurePage.getBoundingClientRect().height.toFixed(1)} pad=${verticalPadding.toFixed(1)} shell=${shellHeight.toFixed(1)} rawAvail=${rawAvailable.toFixed(1)}`,
-      `units=${units.length}`,
-    ];
 
     for (const unit of units) {
       scratch.innerHTML = [...currentUnits, unit].join('');
@@ -341,30 +316,74 @@ export class PrintPreview implements OnInit {
       pageHtml.push(currentUnits.join(''));
     }
 
-    debugLines.push(`pages before merge=${pageHtml.length}`);
-    // merge trailing pages that fit without the buffer
+    // merge trailing pages within this section
     while (pageHtml.length > 1) {
       const last = pageHtml[pageHtml.length - 1];
       const prev = pageHtml[pageHtml.length - 2];
       scratch.innerHTML = prev + last;
       void scratch.offsetHeight;
       const mergedH = scratch.getBoundingClientRect().height;
-      if (mergedH <= rawAvailable) {
-        debugLines.push(`merged page ${pageHtml.length - 1} into ${pageHtml.length}: ${mergedH.toFixed(1)} <= ${rawAvailable.toFixed(1)}`);
+      if (mergedH <= availableHeight) {
         pageHtml.pop();
         pageHtml[pageHtml.length - 1] = prev + last;
       } else {
-        debugLines.push(`merge FAIL ${pageHtml.length - 1}: ${mergedH.toFixed(1)} > ${rawAvailable.toFixed(1)}`);
         break;
       }
     }
 
+    return pageHtml;
+  }
+
+  private buildSectionHtml(html: string | undefined, sectionLabel: string, scratch: HTMLElement, availableHeight: number): string[] {
+    if (!html) return [];
+    const units: string[] = [];
+    units.push(`<h2 class="print-section-label">${sectionLabel}</h2>`);
+    units.push(...this.contentToUnits(html));
+    return this.paginateSection(units, availableHeight, scratch);
+  }
+
+  private paginateContent(): void {
+    const measurePage = this.measurePage?.nativeElement;
+    const scratch = this.measureScratch?.nativeElement;
+    if (!measurePage || !scratch) {
+      this.pages.set([]);
+      return;
+    }
+
+    const pageStyles = getComputedStyle(measurePage);
+    const verticalPadding =
+      parseFloat(pageStyles.paddingTop || '0') + parseFloat(pageStyles.paddingBottom || '0');
+    const shell = measurePage.querySelector<HTMLElement>('.print-shell');
+    const shellHeight = shell?.getBoundingClientRect().height ?? 0;
+    const availableHeight = measurePage.getBoundingClientRect().height - verticalPadding - shellHeight;
+
     scratch.innerHTML = '';
-    debugLines.push(`final pages=${pageHtml.length}`);
+    const recPages = this.buildSectionHtml(this.record?.recommendations, 'RECOMENDACIONES', scratch, availableHeight);
+    const rxPages = this.buildSectionHtml(this.record?.prescription, 'RECETA', scratch, availableHeight);
+
+    const allPageHtml = [...recPages, ...rxPages];
+
+    let debugLines = [
+      `paperH=${measurePage.getBoundingClientRect().height.toFixed(1)} pad=${verticalPadding.toFixed(1)} shell=${shellHeight.toFixed(1)} avail=${availableHeight.toFixed(1)}`,
+      `recPages=${recPages.length} rxPages=${rxPages.length}`,
+    ];
+
+    scratch.innerHTML = '';
+    debugLines.push(`final pages=${allPageHtml.length}`);
     this.debugInfo.set(debugLines.join(' | '));
     this.cdr.markForCheck();
+
+    if (allPageHtml.length === 0) {
+      this.pages.set([{
+        html: this.sanitizer.bypassSecurityTrustHtml(
+          '<div class="print-empty-msg" style="display:flex;align-items:center;justify-content:center;height:100%;font-family:Roboto,sans-serif;font-size:16px;color:#666;">No hay recomendaciones ni prescripciones para este registro.</div>'
+        ),
+      }]);
+      return;
+    }
+
     this.pages.set(
-      pageHtml.map((html) => ({
+      allPageHtml.map((html) => ({
         html: this.sanitizer.bypassSecurityTrustHtml(html || '&nbsp;'),
       })),
     );
@@ -383,9 +402,6 @@ export class PrintPreview implements OnInit {
     const previewEl = document.querySelector('app-print-preview');
     if (!previewEl) return;
 
-    const s = this.settings();
-    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
-
     const allStyles = Array.from(document.head.querySelectorAll('style'))
       .map((el) => el.innerHTML)
       .join('\n');
@@ -396,6 +412,9 @@ export class PrintPreview implements OnInit {
 
     const clone = previewEl.cloneNode(true) as HTMLElement;
     const html = clone.outerHTML;
+
+    const s = this.settings();
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
 
     printWindow.document.write(`<!DOCTYPE html>
 <html>

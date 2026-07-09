@@ -1,12 +1,12 @@
 import {
-  Component, input, effect, ChangeDetectionStrategy, ViewEncapsulation, inject,
+  Component, input, effect, inject, ChangeDetectionStrategy, ViewEncapsulation,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MatIconModule } from '@angular/material/icon';
 import { line, curveMonotoneX } from 'd3-shape';
 import { ClinicalRecord } from '../../../../core/models/clinical-record';
 import { Sexo } from '../../../../core/models/sexo';
-import { generateCdcSvg, GRAPH, cx, cyLength, cyWeight } from './cdc-bg';
+import { cx, cyLength, cyWeight, getImageSrc, CDC_VIEWBOX } from './cdc-bg';
 
 export type ChartTab = 'weightHeight' | 'headCircumference' | 'bmi';
 
@@ -27,7 +27,7 @@ export class GrowthCharts {
 
   protected activeTab: ChartTab = 'weightHeight';
   protected hasData = false;
-  protected cdcBgSvg: SafeHtml = '';
+  protected cdcImgSrc = '';
   protected lengthSvg: SafeHtml = '';
   protected weightSvg: SafeHtml = '';
   protected hcSvg: SafeHtml = '';
@@ -50,24 +50,33 @@ export class GrowthCharts {
   protected printChart() {
     const area = document.querySelector('.growth-charts') as HTMLElement;
     if (!area) return;
-    const charts = area.querySelector('.chart-body');
-    if (!charts) return;
+    const container = area.querySelector('.cdc-container') as HTMLElement;
+    if (!container) return;
 
     const w = window.open('', '_blank');
     if (!w) return;
 
-    const svg = charts.querySelector('svg');
-    w.document.write(`<html><head><title>Gráfica</title>
-      <style>body{margin:0;display:flex;justify-content:center;padding:20px}
-      svg{max-width:1000px;width:100%;height:auto}
-      @media print{body{padding:0}}</style></head>
-      <body>`);
-    if (svg) {
-      const cloned = svg.cloneNode(true) as SVGSVGElement;
-      const serializer = new XMLSerializer();
-      w.document.write(serializer.serializeToString(cloned));
+    // Clonar todo el container (img + overlays)
+    const clone = container.cloneNode(true) as HTMLElement;
+    // Resolver src de la imagen a absoluta
+    const img = clone.querySelector('img');
+    if (img) {
+      img.src = new URL(img.getAttribute('src') || '', window.location.origin).href;
     }
-    w.document.write('</body></html>');
+    // Quitar el empty-overlay si existe (solo queremos fondo + datos)
+    const empty = clone.querySelector('.empty-overlay');
+    if (empty) empty.remove();
+
+    w.document.write(`<html><head><title>Gráfica</title>
+      <style>
+        body{margin:0;display:flex;justify-content:center;padding:20px;background:#fff}
+        .cdc-container{max-width:1000px;width:100%;position:relative;line-height:0;overflow:hidden;border:1px solid #E91E63;border-radius:4px;background:#fff}
+        .cdc-img{display:block;width:100%;height:auto}
+        .cdc-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+        .cdc-overlay svg{display:block;width:100%;height:auto}
+        @media print{body{padding:0}}
+      </style></head>
+      <body>${clone.outerHTML}</body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 300);
   }
@@ -111,9 +120,7 @@ export class GrowthCharts {
    *  CDC PESO Y TALLA — SVG background + SVG overlay
    * ========================================================== */
   private renderCdc() {
-    this.cdcBgSvg = this.sanitizer.bypassSecurityTrustHtml(
-      generateCdcSvg(this.sexKey)
-    );
+    this.cdcImgSrc = getImageSrc(this.sexKey);
 
     const filtered = this.getFilteredRecords();
     const lengthPts: { m: number; v: number }[] = [];
@@ -150,7 +157,7 @@ export class GrowthCharts {
       `<circle cx="${cx(p.m)}" cy="${yFn(p.v)}" r="3" fill="#0D6E8F" stroke="#fff" stroke-width="1"/>`
     ).join('');
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 936 1100" width="100%" class="patient-overlay">
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${CDC_VIEWBOX}" width="100%" class="patient-overlay">
       <path d="${d}" fill="none" stroke="#0D6E8F" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
       ${circles}
     </svg>`;

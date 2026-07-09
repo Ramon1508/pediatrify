@@ -45,6 +45,50 @@ ng build
 ng test
 ```
 
+## Modelo de negocio
+
+### Jerarquía de usuarios
+
+| Rol | Descripción |
+|-----|-------------|
+| **Admin** | Creado al inicializar la app. Puede registrar doctores. No tiene liga con ningún otro rol. Pueden existir múltiples admins. |
+| **Doctor** | Registrado por un admin. No está ligado a un admin específico; cualquier admin puede administrar cualquier doctor. |
+| **Assistant** | Ligado al doctor que lo registró. |
+| **Patient** | Ligado al doctor que lo registró. Si un asistente registra un paciente, el paciente se liga al doctor que administra a ese asistente (no al asistente). |
+
+### Reglas de borrado
+
+| Acción | Efecto |
+|--------|--------|
+| Eliminar un paciente | Se borra todo lo referente al paciente. No afecta al doctor ni a los asistentes. |
+| Eliminar un asistente | No afecta al doctor ni a los pacientes. |
+| Eliminar un doctor | Se eliminan sus asistentes y sus pacientes. |
+
+### Roles en el sistema
+
+| Código (`UserRole`) | Etiqueta |
+|---------------------|----------|
+| `admin` | Administrador |
+| `doctor` | Doctor |
+| `assistant` | Asistente |
+
+Los pacientes no se almacenan como usuarios de Firebase Auth. Usan OTP (contraseña temporal de un solo uso) para acceder.
+
+## Testing: regla fundamental
+
+**Ningún spec file debe escribir en Firebase real.** Todos los specs deben emular Firebase completamente:
+
+- Usar `vi.mock('firebase/firestore', ...)` en el top-level cuando el componente importe funciones de Firestore (`setDoc`, `doc`, `getDoc`, etc.).
+- Usar `vi.mock('firebase/auth', ...)` cuando el componente importe funciones de Auth.
+- Proveer `FirebaseService` como un mock simple (`{ firestore: {} }` o `{ auth: {} }`) solo como token de DI, nunca como mecanismo para evitar escrituras.
+- La combinación de `vi.mock` + mocks de servicios/repositorios garantiza que las pruebas nunca toquen una base de datos real.
+
+## Test commands
+```bash
+ng test          # Run all tests in watch mode
+ng test --no-watch  # Run all tests once
+```
+
 ## Arquitectura
 
 ```

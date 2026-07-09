@@ -8,11 +8,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { setDoc, doc } from 'firebase/firestore';
 import { UserRepository } from '../../../../core/repositories/user.repository';
+import { FirebaseService } from '../../../../core/firebase/firebase.service';
 import { AuditRepository } from '../../../../core/repositories/audit.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { AppUser, TimeSegment } from '../../../../core/models/user';
+import { normalizeEmail } from '../../../../core/utils/normalize-email';
 
 export interface SettingsData {
   consultationDuration: number;
@@ -20,6 +23,7 @@ export interface SettingsData {
   timeSegments: { startTime: string; endTime: string }[];
   availableDays: string[];
   doctorId: string;
+  doctorEmail?: string;
 }
 
 @Component({
@@ -42,6 +46,7 @@ export interface SettingsData {
 })
 export class SettingsDialog {
   private fb = inject(FormBuilder);
+  private firebase = inject(FirebaseService);
   private userRepo = inject(UserRepository);
   private auditRepo = inject(AuditRepository);
   private authService = inject(AuthService);
@@ -61,9 +66,11 @@ export class SettingsDialog {
   });
 
   private doctorId = '';
+  private doctorEmail = '';
 
   setData(data: SettingsData) {
     this.doctorId = data.doctorId;
+    this.doctorEmail = data.doctorEmail ?? '';
     this.availableDays = [...data.availableDays];
     this.form.patchValue({
       consultationDuration: data.consultationDuration,
@@ -107,18 +114,29 @@ export class SettingsDialog {
       const raw = this.form.value;
       const segments = (raw.timeSegments ?? []) as TimeSegment[];
       const currentUser = this.authService.currentDoctor;
-      const oldUser = await this.userRepo.getUser(this.doctorId);
-      await this.userRepo.updateUser(this.doctorId, {
+
+      let targetUid = this.doctorId;
+      if (this.doctorEmail) {
+        const userByEmail = await this.userRepo.getUserByEmail(normalizeEmail(this.doctorEmail));
+        if (userByEmail) {
+          targetUid = (userByEmail as any).uid ?? targetUid;
+        }
+      }
+
+      const oldUser = await this.userRepo.getUser(targetUid);
+      const updateData = {
         consultationDuration: raw.consultationDuration ?? 30,
         allowPatientScheduling: raw.allowPatientScheduling ?? false,
         availableDays: this.availableDays,
         timeSegments: segments,
-      });
+        updatedAt: new Date(),
+      };
+      await setDoc(doc(this.firebase.firestore, 'users', targetUid), updateData, { merge: true });
       await this.auditRepo.log({
         id: crypto.randomUUID(),
         action: 'update',
         entityType: 'doctor_settings',
-        entityId: this.doctorId,
+        entityId: targetUid,
         performedBy: currentUser?.email ?? '',
         performedByUid: currentUser?.uid ?? '',
         timestamp: new Date() as any,
@@ -135,9 +153,9 @@ export class SettingsDialog {
           timeSegments: segments,
         },
       });
-      this.alert.success({ message: 'Configuración guardada', duration: 3000 });
-      this.dialogRef.close(true);
+      this.alert.success({ message: 'Configuración guardada', duration: 5000 });
     } catch (e: any) {
+      console.error('Settings save error:', e);
       this.alert.error({ message: 'Error al guardar configuración' });
       this.cdr.markForCheck();
     } finally {

@@ -6,6 +6,12 @@ import { FirebaseService } from '../../../../core/firebase/firebase.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { Clipboard } from '@angular/cdk/clipboard';
 
+vi.mock('firebase/firestore', () => ({
+  setDoc: vi.fn().mockResolvedValue(undefined),
+  doc: vi.fn().mockReturnValue({}),
+  Timestamp: { now: vi.fn().mockReturnValue({}) },
+}));
+
 describe('InviteDoctorDialog', () => {
   function createFixture() {
     const firebaseService = { firestore: {} } as any;

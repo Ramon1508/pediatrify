@@ -24,7 +24,11 @@
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Hora</mat-label>
-        <input matInput type="time" formControlName="time" />
+        <mat-select formControlName="time">
+          @for (slot of timeSlots; track slot) {
+            <mat-option [value]="slot">{{ slot }}</mat-option>
+          }
+        </mat-select>
         @if (form.get('time')?.invalid && (form.get('time')?.touched || submitted)) {
           <mat-error>Selecciona una hora</mat-error>
         }
@@ -44,7 +48,7 @@
 
 <mat-dialog-actions align="end">
   <button mat-stroked-button class="btn-tertiary dialog-btn" [mat-dialog-close]="false">Cancelar</button>
-  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="form.invalid || form.pristine || saving">
+  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="saving">
     @if (saving) {
       <mat-spinner diameter="18" />
     } @else {
