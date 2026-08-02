@@ -1,10 +1,8 @@
-<h2 mat-dialog-title>Eliminar asistente</h2>
+<h2 class="delete-title">{{ title }}</h2>
 
-<mat-dialog-content>
-  <span class="delete-subtitle">Al eliminar un asistente, éste perderá acceso a la plataforma.</span>
-</mat-dialog-content>
+<p class="delete-subtitle">Al eliminar un {{ subjectLabel }}, éste perderá acceso a la plataforma.</p>
 
-<mat-dialog-actions class="delete-actions">
+<div class="delete-actions">
   <button mat-stroked-button class="btn-tertiary dialog-btn" [mat-dialog-close]="false">Cancelar</button>
-  <button mat-unelevated-button class="btn-danger dialog-btn" (click)="confirm()">Eliminar asistente</button>
-</mat-dialog-actions>
+  <button mat-unelevated-button class="btn-danger dialog-btn" (click)="confirm()">{{ confirmLabel }}</button>
+</div>

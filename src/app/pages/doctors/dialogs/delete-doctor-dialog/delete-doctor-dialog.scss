@@ -1,14 +1,44 @@
+:host {
+  display: block;
+  background: #FFFFFF;
+  border: 2px solid #0D6E8F;
+  padding: 24px;
+  border-radius: 12px;
+}
+
+::ng-deep .mat-mdc-dialog-surface {
+  background: transparent !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.delete-title {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: 0;
+  vertical-align: middle;
+  margin: 0 0 16px;
+  color: inherit;
+}
+
 .delete-subtitle {
   font-family: Roboto, sans-serif;
   font-weight: 400;
+  font-style: normal;
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.25px;
+  vertical-align: middle;
+  margin: 0 0 20px;
   color: #49454F;
 }
 
 .delete-actions {
   display: flex;
   justify-content: space-between;
-  padding: 10px 16px !important;
+  align-items: center;
+  gap: 8px;
 }

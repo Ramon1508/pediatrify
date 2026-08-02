@@ -12,7 +12,7 @@ import { AppointmentRepository } from '../../core/repositories/appointment.repos
 import { PatientRepository } from '../../core/repositories/patient.repository';
 import { UserRepository } from '../../core/repositories/user.repository';
 import { AuditRepository } from '../../core/repositories/audit.repository';
-import { Appointment, Patient, TimeSegment } from '../../core/models/user';
+import { Appointment, Patient } from '../../core/models/user';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
 import { AppointmentFormDialog } from './dialogs/appointment-form-dialog/appointment-form-dialog';
@@ -171,7 +171,7 @@ export class Appointments implements OnInit {
         patientMotherName: patient.motherName ?? '',
         patientBirthDate: patient.birthDate,
         patientPhone: patient.phone ?? '',
-        doctorId: doctor.firebaseUid ?? doctor.uid,
+        doctorId: doctor.uid,
         doctorName: doctor.name,
         date: finalDate,
         time: finalTime,

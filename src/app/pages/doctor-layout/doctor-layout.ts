@@ -1,7 +1,8 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Header } from '../../shared/components/header/header';
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-doctor-layout',
@@ -16,4 +17,9 @@ import { Sidebar } from '../../shared/components/sidebar/sidebar';
   ],
 })
 export class DoctorLayout {
+  private authService = inject(AuthService);
+
+  protected get showSidebar(): boolean {
+    return this.authService.currentDoctor?.role === 'doctor';
+  }
 }

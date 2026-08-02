@@ -10,6 +10,7 @@ import {
   query,
   where,
   orderBy,
+  getDocs,
   onSnapshot,
 } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
@@ -101,6 +102,16 @@ export class ClinicalRecordRepository {
 
   async delete(id: string): Promise<void> {
     await deleteDoc(this.docRef(id));
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await Promise.all(ids.map((id) => deleteDoc(this.docRef(id))));
+  }
+
+  async getByPatient(patientId: string): Promise<ClinicalRecord[]> {
+    const q = query(this.ref, where('patientId', '==', patientId));
+    const docsSnap = await getDocs(q);
+    return docsSnap.docs.map((d) => d.data() as ClinicalRecord);
   }
 
   watchByPatient(patientId: string): Observable<ClinicalRecord[]> {

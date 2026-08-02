@@ -393,10 +393,12 @@ export class EditPatientDialog {
     const { name, lastName } = this.splitFullName(v.fullName!);
 
     try {
+      const bd = v.birthDate;
+      const birthDate = typeof bd === 'string' ? bd : (bd as unknown as Date)?.toISOString?.().split('T')[0] ?? p.birthDate;
       await this.patientRepo.updatePatient(p.id, {
         name,
         lastName,
-        birthDate: typeof v.birthDate === 'string' ? v.birthDate : p.birthDate,
+        birthDate,
         bloodType: v.bloodType ?? '',
         birthWeight: v.birthWeight ?? 0,
         birthHeight: v.birthHeight ?? 0,

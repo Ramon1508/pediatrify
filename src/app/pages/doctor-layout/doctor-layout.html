@@ -1,7 +1,9 @@
 <app-header />
 
 <div class="layout-body">
-  <app-sidebar />
+  @if (showSidebar) {
+    <app-sidebar />
+  }
   <main class="main-content">
     <router-outlet />
   </main>

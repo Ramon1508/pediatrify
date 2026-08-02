@@ -6,6 +6,7 @@ import { ConfirmOptions } from '../../../core/models/alert';
 @Component({
   selector: 'app-alert-dialog',
   templateUrl: './alert-dialog.html',
+  styleUrl: './alert-dialog.scss',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatDialogModule, MatButtonModule],

@@ -8,7 +8,8 @@ import { AlertService } from '../../../../core/services/alert.service';
 import { AppUser } from '../../../../core/models/user';
 
 describe('EditDoctorDialog', () => {
-  const mockDoctor: AppUser = { uid: 'd1', name: 'Dr. Test', email: 'test@mail.com', role: 'admin', pending: false };
+  const mockDoctor: AppUser = { uid: 'd1', name: 'Dr. Test', email: 'test@mail.com', role: 'doctor', pending: false };
+  const mockAssistant: AppUser = { uid: 'a1', name: 'Asistente', email: 'a@mail.com', role: 'assistant', pending: false };
 
   function createFixture(doctor: AppUser = mockDoctor) {
     const userRepo = { updateUser: vi.fn().mockResolvedValue(undefined) };
@@ -33,8 +34,14 @@ describe('EditDoctorDialog', () => {
     return { fixture, component, userRepo, alertService, dialogRef };
   }
 
-  it('renders title', () => {
+  it('renders title for doctor', () => {
     const { fixture } = createFixture();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Editar doctor');
+  });
+
+  it('renders title for assistant', () => {
+    const { fixture } = createFixture(mockAssistant);
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Editar asistente');
   });

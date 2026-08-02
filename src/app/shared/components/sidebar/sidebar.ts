@@ -25,13 +25,8 @@ export class Sidebar {
     { path: '/app/patients', icon: 'groups', label: 'Pacientes' },
   ];
 
-  get isAdmin(): boolean {
-    return this.authService.currentDoctor?.role === 'admin';
-  }
-
-  get isAdminOrDoctor(): boolean {
-    const role = this.authService.currentDoctor?.role;
-    return role === 'admin' || role === 'doctor';
+  get isDoctor(): boolean {
+    return this.authService.currentDoctor?.role === 'doctor';
   }
 
   logout(): void {

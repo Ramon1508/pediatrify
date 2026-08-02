@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { UserRepository } from '../../core/repositories/user.repository';
 import { AppUser } from '../../core/models/user';
 import { AlertService } from '../../core/services/alert.service';
+import { AuthService } from '../../core/services/auth.service';
 import { InviteDoctorDialog } from './dialogs/invite-doctor-dialog/invite-doctor-dialog';
 import { EditDoctorDialog } from './dialogs/edit-doctor-dialog/edit-doctor-dialog';
 import { DeleteDoctorDialog } from './dialogs/delete-doctor-dialog/delete-doctor-dialog';
@@ -39,11 +40,36 @@ export class Doctors implements OnInit, OnDestroy {
   private userRepo = inject(UserRepository);
   private alert = inject(AlertService);
   private dialog = inject(MatDialog);
+  private authService = inject(AuthService);
 
   protected doctors = signal<AppUser[]>([]);
   protected loading = signal(true);
   protected searchControl = new FormControl('');
   protected searchTerm = signal('');
+
+  protected get isAdmin(): boolean {
+    return this.authService.currentDoctor?.role === 'admin';
+  }
+
+  protected get pageTitle(): string {
+    return this.isAdmin ? 'Doctores' : 'Asistentes';
+  }
+
+  protected get addLabel(): string {
+    return this.isAdmin ? 'Agregar doctor' : 'Agregar asistente';
+  }
+
+  protected get emptyLabel(): string {
+    return this.isAdmin ? 'No has agregado ningún doctor' : 'No has agregado ningún asistente';
+  }
+
+  protected get editLabel(): string {
+    return this.isAdmin ? 'Editar doctor' : 'Editar asistente';
+  }
+
+  protected get deleteLabel(): string {
+    return this.isAdmin ? 'Eliminar doctor' : 'Eliminar asistente';
+  }
 
   protected filteredDoctors = computed(() => {
     const term = this.searchTerm().toLowerCase();
@@ -62,7 +88,13 @@ export class Doctors implements OnInit, OnDestroy {
       })
     );
     this.userRepo.watchAllUsers().subscribe((users) => {
-      this.doctors.set(users.filter(u => u.role === 'assistant'));
+      const current = this.authService.currentDoctor;
+      const isAdmin = current?.role === 'admin';
+      this.doctors.set(
+        isAdmin
+          ? users.filter(u => u.role === 'doctor')
+          : users.filter(u => u.role === 'assistant' && u.createdBy === current?.uid)
+      );
       this.loading.set(false);
     });
   }

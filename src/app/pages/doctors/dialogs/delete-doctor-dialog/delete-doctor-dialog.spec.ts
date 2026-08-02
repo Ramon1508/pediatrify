@@ -33,7 +33,7 @@ describe('DeleteDoctorDialog', () => {
   it('renders title and description', () => {
     const { fixture } = createFixture();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Eliminar asistente');
+    expect(el.textContent).toContain('Eliminar doctor');
   });
 
   it('shows cancel and confirm buttons', () => {
@@ -41,14 +41,14 @@ describe('DeleteDoctorDialog', () => {
     const btns = fixture.nativeElement.querySelectorAll('button');
     const texts = Array.from(btns).map((b: any) => b.textContent.trim());
     expect(texts).toContain('Cancelar');
-    expect(texts).toContain('Eliminar asistente');
+    expect(texts).toContain('Eliminar doctor');
   });
 
   it('calls deleteUser and closes with true on confirm', async () => {
     const { component, userRepo, alertService, dialogRef } = createFixture();
     await component.confirm();
     expect(userRepo.deleteUser).toHaveBeenCalledWith('d1');
-    expect(alertService.success).toHaveBeenCalledWith({ message: 'Asistente eliminado', duration: 3000 });
+    expect(alertService.success).toHaveBeenCalledWith({ message: 'Doctor eliminado', duration: 3000 });
     expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 
@@ -56,7 +56,7 @@ describe('DeleteDoctorDialog', () => {
     const { component, userRepo, alertService } = createFixture();
     userRepo.deleteUser.mockRejectedValue(new Error('fail'));
     await component.confirm();
-    expect(alertService.error).toHaveBeenCalledWith({ message: 'Error al eliminar asistente' });
+    expect(alertService.error).toHaveBeenCalledWith({ message: 'Error al eliminar doctor' });
   });
 
   it('closes with false on close()', () => {

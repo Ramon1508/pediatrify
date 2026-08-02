@@ -1,9 +1,9 @@
 <div class="doctors-container">
   <div class="header-actions">
-    <span class="page-title">Asistentes</span>
+    <span class="page-title">{{ pageTitle }}</span>
     <button mat-unelevated-button class="btn-primary" (click)="openNewDoctor()">
       <mat-icon>add</mat-icon>
-      Agregar asistente
+      {{ addLabel }}
     </button>
   </div>
 
@@ -14,10 +14,10 @@
   @if (doctors().length === 0 && !loading()) {
     <div class="empty-state-wrapper">
       <div class="empty-state-content">
-        <span class="empty-text">No has agregado ningún asistente</span>
+        <span class="empty-text">{{ emptyLabel }}</span>
         <button mat-unelevated-button class="btn-primary" (click)="openNewDoctor()">
           <mat-icon>add</mat-icon>
-          Agregar asistente
+          {{ addLabel }}
         </button>
       </div>
     </div>
@@ -39,7 +39,7 @@
             <mat-menu #doctorMenu="matMenu">
               <button mat-menu-item (click)="openEditDoctor(doctor)">
                 <mat-icon>edit</mat-icon>
-                <span>Editar asistente</span>
+                <span>{{ editLabel }}</span>
               </button>
               @if (!doctor.profileComplete) {
                 <button mat-menu-item (click)="resendInvitation(doctor)">
@@ -49,7 +49,7 @@
               }
               <button mat-menu-item (click)="deleteDoctor(doctor)">
                 <mat-icon>delete</mat-icon>
-                <span>Eliminar asistente</span>
+                <span>{{ deleteLabel }}</span>
               </button>
             </mat-menu>
           </div>

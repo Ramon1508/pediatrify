@@ -6,6 +6,12 @@
   border-radius: 12px;
 }
 
+::ng-deep .mat-mdc-dialog-surface {
+  background: transparent !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
 .confirm-title {
   font-family: Roboto, sans-serif;
   font-weight: 400;

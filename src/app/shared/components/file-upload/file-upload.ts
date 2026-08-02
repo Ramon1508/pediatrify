@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, output, signal, effect, ChangeDetectionStrategy } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { FirebaseService } from '../../../core/firebase/firebase.service';
@@ -25,12 +25,24 @@ export class FileUpload {
   accept = input('.png,.jpg');
   maxSize = input(200 * 1024);
   id = input<string | null>(null);
+  initialPreview = input('');
+  initialFileName = input('');
 
   uploaded = output<UploadResult | null>();
 
   protected preview = signal<string | null>(null);
   protected uploading = signal(false);
   protected fileName = signal('');
+
+  constructor() {
+    effect(() => {
+      const url = this.initialPreview();
+      if (url) {
+        this.preview.set(url);
+        this.fileName.set(this.initialFileName());
+      }
+    });
+  }
 
   onFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;

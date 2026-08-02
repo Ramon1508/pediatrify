@@ -124,6 +124,8 @@ export class Calendar implements OnInit, OnDestroy {
   }
 
   protected openSettingsDialog() {
+    const doctor = this.authService.currentDoctor;
+    const isAssistant = doctor?.role === 'assistant';
     const selectedDoctor = this.allDoctors.find(d => d.uid === this.selectedDoctorId());
     const data: SettingsData = {
       consultationDuration: this.settingsForm.value.consultationDuration ?? 30,
@@ -131,7 +133,7 @@ export class Calendar implements OnInit, OnDestroy {
       timeSegments: (this.settingsForm.value.timeSegments ?? []) as TimeSegment[],
       availableDays: this.availableDaysSignal(),
       doctorId: this.selectedDoctorId(),
-      doctorEmail: selectedDoctor?.email ?? this.authService.currentDoctor?.email,
+      doctorEmail: selectedDoctor?.email ?? (isAssistant ? undefined : doctor?.email),
     };
     const dialogRef = this.dialog.open(SettingsDialog, {
       width: '400px',
@@ -288,7 +290,6 @@ export class Calendar implements OnInit, OnDestroy {
 
   private async loadDoctorData(doctorId: string) {
     const user = await this.userRepo.getUser(doctorId);
-    const appointmentDoctorId = user?.firebaseUid ?? doctorId;
     const email = user?.email ?? '';
 
     if (this.appointmentSub) {
@@ -296,7 +297,7 @@ export class Calendar implements OnInit, OnDestroy {
       this.appointmentSub = null;
     }
 
-    const byDoctor = this.appointmentRepo.watchAppointmentsByDoctor(appointmentDoctorId);
+    const byDoctor = this.appointmentRepo.watchAppointmentsByDoctor(doctorId);
     const byEmail = email
       ? this.appointmentRepo.watchAppointmentsByUpdatedBy(email)
       : byDoctor;
@@ -340,7 +341,10 @@ export class Calendar implements OnInit, OnDestroy {
     if (!doctor) return;
 
     this.isAdmin = doctor.role === 'admin';
-    this.selectedDoctorId.set(doctor.uid);
+
+    const isAssistant = doctor.role === 'assistant';
+    const doctorId = isAssistant ? ((doctor as any).createdBy || doctor.uid) : doctor.uid;
+    this.selectedDoctorId.set(doctorId);
 
     this.allPatients = await this.patientRepo.getAllPatients();
     this.cdr.markForCheck();
@@ -352,7 +356,7 @@ export class Calendar implements OnInit, OnDestroy {
       });
     }
 
-    this.loadDoctorData(doctor.uid);
+    this.loadDoctorData(doctorId);
   }
 
   private scrollToCurrentHour() {

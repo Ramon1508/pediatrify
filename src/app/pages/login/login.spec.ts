@@ -99,13 +99,26 @@ describe('Login', () => {
     (component as any).loginForm.setValue({ email: 'doc@test.com', password: '123456' });
     (authService.loginDoctor as any).mockResolvedValue({} as any);
     Object.defineProperty(authService, 'currentDoctor', {
-      get: () => ({ profileComplete: true }) as any,
+      get: () => ({ profileComplete: true, role: 'doctor' }) as any,
       configurable: true,
     });
 
     await (component as any).onSubmit();
 
     expect(router.navigate).toHaveBeenCalledWith(['/app/calendar']);
+  });
+
+  it('navigates to /app/doctors for admin on successful login', async () => {
+    (component as any).loginForm.setValue({ email: 'admin@test.com', password: '123456' });
+    (authService.loginDoctor as any).mockResolvedValue({} as any);
+    Object.defineProperty(authService, 'currentDoctor', {
+      get: () => ({ profileComplete: true, role: 'admin' }) as any,
+      configurable: true,
+    });
+
+    await (component as any).onSubmit();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/app/doctors']);
   });
 
   it('shows error on auth failure', async () => {

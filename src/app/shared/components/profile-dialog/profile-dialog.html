@@ -1,0 +1,151 @@
+<div class="profile-content">
+  <div class="profile-header">
+    <h1 class="profile-title">Perfil</h1>
+    <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="profile-body">
+    <form [formGroup]="form">
+      @if (readOnly && isSimpleProfile) {
+        <div class="profile-field">
+          <span class="field-label">{{ roleDisplay }}</span>
+          <span class="field-value">{{ doctor?.name }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="field-label">Correo electrónico</span>
+          <span class="field-value">{{ doctor?.email }}</span>
+        </div>
+      } @else if (readOnly) {
+        <div class="profile-field">
+          <span class="field-label">Doctor(a)</span>
+          <span class="field-value">{{ doctor?.name }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="field-label">Sexo</span>
+          <span class="field-value">{{ doctor?.sexo ? SexoLabel[doctor!.sexo!] : '' }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="field-label">Teléfono</span>
+          <span class="field-value">{{ doctor?.phone }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="field-label">Especialidad</span>
+          <span class="field-value">{{ doctor?.especialidad }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="field-label">Cédula profesional</span>
+          <span class="field-value">{{ doctor?.cedula }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="field-label">Cédula de especialidad</span>
+          <span class="field-value">{{ doctor?.cedulaEspecialidad }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="field-label">Correo electrónico</span>
+          <span class="field-value">{{ doctor?.email }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="field-label">Consultorio</span>
+          <span class="field-value consultorio-value">{{ doctor?.consultorios }}</span>
+        </div>
+        @if (logoFileName) {
+          <div class="profile-field">
+            <span class="field-label">Logotipo</span>
+            <a class="field-value logo-link" [href]="logoUrl" target="_blank" rel="noopener">{{ logoFileName }}</a>
+          </div>
+        }
+      } @else {
+        <mat-form-field appearance="outline" class="profile-form-field">
+          <mat-label>Doctor(a)</mat-label>
+          <input matInput formControlName="name" />
+          @if (form.get('name')?.invalid && form.get('name')?.touched) {
+            <mat-error>Ingresa el nombre del doctor</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="profile-form-field">
+          <mat-label>Sexo</mat-label>
+          <mat-select formControlName="sexo">
+            @for (entry of SexoLabel | keyvalue; track entry.key) {
+              <mat-option [value]="entry.key">{{ entry.value }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="profile-form-field">
+          <mat-label>Teléfono</mat-label>
+          <input matInput formControlName="phone" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="profile-form-field">
+          <mat-label>Especialidad</mat-label>
+          <input matInput formControlName="especialidad" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="profile-form-field">
+          <mat-label>Cédula profesional</mat-label>
+          <input matInput formControlName="cedula" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="profile-form-field">
+          <mat-label>Cédula de especialidad</mat-label>
+          <input matInput formControlName="cedulaEspecialidad" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="profile-form-field">
+          <mat-label>Correo electrónico</mat-label>
+          <input matInput formControlName="email" readonly />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="profile-form-field">
+          <mat-label>Consultorio</mat-label>
+          <textarea matInput formControlName="consultorios" cdkTextareaAutosize cdkAutosizeMinRows="2" cdkAutosizeMaxRows="6"></textarea>
+        </mat-form-field>
+
+        <div class="profile-field">
+          <span class="field-label">Logotipo</span>
+          <app-file-upload (uploaded)="onLogoUploaded($event)" [id]="doctor?.uid ?? null" label="Subir archivo" [initialPreview]="logoUrl" [initialFileName]="logoFileName" />
+        </div>
+      }
+    </form>
+  </div>
+
+  <div class="profile-footer">
+    @if (showSaved) {
+      <div class="saved-snackbar">
+        <span>Cambios guardados.</span>
+        <button mat-icon-button class="saved-close" (click)="dismissSaved()" aria-label="Cerrar">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    }
+    <mat-divider />
+    <div class="footer-actions">
+      @if (isSimpleProfile) {
+        <button mat-unelevated-button class="btn-primary profile-btn" (click)="logout()">
+          Cerrar sesión
+        </button>
+      } @else if (readOnly) {
+        <button mat-stroked-button class="btn-secondary profile-btn" (click)="switchToEdit()">
+          Editar perfil
+        </button>
+        <button mat-unelevated-button class="btn-primary profile-btn" (click)="logout()">
+          Cerrar sesión
+        </button>
+      } @else {
+        <button mat-stroked-button class="btn-secondary profile-btn" (click)="cancelEdit()">
+          Cancelar
+        </button>
+        <button mat-unelevated-button class="btn-primary profile-btn" (click)="save()" [disabled]="saving">
+          @if (saving) {
+            <mat-spinner diameter="18" />
+          } @else {
+            Guardar cambios
+          }
+        </button>
+      }
+    </div>
+  </div>
+</div>

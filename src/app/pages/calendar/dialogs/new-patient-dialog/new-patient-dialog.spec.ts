@@ -6,6 +6,8 @@ import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { NewPatientDialog } from './new-patient-dialog';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { EmailService } from '../../../../core/services/email.service';
 import { Patient } from '../../../../core/models/user';
 
 describe('NewPatientDialog', () => {
@@ -19,6 +21,8 @@ describe('NewPatientDialog', () => {
     };
     const alertService = { success: vi.fn(), error: vi.fn() };
     const dialogRef = { close: vi.fn() };
+    const authService = { currentDoctor: { uid: 'd1', role: 'doctor' } };
+    const emailService = { sendPatientAccessEmail: vi.fn().mockResolvedValue(undefined) };
 
     TestBed.configureTestingModule({
       imports: [NewPatientDialog, NoopAnimationsModule],
@@ -27,6 +31,8 @@ describe('NewPatientDialog', () => {
         { provide: MAT_DATE_LOCALE, useValue: 'es-MX' },
         { provide: PatientRepository, useValue: patientRepo },
         { provide: AlertService, useValue: alertService },
+        { provide: AuthService, useValue: authService },
+        { provide: EmailService, useValue: emailService },
         { provide: MatDialogRef, useValue: dialogRef },
       ],
     });
@@ -36,7 +42,7 @@ describe('NewPatientDialog', () => {
     component.setPatients(patients);
     if (editData) component.setEditData(editData);
     fixture.detectChanges();
-    return { fixture, component, patientRepo, alertService, dialogRef };
+    return { fixture, component, patientRepo, alertService, dialogRef, emailService };
   }
 
   it('renders form fields', () => {
@@ -54,19 +60,31 @@ describe('NewPatientDialog', () => {
   });
 
   it('calls createPatient on save for new patient', async () => {
-    const { component, patientRepo, dialogRef, alertService } = createFixture();
+    const { component, patientRepo, dialogRef, alertService, emailService } = createFixture();
     component.form.setValue({
       fullName: 'Ana López', birthDate: '2020-01-01',
       email: 'ana@mail.com', secondaryEmail: '', fatherName: 'Luis', motherName: 'María', phone: '5555555555',
     });
     await component.save();
     expect(patientRepo.createPatient).toHaveBeenCalled();
+    expect(emailService.sendPatientAccessEmail).toHaveBeenCalledWith(expect.objectContaining({ email: 'ana@mail.com' }));
     expect(alertService.success).toHaveBeenCalled();
     expect(dialogRef.close).toHaveBeenCalled();
   });
 
-  it('shows alert on duplicate email', async () => {
-    const existingPatient: Patient = { ...basePatient, birthDate: '2020-01-01', fatherName: 'Luis', motherName: 'María', phone: '5555555555' };
+  it('does not send access email when creating fails', async () => {
+    const { component, patientRepo, emailService } = createFixture();
+    component.form.setValue({
+      fullName: 'Ana López', birthDate: '2020-01-01',
+      email: 'ana@mail.com', secondaryEmail: '', fatherName: 'Luis', motherName: 'María', phone: '5555555555',
+    });
+    (patientRepo.createPatient as any).mockRejectedValue(new Error('boom'));
+    await component.save();
+    expect(emailService.sendPatientAccessEmail).not.toHaveBeenCalled();
+  });
+
+  it('shows alert on duplicate email within same doctor', async () => {
+    const existingPatient: Patient = { ...basePatient, doctorId: 'd1', birthDate: '2020-01-01', fatherName: 'Luis', motherName: 'María', phone: '5555555555' };
     const { component } = createFixture([existingPatient]);
     component.form.setValue({
       fullName: 'Ana López', birthDate: '2020-01-01',
@@ -74,6 +92,18 @@ describe('NewPatientDialog', () => {
     });
     await component.save();
     expect(component.alertMsg).toContain('correos electrónicos');
+  });
+
+  it('does not alert when duplicate email belongs to another doctor', async () => {
+    const otherDoctorPatient: Patient = { ...basePatient, doctorId: 'd2', birthDate: '2020-01-01', fatherName: 'Luis', motherName: 'María', phone: '5555555555' };
+    const { component, patientRepo } = createFixture([otherDoctorPatient]);
+    component.form.setValue({
+      fullName: 'Ana López', birthDate: '2020-01-01',
+      email: 'juan@mail.com', secondaryEmail: '', fatherName: 'Luis', motherName: 'María', phone: '5555555555',
+    });
+    await component.save();
+    expect(component.alertMsg).toBe('');
+    expect(patientRepo.createPatient).toHaveBeenCalled();
   });
 
   it('pre-fills form with edit data', () => {

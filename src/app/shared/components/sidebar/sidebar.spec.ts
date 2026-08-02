@@ -40,43 +40,40 @@ describe('Sidebar', () => {
     expect(el.textContent).toContain('Pacientes');
   });
 
-  it('shows admin items when user is admin', () => {
-    Object.defineProperty(authService, 'currentDoctor', {
-      get: () => ({ role: 'admin' }) as any,
-      configurable: true,
-    });
-    fixture.detectChanges();
-
-    expect(component.isAdmin).toBe(true);
-    expect(component.isAdminOrDoctor).toBe(true);
-    expect(fixture.nativeElement.textContent).toContain('Asistentes');
-    expect(fixture.nativeElement.textContent).toContain('Impresión');
-    expect(fixture.nativeElement.textContent).toContain('Bitácora');
-  });
-
-  it('shows doctor items for doctor role', () => {
+  it('shows Asistentes and Impresión for doctor role', () => {
     Object.defineProperty(authService, 'currentDoctor', {
       get: () => ({ role: 'doctor' }) as any,
       configurable: true,
     });
     fixture.detectChanges();
 
-    expect(component.isAdmin).toBe(false);
-    expect(component.isAdminOrDoctor).toBe(true);
-    expect(fixture.nativeElement.textContent).not.toContain('Asistentes');
+    expect(component.isDoctor).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Asistentes');
     expect(fixture.nativeElement.textContent).toContain('Impresión');
     expect(fixture.nativeElement.textContent).not.toContain('Bitácora');
   });
 
-  it('hides admin/doctor items for assistant role', () => {
+  it('hides Asistentes/Impresión/Bitácora for admin role', () => {
+    Object.defineProperty(authService, 'currentDoctor', {
+      get: () => ({ role: 'admin' }) as any,
+      configurable: true,
+    });
+    fixture.detectChanges();
+
+    expect(component.isDoctor).toBe(false);
+    expect(fixture.nativeElement.textContent).not.toContain('Asistentes');
+    expect(fixture.nativeElement.textContent).not.toContain('Impresión');
+    expect(fixture.nativeElement.textContent).not.toContain('Bitácora');
+  });
+
+  it('hides Asistentes/Impresión/Bitácora for assistant role', () => {
     Object.defineProperty(authService, 'currentDoctor', {
       get: () => ({ role: 'assistant' }) as any,
       configurable: true,
     });
     fixture.detectChanges();
 
-    expect(component.isAdmin).toBe(false);
-    expect(component.isAdminOrDoctor).toBe(false);
+    expect(component.isDoctor).toBe(false);
     expect(fixture.nativeElement.textContent).not.toContain('Asistentes');
     expect(fixture.nativeElement.textContent).not.toContain('Impresión');
     expect(fixture.nativeElement.textContent).not.toContain('Bitácora');

@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { sendPasswordResetEmail, confirmPasswordReset } from 'firebase/auth';
+import { confirmPasswordReset } from 'firebase/auth';
 import { NgOptimizedImage } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -105,26 +105,17 @@ export class ResetPassword implements OnInit {
     this.loading.set(true);
 
     try {
-      // Cuando el dominio esté configurado, cambiar esta condición para usar el SDK de Firebase directamente:
-      if (false) {
-        const url =
-          'https://us-central1-lilcare-afdf5.cloudfunctions.net/sendCustomPasswordResetEmail';
+      const url =
+        'https://us-central1-lilcare-afdf5.cloudfunctions.net/sendCustomPasswordResetEmail';
 
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: { email } }),
-        });
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { email } }),
+      });
 
-        const result = await response.json();
-        if (result.error) throw new Error(result.error.message);
-      } else {
-        const actionCodeSettings = {
-          url: `${window.location.origin}/reset-password`,
-          handleCodeInApp: true,
-        };
-        await sendPasswordResetEmail(this.firebase.auth, email, actionCodeSettings);
-      }
+      const result = await response.json();
+      if (result.error) throw new Error(result.error.message);
 
       this.alert.success({
         message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.',
@@ -133,24 +124,10 @@ export class ResetPassword implements OnInit {
       this.requestForm.reset();
       this.submitted.set(false);
     } catch (e: any) {
-      if (false) {
-        this.alert.error({
-          message: e.message || 'Error al enviar correo de recuperación',
-          duration: 5000,
-        });
-      } else {
-        if (e.code === 'auth/user-not-found') {
-          this.alert.error({
-            message: 'No se encontró una cuenta con este correo electrónico',
-            duration: 5000,
-          });
-        } else {
-          this.alert.error({
-            message: e.message || 'Error al enviar correo de recuperación',
-            duration: 5000,
-          });
-        }
-      }
+      this.alert.error({
+        message: e.message || 'Error al enviar correo de recuperación',
+        duration: e.message?.includes('límite') ? 15000 : 5000,
+      });
     } finally {
       this.loading.set(false);
     }

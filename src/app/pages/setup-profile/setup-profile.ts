@@ -48,6 +48,7 @@ export class SetupProfile implements OnInit {
   protected pendingRole: UserRole = 'assistant';
   protected displayName = signal('');
   protected displayEmail = signal('');
+  protected isNonDoctor = signal(false);
 
   protected readonly sexoOptions: { value: Sexo; label: string }[] = [
     { value: Sexo.Masculino, label: 'Masculino' },
@@ -90,6 +91,17 @@ export class SetupProfile implements OnInit {
           this.pendingRole = pending.role;
           this.displayName.set(pending.name);
           this.displayEmail.set(pending.email);
+          if (pending.role === 'assistant' || pending.role === 'admin') {
+            this.isNonDoctor.set(true);
+            this.form.get('sexo')?.clearValidators();
+            this.form.get('phone')?.clearValidators();
+            this.form.get('cedula')?.clearValidators();
+            this.form.get('consultorios')?.clearValidators();
+            this.form.get('sexo')?.updateValueAndValidity();
+            this.form.get('phone')?.updateValueAndValidity();
+            this.form.get('cedula')?.updateValueAndValidity();
+            this.form.get('consultorios')?.updateValueAndValidity();
+          }
           return;
         }
       }
@@ -99,6 +111,17 @@ export class SetupProfile implements OnInit {
         this.mode.set('existing');
         this.displayName.set(doctor.name);
         this.displayEmail.set(doctor.email);
+        if (doctor.role === 'admin' || doctor.role === 'assistant') {
+          this.isNonDoctor.set(true);
+          this.form.get('sexo')?.clearValidators();
+          this.form.get('phone')?.clearValidators();
+          this.form.get('cedula')?.clearValidators();
+          this.form.get('consultorios')?.clearValidators();
+          this.form.get('sexo')?.updateValueAndValidity();
+          this.form.get('phone')?.updateValueAndValidity();
+          this.form.get('cedula')?.updateValueAndValidity();
+          this.form.get('consultorios')?.updateValueAndValidity();
+        }
         return;
       }
 
@@ -147,14 +170,14 @@ export class SetupProfile implements OnInit {
           password,
           {
             name: this.displayName(),
-            sexo: fv.sexo!,
-            phone: fv.phone!,
-            especialidad: fv.especialidad ?? '',
-            cedula: fv.cedula!,
-            cedulaEspecialidad: fv.cedulaEspecialidad ?? '',
-            consultorios: fv.consultorios!,
-            logoPath: this.logoPath() || undefined,
             role: this.pendingRole,
+            sexo: this.isNonDoctor() ? Sexo.Otro : (fv.sexo ?? Sexo.Otro),
+            phone: this.isNonDoctor() ? '' : (fv.phone ?? ''),
+            especialidad: this.isNonDoctor() ? '' : (fv.especialidad ?? ''),
+            cedula: this.isNonDoctor() ? '' : (fv.cedula ?? ''),
+            cedulaEspecialidad: this.isNonDoctor() ? '' : (fv.cedulaEspecialidad ?? ''),
+            consultorios: this.isNonDoctor() ? '' : (fv.consultorios ?? ''),
+            logoPath: this.logoPath() || undefined,
           },
           this.pendingUid
         );
@@ -162,12 +185,12 @@ export class SetupProfile implements OnInit {
         await this.authService.completeProfile(
           {
             name: this.displayName(),
-            sexo: fv.sexo!,
-            phone: fv.phone!,
-            especialidad: fv.especialidad ?? '',
-            cedula: fv.cedula!,
-            cedulaEspecialidad: fv.cedulaEspecialidad ?? '',
-            consultorios: fv.consultorios!,
+            sexo: this.isNonDoctor() ? Sexo.Otro : fv.sexo!,
+            phone: this.isNonDoctor() ? '' : (fv.phone ?? ''),
+            especialidad: this.isNonDoctor() ? '' : (fv.especialidad ?? ''),
+            cedula: this.isNonDoctor() ? '' : (fv.cedula!),
+            cedulaEspecialidad: this.isNonDoctor() ? '' : (fv.cedulaEspecialidad ?? ''),
+            consultorios: this.isNonDoctor() ? '' : (fv.consultorios ?? ''),
             logoPath: this.logoPath() || undefined,
           },
           password

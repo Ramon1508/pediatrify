@@ -54,6 +54,22 @@ export class AppointmentRepository {
     await deleteDoc(this.docRef(id));
   }
 
+  async deleteAppointments(ids: string[]): Promise<void> {
+    await Promise.all(ids.map((id) => deleteDoc(this.docRef(id))));
+  }
+
+  async getByPatient(patientId: string): Promise<Appointment[]> {
+    const q = query(this.appointmentRef, where('patientId', '==', patientId));
+    const docsSnap = await getDocs(q);
+    return docsSnap.docs.map((d) => d.data() as Appointment);
+  }
+
+  async getAllByDoctor(doctorId: string): Promise<Appointment[]> {
+    const q = query(this.appointmentRef, where('doctorId', '==', doctorId));
+    const docsSnap = await getDocs(q);
+    return docsSnap.docs.map((d) => d.data() as Appointment);
+  }
+
   async getAllAppointments(): Promise<Appointment[]> {
     const docsSnap = await getDocs(this.appointmentRef);
     return docsSnap.docs.map((d) => d.data() as Appointment);
@@ -67,6 +83,15 @@ export class AppointmentRepository {
     );
     const docsSnap = await getDocs(q);
     return docsSnap.docs.map((d) => d.data() as Appointment);
+  }
+
+  watchOneAppointment(id: string): Observable<Appointment | null> {
+    return new Observable((subscriber) => {
+      const unsubscribe = onSnapshot(this.docRef(id), (snapshot) => {
+        subscriber.next(snapshot.exists() ? (snapshot.data() as Appointment) : null);
+      });
+      return { unsubscribe };
+    });
   }
 
   watchAllAppointments(): Observable<Appointment[]> {
@@ -85,12 +110,19 @@ export class AppointmentRepository {
       const q = query(
         this.appointmentRef,
         where('doctorId', '==', doctorId),
-        where('disabled', '==', false),
       );
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const items = snapshot.docs.map((doc) => doc.data() as Appointment);
-        subscriber.next(items);
-      });
+      const unsubscribe = onSnapshot(q,
+        (snapshot) => {
+          const items = snapshot.docs
+            .map((doc) => doc.data() as Appointment)
+            .filter((a) => a.disabled !== true);
+          subscriber.next(items);
+        },
+        (error) => {
+          console.error('watchAppointmentsByDoctor error:', error);
+          subscriber.error(error);
+        },
+      );
       return { unsubscribe };
     });
   }

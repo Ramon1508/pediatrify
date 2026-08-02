@@ -1,5 +1,5 @@
 <div class="dialog-title-container">
-  <h2 class="dialog-title">Editar asistente</h2>
+  <h2 class="dialog-title">{{ title }}</h2>
   <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
     <mat-icon>close</mat-icon>
   </button>
@@ -25,7 +25,7 @@
 
     @if (showPasswordSection) {
       <div class="password-section">
-        <span class="password-hint">Al cambiar el correo, ingresa una nueva contraseña para el asistente.</span>
+        <span class="password-hint">Al cambiar el correo, ingresa una nueva contraseña para el {{ subjectLabel }}.</span>
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Nueva contraseña</mat-label>
           <input matInput type="password" formControlName="newPassword" />

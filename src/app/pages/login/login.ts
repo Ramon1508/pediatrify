@@ -62,7 +62,7 @@ export class Login implements OnInit {
       await this.authService.loginDoctor(email!, password!);
       const doctor = this.authService.currentDoctor;
       if (doctor?.profileComplete) {
-        this.router.navigate(['/app/calendar']);
+        this.router.navigate([doctor.role === 'admin' ? '/app/doctors' : '/app/calendar']);
       }
     } catch (e: any) {
       if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {

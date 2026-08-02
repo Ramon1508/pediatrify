@@ -11,12 +11,15 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatRadioModule } from '@angular/material/radio';
 import { PatientRepository } from '../../core/repositories/patient.repository';
 import { ClinicalRecordRepository } from '../../core/repositories/clinical-record.repository';
-import { AppointmentRepository } from '../../core/repositories/appointment.repository';
-import { AuditRepository } from '../../core/repositories/audit.repository';
 import { Patient } from '../../core/models/user';
 import { ClinicalRecord } from '../../core/models/clinical-record';
+import { Sexo } from '../../core/models/sexo';
+import { getDefaultSettings, getPaperDimensions } from '../../core/models/print-settings';
+import { PrintSettingsRepository } from '../../core/repositories/print-settings.repository';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
+import { PatientStore } from '../../core/store/patient.store';
+import { CascadeService } from '../../core/services/cascade.service';
 import { AppointmentFormDialog } from '../appointments/dialogs/appointment-form-dialog/appointment-form-dialog';
 import { EditPatientDialog } from '../patients/dialogs/edit-patient-dialog/edit-patient-dialog';
 import { CompleteProfileDialog } from '../patients/dialogs/complete-profile-dialog/complete-profile-dialog';
@@ -88,14 +91,19 @@ export class PatientHistory implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private dialog = inject(MatDialog);
   private patientRepo = inject(PatientRepository);
-  private appointmentRepo = inject(AppointmentRepository);
   private clinicalRepo = inject(ClinicalRecordRepository);
-  private auditRepo = inject(AuditRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
   private sanitizer = inject(DomSanitizer);
+  private patientStore = inject(PatientStore);
+  private printRepo = inject(PrintSettingsRepository);
+  private cascade = inject(CascadeService);
 
-  protected patient = signal<(Patient & { ageDisplay: string }) | null>(null);
+  private patientId = '';
+  protected patient = computed<(Patient & { ageDisplay: string }) | null>(() => {
+    const p = this.patientStore.watchOne(this.patientId)();
+    return p ? { ...p, ageDisplay: calcAge(p.birthDate) } : null;
+  });
   protected records = signal<ClinicalRecord[]>([]);
   protected sortedRecords = computed(() =>
     [...this.records()].sort((a, b) => b.date.localeCompare(a.date))
@@ -129,11 +137,11 @@ export class PatientHistory implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.isAdmin.set(this.authService.currentDoctor?.role === 'admin');
-    const patientId = this.route.snapshot.paramMap.get('patientId');
-    if (!patientId) return;
+    this.patientId = this.route.snapshot.paramMap.get('patientId') ?? '';
+    if (!this.patientId) return;
 
     this.subs.push(
-      this.clinicalRepo.watchByPatient(patientId).subscribe((items) => {
+      this.clinicalRepo.watchByPatient(this.patientId).subscribe((items) => {
         const prevCount = this.records().length;
         const sorted = [...items].sort((a, b) => b.date.localeCompare(a.date));
         this.records.set(sorted);
@@ -148,16 +156,7 @@ export class PatientHistory implements OnInit, OnDestroy {
       })
     );
 
-    try {
-      const p = await this.patientRepo.getPatient(patientId);
-      if (p) {
-        this.patient.set({ ...p, ageDisplay: calcAge(p.birthDate) });
-      }
-    } catch {
-      this.alert.error({ message: 'Error al cargar datos del paciente', duration: 5000 });
-    } finally {
-      this.loading.set(false);
-    }
+    this.loading.set(false);
   }
 
   private computeRowEnds() {
@@ -188,12 +187,140 @@ export class PatientHistory implements OnInit, OnDestroy {
   ngOnDestroy() {
     for (const s of this.subs) s.unsubscribe();
     this.resizeObserver?.disconnect();
+    if (this.patientId) this.patientStore.unwatchOne(this.patientId);
   }
 
   protected getAgeAtRecord(record: ClinicalRecord): string {
     const p = this.patient();
     if (!p) return '';
     return calcAgeAtDate(p.birthDate, record.date);
+  }
+
+  protected async printSection(type: 'recommendations' | 'prescription') {
+    const record = this.selectedRecord();
+    const p = this.patient();
+    if (!record || !p) return;
+
+    const content = type === 'recommendations' ? record.recommendations : record.prescription;
+    if (!content) return;
+
+    const sectionLabel = type === 'recommendations' ? 'RECOMENDACIONES' : 'RECETA';
+    const sectionTitle = type === 'recommendations' ? 'Recomendaciones' : 'Receta';
+
+    const doctor = this.authService.currentDoctor;
+    if (!doctor) return;
+
+    const settings = await this.printRepo.getSettings(doctor.uid);
+    const dim = getPaperDimensions(settings.paperSize, settings.customWidth, settings.customHeight);
+    const logoUrl = settings.usePreloadedLogo
+      ? (doctor.logoPath || '/images/Logo.jpg')
+      : (settings.logoUrl || doctor.logoPath || '/images/Logo.jpg');
+    const prefix = doctor.sexo === Sexo.Femenino ? 'DRA.' : 'DR.';
+
+    const patientAge = calcAge(p.birthDate);
+
+    const dateStr = record.date
+      ? new Date(record.date + 'T12:00:00').toLocaleDateString('es-MX')
+      : '';
+
+    const marginTop = settings.marginTop;
+    const marginRight = settings.marginRight;
+    const marginBottom = settings.marginBottom;
+    const marginLeft = settings.marginLeft;
+
+    const w = window.open('', '_blank');
+    if (!w) return;
+
+    w.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${sectionTitle} — ${p.name} ${p.lastName}</title>
+  <style>
+    @page {
+      size: ${dim.width}cm ${dim.height}cm;
+      margin: 0;
+    }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { margin: 0; padding: 0; font-family: Roboto, sans-serif; color: #000; }
+    .page {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      padding: ${marginTop}cm ${marginRight}cm ${marginBottom}cm ${marginLeft}cm;
+    }
+    .top-section { position: relative; min-height: 1.1cm; }
+    .logo {
+      position: absolute; top: 0; left: ${settings.logoPosition === 'top-right' ? 'auto' : '0'};
+      right: ${settings.logoPosition === 'top-right' ? '0' : 'auto'}; z-index: 1;
+      width: ${settings.logoWidth}cm;
+    }
+    .logo img { display: block; width: 100%; max-width: 100%; max-height: 2.5cm; height: auto; object-fit: contain; }
+    .doctor-info { color: #333; text-align: center; font-size: ${12}pt; line-height: 1.25; }
+    .doctor-info .doctor-name { margin-bottom: 0.1cm; font-size: ${16}pt; font-weight: 500; letter-spacing: 0.15px; }
+    .doctor-info .field { margin-bottom: 0.04cm; font-weight: 500; letter-spacing: 0.5px; }
+    .gap-large { height: 0.65cm; }
+    .gap-medium { height: 0.28cm; }
+    .body-text { clear: both; color: #444; font-size: ${12}pt; font-weight: 500; line-height: 1.3; letter-spacing: 0.15px; }
+    .patient-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.16cm 0.45cm; text-align: left; }
+    .patient-row span { min-width: 0; overflow-wrap: anywhere; }
+    .divider { clear: both; margin: 0.24cm 0 0; border-top: 1px solid #000; }
+    .body-content { padding-top: 0.28cm; }
+    .section-label { margin: 0 0 0.16cm; color: #000; font-size: ${12}pt; font-weight: 700; line-height: 1.25; letter-spacing: 0; text-transform: uppercase; }
+    .rich-content { margin: 0; padding: 0; color: #000; font-size: ${11}pt; font-weight: 400; line-height: 1.45; overflow-wrap: anywhere; }
+    .rich-content p, .rich-content ul, .rich-content ol, .rich-content blockquote, .rich-content pre, .rich-content h1, .rich-content h2, .rich-content h3 { margin-top: 0; margin-bottom: 0.18cm; }
+    .rich-content ul, .rich-content ol { padding-left: 1.2em; }
+    .rich-content ul { list-style: disc; }
+    .rich-content ol { list-style: decimal; }
+    .rich-content li { list-style: inherit; }
+    .rich-content li::before { display: none !important; }
+    .rich-content img, .rich-content table { max-width: 100%; }
+    .rich-content img { display: block; height: auto; max-height: calc(100vh - ${marginTop + marginBottom + 4}cm); object-fit: contain; }
+    .rich-content table { border-collapse: collapse; }
+    .rich-content a { color: #000; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="top-section">
+      <div class="logo">
+        <img src="${logoUrl}" alt="Logo" />
+      </div>
+      <div class="doctor-info">
+        ${settings.showDoctorName ? `<div class="doctor-name">${prefix} ${doctor.name?.toUpperCase() ?? ''}</div>` : ''}
+        ${settings.showSpecialty ? `<div class="field">${doctor.especialidad || 'Pediatría'}</div>` : ''}
+        ${settings.showProfessionalId ? `<div class="field">CED. PROF. ${doctor.cedula || ''}</div>` : ''}
+        ${settings.showSpecialtyId ? `<div class="field">CED. ESP. ${doctor.cedulaEspecialidad || ''}</div>` : ''}
+        ${settings.showDoctorPhone ? `<div class="field">TEL. ${doctor.phone || ''}</div>` : ''}
+        ${settings.showDoctorOffice ? `<div class="field">CONSULTORIO: ${doctor.consultorios || ''}</div>` : ''}
+      </div>
+    </div>
+    <div class="gap-large"></div>
+    <div class="body-text">
+      <div class="patient-row">
+        ${settings.showPatientName ? `<span>NOMBRE DEL PACIENTE: ${p.name} ${p.lastName}</span>` : ''}
+        ${settings.showConsultDate ? `<span>FECHA: ${dateStr}</span>` : ''}
+      </div>
+      <div class="gap-medium"></div>
+      <div class="patient-row">
+        ${settings.showPatientAge ? `<span>EDAD: ${patientAge}</span>` : ''}
+        ${settings.showPatientWeight && record.weight ? `<span>PESO: ${record.weight} kg.</span>` : ''}
+        ${settings.showPatientHeight && record.height ? `<span>TALLA: ${record.height} cm.</span>` : ''}
+        ${settings.showPatientHeadCircumference && record.headCircumference ? `<span>PC: ${record.headCircumference} cm.</span>` : ''}
+        ${settings.showPatientTemperature && record.temperature ? `<span>TEMP: ${record.temperature} &deg;C</span>` : ''}
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="body-content">
+      <div class="section-label">${sectionLabel}</div>
+      <div class="rich-content">${content}</div>
+    </div>
+  </div>
+</body>
+</html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
   }
 
   protected sanitize(html: string | undefined): SafeHtml {
@@ -240,17 +367,18 @@ export class PatientHistory implements OnInit, OnDestroy {
     });
   }
 
-  protected openEditEntry(record: ClinicalRecord) {
+  protected openEditEntry(record: ClinicalRecord, context?: 'general' | 'recommendations' | 'prescription') {
     const p = this.patient();
     const age = p?.ageDisplay ?? '';
 
     const dialogRef = this.dialog.open(ClinicalEntryDialog, {
-      width: '736px',
+      width: context && context !== 'general' ? '600px' : '736px',
       disableClose: true,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setRecord(record);
     dialogRef.componentInstance.setAge(age);
+    if (context) dialogRef.componentInstance.setEditContext(context);
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.alert.success({ message: 'Entrada actualizada', duration: 3000 });
@@ -303,7 +431,7 @@ export class PatientHistory implements OnInit, OnDestroy {
     if (!confirmed) return;
 
     try {
-      await this.patientRepo.deletePatient(patient.id);
+      await this.cascade.deletePatientCascade(patient.id);
       this.alert.success({ message: 'Paciente eliminado', duration: 3000 });
     } catch {
       this.alert.error({ message: 'Error al eliminar paciente', duration: 5000 });

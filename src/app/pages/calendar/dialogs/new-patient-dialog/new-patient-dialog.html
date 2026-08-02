@@ -55,7 +55,12 @@
 
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Nombre del padre</mat-label>
-      <input matInput formControlName="fatherName" />
+      <input matInput formControlName="fatherName" [matAutocomplete]="fatherAuto" (input)="filterFathers()" />
+      <mat-autocomplete #fatherAuto="matAutocomplete" (optionSelected)="onFatherSelected($event.option.value)">
+        @for (name of filteredFatherNames; track name) {
+          <mat-option [value]="name">{{ name }}</mat-option>
+        }
+      </mat-autocomplete>
       @if (form.get('fatherName')?.invalid && (form.get('fatherName')?.touched || submitted)) {
         <mat-error>Ingresa el nombre del padre</mat-error>
       }
@@ -63,7 +68,12 @@
 
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Nombre de la madre</mat-label>
-      <input matInput formControlName="motherName" />
+      <input matInput formControlName="motherName" [matAutocomplete]="motherAuto" (input)="filterMothers()" />
+      <mat-autocomplete #motherAuto="matAutocomplete" (optionSelected)="onMotherSelected($event.option.value)">
+        @for (name of filteredMotherNames; track name) {
+          <mat-option [value]="name">{{ name }}</mat-option>
+        }
+      </mat-autocomplete>
       @if (form.get('motherName')?.invalid && (form.get('motherName')?.touched || submitted)) {
         <mat-error>Ingresa el nombre de la madre</mat-error>
       }

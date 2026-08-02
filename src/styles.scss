@@ -310,6 +310,68 @@ p {
   }
 }
 
+.profile-panel {
+  .mat-mdc-dialog-container {
+    border-radius: 0 !important;
+
+    .mdc-dialog__container {
+      height: calc(100vh - 48px);
+      height: calc(100dvh - 48px);
+      align-items: flex-start;
+    }
+
+    .mdc-dialog__surface.mat-mdc-dialog-surface {
+      border-radius: 20px !important;
+      width: 456px;
+      max-width: 100%;
+      max-height: calc(100vh - 48px);
+      max-height: calc(100dvh - 48px);
+      box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+    }
+  }
+
+  .mat-mdc-dialog-content {
+    padding: 0;
+    max-height: none;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+.cdk-overlay-pane.profile-panel {
+  right: 24px !important;
+  left: auto !important;
+  top: 24px !important;
+  bottom: auto !important;
+  position: absolute !important;
+  max-width: calc(100% - 48px) !important;
+}
+
+@media (max-width: 768px) {
+  .profile-panel {
+    .mat-mdc-dialog-container {
+      .mdc-dialog__container {
+        height: 100vh;
+        height: 100dvh;
+      }
+
+      .mdc-dialog__surface.mat-mdc-dialog-surface {
+        width: 100%;
+        max-height: 100vh;
+        max-height: 100dvh;
+        border-radius: 0 !important;
+      }
+    }
+  }
+
+  .cdk-overlay-pane.profile-panel {
+    right: 0 !important;
+    top: 0 !important;
+    max-width: 100% !important;
+  }
+}
+
 .btn-close-dialog {
   display: flex !important;
   align-items: center;

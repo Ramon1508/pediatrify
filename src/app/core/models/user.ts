@@ -28,6 +28,7 @@ export interface AppUser {
   endTime?: string;
   timeSegments?: TimeSegment[];
   printSettings?: PrintSettings;
+  createdBy?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
@@ -42,6 +43,7 @@ export interface VaccineDose {
 
 export interface Patient {
   id: string;
+  doctorId?: string;
   name: string;
   lastName: string;
   birthDate: string;

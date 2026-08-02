@@ -5,12 +5,22 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { EmailService } from '../../../../core/services/email.service';
 import { Patient } from '../../../../core/models/user';
 import { normalizeEmail } from '../../../../core/utils/normalize-email';
+
+interface ParentInfo {
+  email: string;
+  secondaryEmail: string;
+  phone: string;
+  spouseName: string;
+}
 
 @Component({
   selector: 'app-new-patient-dialog',
@@ -25,6 +35,7 @@ import { normalizeEmail } from '../../../../core/utils/normalize-email';
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
+    MatAutocompleteModule,
     MatDatepickerModule,
     MatProgressSpinnerModule,
   ],
@@ -32,7 +43,9 @@ import { normalizeEmail } from '../../../../core/utils/normalize-email';
 export class NewPatientDialog {
   private fb = inject(FormBuilder);
   private patientRepo = inject(PatientRepository);
+  private authService = inject(AuthService);
   private alert = inject(AlertService);
+  private emailService = inject(EmailService);
   private cdr = inject(ChangeDetectorRef);
   private dialogRef = inject(MatDialogRef<NewPatientDialog>);
 
@@ -42,6 +55,12 @@ export class NewPatientDialog {
   protected saving = false;
   protected submitted = false;
   protected alertMsg = '';
+
+  private parentCache = new Map<string, ParentInfo>();
+  protected uniqueFatherNames: string[] = [];
+  protected uniqueMotherNames: string[] = [];
+  protected filteredFatherNames: string[] = [];
+  protected filteredMotherNames: string[] = [];
 
   protected form = this.fb.group({
     fullName: ['', Validators.required],
@@ -55,6 +74,89 @@ export class NewPatientDialog {
 
   setPatients(patients: Patient[]) {
     this.allPatients = patients;
+    this.buildParentCache();
+  }
+
+  private get doctorScope(): string {
+    const currentUser = this.authService.currentDoctor;
+    if (!currentUser) return '';
+    return currentUser.role === 'assistant'
+      ? ((currentUser as any).createdBy || currentUser.uid)
+      : currentUser.uid;
+  }
+
+  private get scopePatients(): Patient[] {
+    const scope = this.doctorScope;
+    if (!scope) return [];
+    return this.allPatients.filter((p) => p.doctorId === scope);
+  }
+
+  private buildParentCache() {
+    this.parentCache.clear();
+    for (const p of this.allPatients) {
+      if (p.fatherName) {
+        const key = p.fatherName.trim().toLowerCase();
+        if (!this.parentCache.has(key)) {
+          this.parentCache.set(key, {
+            email: p.email || '',
+            secondaryEmail: p.secondaryEmail || '',
+            phone: p.phone || '',
+            spouseName: p.motherName || '',
+          });
+        }
+      }
+      if (p.motherName) {
+        const key = p.motherName.trim().toLowerCase();
+        if (!this.parentCache.has(key)) {
+          this.parentCache.set(key, {
+            email: p.secondaryEmail || p.email || '',
+            secondaryEmail: p.email || '',
+            phone: p.phone || '',
+            spouseName: p.fatherName || '',
+          });
+        }
+      }
+    }
+    this.uniqueFatherNames = [...new Set(this.allPatients.map(p => p.fatherName).filter((n): n is string => !!n))];
+    this.uniqueMotherNames = [...new Set(this.allPatients.map(p => p.motherName).filter((n): n is string => !!n))];
+    this.filteredFatherNames = [...this.uniqueFatherNames];
+    this.filteredMotherNames = [...this.uniqueMotherNames];
+  }
+
+  protected filterFathers() {
+    const val = this.form.get('fatherName')?.value?.toLowerCase().trim() || '';
+    this.filteredFatherNames = this.uniqueFatherNames.filter(n => n.toLowerCase().includes(val));
+  }
+
+  protected filterMothers() {
+    const val = this.form.get('motherName')?.value?.toLowerCase().trim() || '';
+    this.filteredMotherNames = this.uniqueMotherNames.filter(n => n.toLowerCase().includes(val));
+  }
+
+  protected onFatherSelected(name: string) {
+    const info = this.parentCache.get(name.trim().toLowerCase());
+    if (!info) return;
+    const emailCtrl = this.form.get('email');
+    const phoneCtrl = this.form.get('phone');
+    if (!emailCtrl?.value && info.email) emailCtrl?.setValue(info.email);
+    if (!phoneCtrl?.value && info.phone) phoneCtrl?.setValue(info.phone);
+    if (info.spouseName && !this.form.get('motherName')?.value) {
+      this.form.get('motherName')?.setValue(info.spouseName);
+      this.onMotherSelected(info.spouseName);
+    }
+  }
+
+  protected onMotherSelected(name: string) {
+    const info = this.parentCache.get(name.trim().toLowerCase());
+    if (!info) return;
+    const secEmailCtrl = this.form.get('secondaryEmail');
+    const phoneCtrl = this.form.get('phone');
+    if (!secEmailCtrl?.value && info.email) secEmailCtrl?.setValue(info.email);
+    if (!phoneCtrl?.value && info.phone) phoneCtrl?.setValue(info.phone);
+    if (info.spouseName && !this.form.get('fatherName')?.value) {
+      this.form.get('fatherName')?.setValue(info.spouseName);
+      this.onFatherSelected(info.spouseName);
+    }
   }
 
   setEditData(patient: Patient) {
@@ -93,7 +195,7 @@ export class NewPatientDialog {
     const { name, lastName } = this.splitFullName(f.fullName!);
 
     if (!this.editingPatient) {
-      const existingByEmail = this.allPatients.filter(
+      const existingByEmail = this.scopePatients.filter(
         (p) => p.email === email || (secondaryEmail && p.email === secondaryEmail) || p.secondaryEmail === email || (secondaryEmail && p.secondaryEmail === secondaryEmail)
       );
 
@@ -103,7 +205,7 @@ export class NewPatientDialog {
         return;
       }
 
-      const nameExists = this.allPatients.some(
+      const nameExists = this.scopePatients.some(
         (p) => p.name.toLowerCase() === name.toLowerCase() && p.lastName.toLowerCase() === lastName.toLowerCase()
       );
 
@@ -133,8 +235,13 @@ export class NewPatientDialog {
       } else {
         const id = crypto.randomUUID();
         const otpPassword = this.generateOtpPassword();
+        const currentUser = this.authService.currentDoctor;
+        const doctorId = currentUser?.role === 'assistant'
+          ? ((currentUser as any).createdBy || currentUser.uid)
+          : (currentUser?.uid ?? '');
         const newPatient: Patient = {
           id,
+          doctorId,
           name,
           lastName,
           birthDate: f.birthDate!,
@@ -147,7 +254,17 @@ export class NewPatientDialog {
         };
 
         await this.patientRepo.createPatient(id, newPatient);
-        this.alert.success({ message: `Paciente creado. Contraseña OTP: ${otpPassword}`, duration: 5000 });
+        try {
+          await this.emailService.sendPatientAccessEmail({
+            email,
+            otpPassword,
+            patientName: `${name} ${lastName}`.trim(),
+            doctorName: currentUser?.name ?? '',
+          });
+          this.alert.success({ message: `Paciente creado. Contraseña OTP: ${otpPassword}`, duration: 5000 });
+        } catch {
+          this.alert.error({ message: 'Paciente creado, pero no se pudo enviar el correo de acceso', duration: 5000 });
+        }
         this.dialogRef.close(newPatient);
       }
     } catch (e: any) {

@@ -41,33 +41,28 @@ export const routes: Routes = [
       {
         path: 'calendar',
         loadComponent: () => import('./pages/calendar/calendar').then((m) => m.Calendar),
-        canActivate: [roleGuard(['admin', 'doctor', 'assistant'])],
+        canActivate: [roleGuard(['doctor', 'assistant'])],
       },
       {
         path: 'patients',
         loadComponent: () => import('./pages/patients/patients').then((m) => m.Patients),
-        canActivate: [roleGuard(['admin', 'doctor', 'assistant'])],
+        canActivate: [roleGuard(['doctor'])],
       },
       {
         path: 'patients/history/:patientId',
         loadComponent: () =>
           import('./pages/patient-history/patient-history').then((m) => m.PatientHistory),
-        canActivate: [roleGuard(['admin', 'doctor', 'assistant'])],
+        canActivate: [roleGuard(['doctor'])],
       },
       {
         path: 'doctors',
         loadComponent: () => import('./pages/doctors/doctors').then((m) => m.Doctors),
-        canActivate: [roleGuard(['admin'])],
+        canActivate: [roleGuard(['admin', 'doctor'])],
       },
       {
         path: 'impresion',
         loadComponent: () => import('./pages/impresion/impresion').then((m) => m.Impresion),
-        canActivate: [roleGuard(['admin', 'doctor'])],
-      },
-      {
-        path: 'audit-log',
-        loadComponent: () => import('./pages/audit-log/audit-log').then((m) => m.AuditLog),
-        canActivate: [roleGuard(['admin'])],
+        canActivate: [roleGuard(['doctor'])],
       },
     ],
   },

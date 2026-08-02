@@ -1,13 +1,13 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgOptimizedImage } from '@angular/common';
+import { MatDialog } from '@angular/material/dialog';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../../core/services/auth.service';
 import { BRAND_NAME } from '../../../core/config/brand';
+import { ProfileDialog } from '../profile-dialog/profile-dialog';
 
 @Component({
   selector: 'app-header',
@@ -20,41 +20,23 @@ import { BRAND_NAME } from '../../../core/config/brand';
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
-    MatMenuModule,
-    MatDividerModule,
   ],
 })
 export class Header {
   protected authService = inject(AuthService);
   private router = inject(Router);
   protected brandName = inject(BRAND_NAME);
+  private dialog = inject(MatDialog);
 
   protected goHome() {
     this.router.navigate(['/login']);
   }
 
-  get displayName(): string {
-    if (this.authService.currentDoctor) return this.authService.currentDoctor.name;
-    if (this.authService.currentPatient) {
-      const p = this.authService.currentPatient;
-      return `${p.name} ${p.lastName}`;
-    }
-    return '';
-  }
-
-  get roleLabel(): string {
-    if (!this.authService.isAuthenticated) return '';
-    if (this.authService.currentDoctor) {
-      const role = this.authService.currentDoctor.role;
-      if (role === 'admin') return 'Administrador';
-      if (role === 'doctor') return 'Doctor';
-      return 'Asistente';
-    }
-    return 'Paciente';
-  }
-
-  logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+  protected openProfileDialog() {
+    this.dialog.open(ProfileDialog, {
+      panelClass: 'profile-panel',
+      backdropClass: 'profile-backdrop',
+      disableClose: true,
+    });
   }
 }

@@ -23,7 +23,7 @@
     <span class="nav-label">Pacientes</span>
   </a>
 
-  @if (isAdmin) {
+  @if (isDoctor) {
     <a
       class="nav-item"
       routerLink="/app/doctors"
@@ -31,13 +31,13 @@
       [routerLinkActiveOptions]="{ exact: false }"
     >
       <div class="icon-wrapper">
-        <mat-icon>call_end</mat-icon>
+        <mat-icon>group</mat-icon>
       </div>
       <span class="nav-label">Asistentes</span>
     </a>
   }
 
-  @if (isAdminOrDoctor) {
+  @if (isDoctor) {
     <a
       class="nav-item"
       routerLink="/app/impresion"
@@ -45,23 +45,9 @@
       [routerLinkActiveOptions]="{ exact: false }"
     >
       <div class="icon-wrapper">
-        <mat-icon>settings</mat-icon>
+        <mat-icon>print</mat-icon>
       </div>
       <span class="nav-label">Impresión</span>
-    </a>
-  }
-
-  @if (isAdmin) {
-    <a
-      class="nav-item"
-      routerLink="/app/audit-log"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: false }"
-    >
-      <div class="icon-wrapper">
-        <mat-icon>history</mat-icon>
-      </div>
-      <span class="nav-label">Bitácora</span>
     </a>
   }
 </nav>

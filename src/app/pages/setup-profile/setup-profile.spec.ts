@@ -184,3 +184,92 @@ describe('SetupProfile', () => {
     expect((component as any).logoPath()).toBeNull();
   });
 });
+
+describe('SetupProfile invitation by role', () => {
+  async function createInvitationFixture(role: 'admin' | 'assistant' | 'doctor') {
+    TestBed.resetTestingModule();
+    const authSpy = {
+      registerFromInvitation: vi.fn(),
+      completeProfile: vi.fn(),
+    } as any;
+    Object.defineProperty(authSpy, 'currentDoctor', { get: () => null });
+    Object.defineProperty(authSpy, 'isDoctor', { get: () => false });
+    const alertSpy = { success: vi.fn(), error: vi.fn() } as any;
+    const routerSpy = { navigate: vi.fn() } as any;
+    const invitationSpy = {
+      findPendingUserByEmail: vi.fn().mockResolvedValue({
+        uid: 'u1',
+        email: 'user@test.com',
+        name: 'Test User',
+        role,
+      }),
+    } as any;
+
+    await TestBed.configureTestingModule({
+      imports: [SetupProfile, NoopAnimationsModule],
+      providers: [
+        { provide: AuthService, useValue: authSpy },
+        { provide: AlertService, useValue: alertSpy },
+        { provide: Router, useValue: routerSpy },
+        { provide: InvitationRepository, useValue: invitationSpy },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParams: { email: 'user@test.com' } } },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SetupProfile);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('admin sees only password fields', async () => {
+    const fixture = await createInvitationFixture('admin');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Bienvenido');
+    expect(el.textContent).not.toContain('Sexo');
+    expect(el.textContent).not.toContain('Cédula profesional');
+    expect(el.textContent).not.toContain('Consultorio(s)');
+    expect(el.textContent).toContain('Contraseña');
+  });
+
+  it('assistant sees only password fields', async () => {
+    const fixture = await createInvitationFixture('assistant');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).not.toContain('Sexo');
+    expect(el.textContent).not.toContain('Cédula profesional');
+    expect(el.textContent).not.toContain('Consultorio(s)');
+    expect(el.textContent).toContain('Contraseña');
+  });
+
+  it('doctor sees the full form', async () => {
+    const fixture = await createInvitationFixture('doctor');
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Registro');
+    expect(el.textContent).toContain('Sexo');
+    expect(el.textContent).toContain('Cédula profesional');
+    expect(el.textContent).toContain('Consultorio(s)');
+  });
+
+  it('admin finishes with empty doctor fields', async () => {
+    const fixture = await createInvitationFixture('admin');
+    const component = fixture.componentInstance as any;
+    component.passwordControl.setValue('Pass1234!');
+    component.confirmPasswordControl.setValue('Pass1234!');
+    const authService = TestBed.inject(AuthService);
+    (authService.registerFromInvitation as any).mockResolvedValue(undefined);
+
+    await component.finish();
+
+    expect(authService.registerFromInvitation).toHaveBeenCalledWith(
+      'user@test.com',
+      'Pass1234!',
+      expect.objectContaining({ role: 'admin', phone: '', cedula: '', consultorios: '' }),
+      'u1'
+    );
+  });
+});

@@ -1,62 +1,75 @@
 <div class="growth-charts">
   <div class="charts-header">
     <div class="charts-tabs">
-      <button class="chart-chip" [class.active]="activeTab === 'weightHeight'" (click)="switchTab('weightHeight')">
-        @if (activeTab === 'weightHeight') { <mat-icon>check</mat-icon> }
-        Peso y talla
-      </button>
-      <button class="chart-chip" [class.active]="activeTab === 'headCircumference'" (click)="switchTab('headCircumference')">
-        @if (activeTab === 'headCircumference') { <mat-icon>check</mat-icon> }
-        Circunferencia
-      </button>
-      <button class="chart-chip" [class.active]="activeTab === 'bmi'" (click)="switchTab('bmi')">
-        @if (activeTab === 'bmi') { <mat-icon>check</mat-icon> }
-        IMC
-      </button>
+      @for (tab of tabs; track tab.id) {
+        <button class="chart-chip" [class.active]="activeTab === tab.id" (click)="switchTab(tab.id)">
+          @if (activeTab === tab.id) { <mat-icon>check</mat-icon> }
+          {{ tab.label }}
+        </button>
+      }
     </div>
-    @if (hasData) {
-      <button class="btn-tertiary print-btn" (click)="printChart()">
-        <mat-icon>print</mat-icon> Imprimir
+    <div class="header-actions">
+      <button class="zoom-btn" (click)="toggleZoom()" [title]="zoomedIn() ? 'Alejar' : 'Acercar'">
+        <mat-icon>{{ zoomedIn() ? 'zoom_out' : 'zoom_in' }}</mat-icon>
       </button>
-    }
+      @if (calibrationEnabled) {
+        <button class="zoom-btn" (click)="toggleCalibrate()" [title]="calibrating() ? 'Salir' : 'Calibrar'"
+                [style.background]="calibrating() ? '#0D6E8F' : ''" [style.color]="calibrating() ? '#fff' : ''">
+          <mat-icon>{{ calibrating() ? 'close' : 'tune' }}</mat-icon>
+        </button>
+      }
+      @if (hasData) {
+        <button class="btn-tertiary print-btn" (click)="printChart()">
+          <mat-icon>print</mat-icon> Imprimir
+        </button>
+      }
+    </div>
   </div>
 
-  <div class="chart-body">
-    @if (activeTab === 'weightHeight') {
-      <div class="cdc-container">
-        <img [src]="cdcImgSrc" alt="CDC Growth Chart" class="cdc-img" width="612" height="792">
-        @if (hasData) {
-          <div class="cdc-overlay" [innerHTML]="lengthSvg"></div>
-          <div class="cdc-overlay" [innerHTML]="weightSvg"></div>
-        } @else {
-          <div class="empty-overlay">
-            <span class="empty-chart-text">
-              No existen datos suficientes para visualizar la evolución del paciente.
-            </span>
+  <div class="chart-body" [class.zoom-out]="!zoomedIn()">
+    <div class="cdc-container" (click)="onChartClick($event)">
+      <img [src]="imgSrc" alt="Growth Chart" class="cdc-img" draggable="false">
+      @if (hasData) {
+        <div class="cdc-overlay" [innerHTML]="overlaySvg"></div>
+      }
+    </div>
+
+    @if (calibrating()) {
+      <div class="cal-panel">
+        @if (calMode() === null) {
+          <div class="cal-header">Elige eje a calibrar</div>
+          <div class="cal-mode-row">
+            @for (mode of calModes; track mode) {
+              <button class="cal-mode-btn" (click)="startCalMode(mode)">
+                <mat-icon>tune</mat-icon>
+                {{ CAL_CONFIG[mode].label }}
+              </button>
+            }
           </div>
-        }
-      </div>
-    } @else if (activeTab === 'headCircumference') {
-      <div class="simple-chart">
-        @if (hcSvg) {
-          <div [innerHTML]="hcSvg"></div>
-        } @else {
-          <div class="empty-chart">
-            <span class="empty-chart-text">
-              No existen datos suficientes para visualizar la evolución del paciente.
-            </span>
+        } @else if (calStep() >= 0) {
+          <div class="cal-header">{{ CAL_CONFIG[calMode()!].label }}: {{ currentRefLabel }}</div>
+          <div class="cal-progress-bar"><div class="cal-progress-fill" [style.width.%]="calPct"></div></div>
+          <div class="cal-hint">Haz clic en <strong>{{ currentRefLabel }}</strong> en la gráfica</div>
+          <div class="cal-recording-list">
+            @for (p of calRecorded(); track $index) {
+              <div class="cal-row cal-row-done">{{ p.ref === 0 ? 'Birth' : p.ref + ' ' + CAL_CONFIG[calMode()!].unit }} → ({{ p.x }}, {{ p.y }})</div>
+            }
           </div>
-        }
-      </div>
-    } @else {
-      <div class="simple-chart">
-        @if (bmiSvg) {
-          <div [innerHTML]="bmiSvg"></div>
-        } @else {
-          <div class="empty-chart">
-            <span class="empty-chart-text">
-              No existen datos suficientes para visualizar la evolución del paciente.
-            </span>
+          <div class="cal-buttons">
+            <button class="cal-undo-btn" (click)="undoLastPoint()" [disabled]="calRecorded().length === 0">↩ Deshacer</button>
+            <button class="cal-cancel-btn" (click)="cancelCalMode()">Cancelar</button>
+          </div>
+        } @else if (calResult(); as r) {
+          <div class="cal-header">✅ {{ CAL_CONFIG[calMode()!].label }} calibrado</div>
+          <div class="cal-result-box">
+            <code>y = {{ round4(r.intercept) }} + x × {{ round4(r.slope) }}</code>
+            <div class="cal-r2">R² = {{ round4(r.r2) }} (n = {{ r.count }})</div>
+          </div>
+          <div class="cal-buttons">
+            <button class="cal-copy-btn" (click)="copyResult()">📋 Copiar constantes</button>
+            <button class="cal-copy-btn" (click)="copyRawPoints()">📋 Copiar puntos XY</button>
+            <button class="cal-continue-btn" (click)="cancelCalMode()">Calibrar otro eje</button>
+            <button class="cal-cancel-btn" (click)="toggleCalibrate()">Terminar</button>
           </div>
         }
       </div>

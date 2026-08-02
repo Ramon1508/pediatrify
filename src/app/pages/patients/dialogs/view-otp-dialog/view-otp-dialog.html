@@ -1,16 +1,16 @@
-<h2 mat-dialog-title>Contrase&ntilde;a OTP</h2>
+<h2 class="dialog-title">Contraseña OTP</h2>
 
-<mat-dialog-content>
+<div class="dialog-content">
   <div class="otp-patient-name">{{ patient?.name }} {{ patient?.lastName }}</div>
 
   @if (editing) {
     <mat-form-field appearance="outline" class="otp-field">
-      <mat-label>Contrase&ntilde;a OTP</mat-label>
+      <mat-label>Contraseña OTP</mat-label>
       <input matInput [(ngModel)]="otpValue" minlength="4" />
     </mat-form-field>
   } @else {
     <div class="otp-display">
-      <span class="otp-label">Contrase&ntilde;a actual:</span>
+      <span class="otp-label">Contraseña actual:</span>
       <div class="otp-value-row">
         <span class="otp-value">{{ otpValue }}</span>
         <button mat-icon-button class="otp-copy-btn" (click)="copyOtp()">
@@ -19,9 +19,9 @@
       </div>
     </div>
   }
-</mat-dialog-content>
+</div>
 
-<mat-dialog-actions class="otp-actions">
+<div class="dialog-actions">
   <button mat-button class="btn-tertiary dialog-btn" (click)="close()">Cerrar</button>
   <button mat-unelevated-button class="btn-primary dialog-btn" (click)="toggleEdit()">
     @if (editing) {
@@ -30,4 +30,4 @@
       Editar
     }
   </button>
-</mat-dialog-actions>
+</div>

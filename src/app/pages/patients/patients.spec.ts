@@ -4,9 +4,11 @@ import { of } from 'rxjs';
 import { Patients } from './patients';
 import { PatientRepository } from '../../core/repositories/patient.repository';
 import { AppointmentRepository } from '../../core/repositories/appointment.repository';
+import { ClinicalRecordRepository } from '../../core/repositories/clinical-record.repository';
 import { AuditRepository } from '../../core/repositories/audit.repository';
 import { AlertService } from '../../core/services/alert.service';
 import { AuthService } from '../../core/services/auth.service';
+import { EmailService } from '../../core/services/email.service';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { MatDialog } from '@angular/material/dialog';
 import { provideNativeDateAdapter } from '@angular/material/core';
@@ -58,6 +60,8 @@ describe('Patients', () => {
       createPatient: vi.fn(),
       updatePatient: vi.fn(),
       deletePatient: vi.fn(),
+      getPatientsByDoctor: vi.fn().mockResolvedValue([]),
+      deletePatients: vi.fn().mockResolvedValue(undefined),
     } as any;
     const alertSpy = { success: vi.fn(), error: vi.fn() } as any;
     const clipboardSpy = { copy: vi.fn() } as any;
@@ -66,7 +70,15 @@ describe('Patients', () => {
     const apptRepoSpy = {
       watchAppointmentsByDoctor: vi.fn().mockReturnValue(of(mockAppointments)),
       updateAppointment: vi.fn(),
+      getByPatient: vi.fn().mockResolvedValue([]),
+      getAllByDoctor: vi.fn().mockResolvedValue([]),
+      deleteAppointments: vi.fn().mockResolvedValue(undefined),
     } as any;
+    const clinicalRepoSpy = {
+      getByPatient: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue(undefined),
+    } as any;
+    const emailSpy = { sendPatientAccessEmail: vi.fn().mockResolvedValue(undefined) } as any;
     const dialogSpy = {
       open: vi.fn().mockReturnValue(dialogRefMock),
     } as any;
@@ -77,9 +89,11 @@ describe('Patients', () => {
         provideNativeDateAdapter(),
         { provide: PatientRepository, useValue: repoSpy },
         { provide: AppointmentRepository, useValue: apptRepoSpy },
+        { provide: ClinicalRecordRepository, useValue: clinicalRepoSpy },
         { provide: AuditRepository, useValue: auditSpy },
         { provide: AlertService, useValue: alertSpy },
         { provide: AuthService, useValue: authSpy },
+        { provide: EmailService, useValue: emailSpy },
         { provide: Clipboard, useValue: clipboardSpy },
         { provide: MatDialog, useValue: dialogSpy },
       ],
@@ -163,10 +177,12 @@ describe('Patients', () => {
 
   it('regenerates OTP password', async () => {
     (patientRepo.updatePatient as any).mockResolvedValue(undefined);
+    const emailService = TestBed.inject(EmailService);
 
     await (component as any).regenerateOtp(mockPatients[0]);
 
     expect(patientRepo.updatePatient).toHaveBeenCalledWith('1', expect.objectContaining({ otpPassword: expect.any(String) }));
+    expect(emailService.sendPatientAccessEmail).toHaveBeenCalledWith(expect.objectContaining({ email: 'juan@test.com' }));
     expect(alertService.success).toHaveBeenCalled();
   });
 

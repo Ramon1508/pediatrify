@@ -86,7 +86,8 @@
 
 .vac-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   min-width: 600px;
 }
 
@@ -102,6 +103,7 @@
   padding: 8px 4px;
   width: 42.18px;
   text-wrap: auto;
+  background: #fff;
 }
 
 .vac-th-name {
@@ -118,6 +120,15 @@
   color: #49454F;
   padding: 4px;
   vertical-align: middle;
+}
+
+.vac-th-name,
+.vac-td-name {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+  box-shadow: 4px 0 4px -4px rgba(0, 0, 0, 0.2);
 }
 
 .vac-td-name {

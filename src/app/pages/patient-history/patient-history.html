@@ -70,7 +70,7 @@
               <mat-tab label="Datos y diagn&oacute;stico">
                 <div class="tab-content">
                   <div class="entry-actions">
-                    <button class="blue-icon-text-button btn-tertiary" (click)="openEditEntry(record)" aria-label="Editar consulta">
+                    <button class="btn-tertiary" (click)="openEditEntry(record)" aria-label="Editar consulta">
                       <mat-icon>edit</mat-icon> Editar
                     </button>
                   </div>
@@ -126,9 +126,17 @@
 
               <mat-tab label="Recomendaciones">
                 <div class="tab-content">
+                  <div class="entry-actions">
+                    <button class="btn-tertiary" (click)="printSection('recommendations')" aria-label="Imprimir recomendaciones">
+                      <mat-icon>print</mat-icon> Imprimir
+                    </button>
+                    <button class="btn-tertiary" (click)="openEditEntry(record, 'recommendations')" aria-label="Editar consulta">
+                      <mat-icon>edit</mat-icon> Editar
+                    </button>
+                  </div>
                   @if (record.visibleUntil) {
                     <div class="visible-until">
-                      Visible hasta: {{ record.visibleUntil | date:'dd/MM/yyyy' }}
+                      Visible para el paciente hasta el: <span>{{ record.visibleUntil | date:'dd/MM/yyyy' }}</span>
                     </div>
                   }
                   <div class="rich-content" [innerHTML]="sanitize(record.recommendations)"></div>
@@ -137,9 +145,17 @@
 
               <mat-tab label="Receta">
                 <div class="tab-content">
+                  <div class="entry-actions">
+                    <button class="btn-tertiary" (click)="printSection('prescription')" aria-label="Imprimir receta">
+                      <mat-icon>print</mat-icon> Imprimir
+                    </button>
+                    <button class="btn-tertiary" (click)="openEditEntry(record, 'prescription')" aria-label="Editar consulta">
+                      <mat-icon>edit</mat-icon> Editar
+                    </button>
+                  </div>
                   @if (record.visibleUntilRx) {
                     <div class="visible-until">
-                      Visible hasta: {{ record.visibleUntilRx | date:'dd/MM/yyyy' }}
+                      Visible para el paciente hasta el: <span>{{ record.visibleUntilRx | date:'dd/MM/yyyy' }}</span>
                     </div>
                   }
                   <div class="rich-content" [innerHTML]="sanitize(record.prescription)"></div>

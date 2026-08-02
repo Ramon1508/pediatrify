@@ -1,14 +1,14 @@
 <div class="calendar-page">
   <div class="calendar-toolbar">
     <div class="toolbar-left">
-      <div class="date-picker-area" (click)="openDatePicker()">
+      <button type="button" class="date-picker-area" (click)="openDatePicker()">
         <input matInput [matDatepicker]="picker" class="datepicker-trigger" (dateChange)="onDateSelected($event)">
         <mat-datepicker #picker></mat-datepicker>
         <input #dayPicker type="date" class="date-input mobile-only" [value]="formatDate(selectedDay())" (change)="onMobileDateChange(dayPicker.value)" />
         <span class="date-label desktop-only">{{ dateLabel() }}</span>
         <span class="date-label mobile-only">{{ mobileDateLabel() }}</span>
         <mat-icon class="dropdown-icon">keyboard_arrow_down</mat-icon>
-      </div>
+      </button>
       <button mat-stroked-button class="btn-secondary btn-hoy" (click)="goToToday()">Hoy</button>
       @if (false) {
         <mat-form-field appearance="outline" class="doctor-selector">
@@ -53,7 +53,7 @@
           </div>
 
           @for (day of weekDays(); track day.getTime()) {
-            <div
+            <button type="button"
               class="grid-cell data-cell"
               [class.today-cell]="isToday(day)"
               [class.current-hour]="isToday(day) && isCurrentHour(slot)"
@@ -63,20 +63,20 @@
               (click)="canInteractWithCell(day) && openNewAppointment(day, slot)"
             >
               @for (apt of getAppointmentsForCell(day, slot); track apt.id) {
-                <div class="appointment-block"
+                <button type="button" class="appointment-block"
                      [class.attended]="apt.status === 'attended'"
                      [matTooltip]="apt.patientName"
                      (click)="$event.stopPropagation(); selectAppointment(apt, $event)"
                 >
                   {{ apt.patientName }}
-                </div>
+                </button>
               }
               @if (canInteractWithCell(day) && !getAppointmentsForCell(day, slot).length && isHovered(day, slot)) {
                 <button class="add-btn" mat-icon-button>
                   <mat-icon>add</mat-icon>
                 </button>
               }
-            </div> 
+            </button> 
           }
         }
       </div>
@@ -87,7 +87,7 @@
 
   @if (selectedAppointment(); as apt) {
     @if (overlayPosition(); as pos) {
-      <div class="detail-overlay" [style.top.px]="pos.top" [style.left.px]="pos.left" (click)="selectedAppointment.set(null); overlayPosition.set(null)">
+      <div class="detail-overlay" role="button" tabindex="0" [style.top.px]="pos.top" [style.left.px]="pos.left" (click)="selectedAppointment.set(null); overlayPosition.set(null)" (keydown.escape)="selectedAppointment.set(null); overlayPosition.set(null)" (keydown.enter)="selectedAppointment.set(null); overlayPosition.set(null)" (keydown.space)="selectedAppointment.set(null); overlayPosition.set(null)">
         <div class="detail-overlay-inner" (click)="$event.stopPropagation()">
           <app-appointment-detail-card
             [appointment]="apt"
@@ -103,9 +103,9 @@
 <div class="mobile-view">
   <div class="mobile-cards">
     @for (apt of getAppointmentsForDay(); track apt.id) {
-      <div class="mobile-card" (click)="toggleExpand(apt.id)">
+      <button type="button" class="mobile-card" (click)="toggleExpand(apt.id)">
         <span>{{ formatTime(apt.time) }} | {{ apt.patientName }}</span>
-      </div>
+      </button>
       @if (expandedAppointmentId() === apt.id) {
         <app-appointment-detail-card
           [appointment]="apt"

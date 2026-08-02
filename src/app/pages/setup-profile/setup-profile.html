@@ -2,17 +2,29 @@
 
 <div class="setup-body">
   <div class="setup-hero">
-    <h1 class="title-large">Registro</h1>
-    <p class="body-large">
-      Completa tu registro y comienza a utilizar las herramientas que Lilcare te ofrece para organizar tu práctica y mejorar la experiencia de tus pacientes. Revisa que los datos ingresados por el administrador sean correctos, en caso de no serlo, favor de contactar al equipo de Lilcare.
-    </p>
+    <h1 class="title-large">{{ isNonDoctor() ? 'Bienvenido' : 'Registro' }}</h1>
+    @if (isNonDoctor()) {
+      @if (pendingRole === 'admin') {
+        <p class="body-large">
+          Completa tu registro para comenzar a administrar tu cuenta. Solo necesitas establecer tu contraseña.
+        </p>
+      } @else {
+        <p class="body-large">
+          Completa tu registro para comenzar a trabajar como asistente. Solo necesitas establecer tu contraseña.
+        </p>
+      }
+    } @else {
+      <p class="body-large">
+        Completa tu registro y comienza a utilizar las herramientas que Lilcare te ofrece para organizar tu práctica y mejorar la experiencia de tus pacientes. Revisa que los datos ingresados por el administrador sean correctos, en caso de no serlo, favor de contactar al equipo de Lilcare.
+      </p>
+    }
   </div>
 
   @if (mode() !== 'invalid') {
     <div class="setup-form">
       <div class="form-row desktop-2col form-gap-40">
         <div class="info-block">
-          <span class="label-small">Doctor(a)</span>
+          <span class="label-small">Usuario</span>
           <span class="body-large info-value">{{ displayName() }}</span>
         </div>
         <div class="info-block">
@@ -23,59 +35,61 @@
 
 
       <form [formGroup]="form">
-        <div class="form-row desktop-2col form-gap-40">
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Sexo</mat-label>
-            <mat-select formControlName="sexo">
-              @for (opt of sexoOptions; track opt.value) {
-                <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        @if (!isNonDoctor()) {
+          <div class="form-row desktop-2col form-gap-40">
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Sexo</mat-label>
+              <mat-select formControlName="sexo">
+                @for (opt of sexoOptions; track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+              @if (form.get('sexo')?.invalid && (form.get('sexo')?.touched || submitted())) {
+                <mat-error>Selecciona tu sexo</mat-error>
               }
-            </mat-select>
-            @if (form.get('sexo')?.invalid && (form.get('sexo')?.touched || submitted())) {
-              <mat-error>Selecciona tu sexo</mat-error>
-            }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Teléfono</mat-label>
+              <mat-icon matPrefix>phone</mat-icon>
+              <input matInput type="tel" formControlName="phone" placeholder="5512345678" />
+              @if (form.get('phone')?.errors?.['required'] && (form.get('phone')?.touched || submitted())) {
+                <mat-error>Ingresa tu teléfono</mat-error>
+              }
+              @if (form.get('phone')?.errors?.['pattern'] && !form.get('phone')?.errors?.['required'] && (form.get('phone')?.touched || submitted())) {
+                <mat-error>Ingresa solo 10 dígitos</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="form-row desktop-2col form-gap-40">
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Especialidad (opcional)</mat-label>
+              <input matInput formControlName="especialidad" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="flex-field">
+              <mat-label>Cédula profesional</mat-label>
+              <input matInput formControlName="cedula" />
+              @if (form.get('cedula')?.invalid && (form.get('cedula')?.touched || submitted())) {
+                <mat-error>Ingresa tu cédula profesional</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="desktop-half">
+            <mat-label>Cédula de especialidad (opcional)</mat-label>
+            <input matInput formControlName="cedulaEspecialidad" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Teléfono</mat-label>
-            <mat-icon matPrefix>phone</mat-icon>
-            <input matInput type="tel" formControlName="phone" placeholder="5512345678" />
-            @if (form.get('phone')?.errors?.['required'] && (form.get('phone')?.touched || submitted())) {
-              <mat-error>Ingresa tu teléfono</mat-error>
-            }
-            @if (form.get('phone')?.errors?.['pattern'] && !form.get('phone')?.errors?.['required'] && (form.get('phone')?.touched || submitted())) {
-              <mat-error>Ingresa solo 10 dígitos</mat-error>
-            }
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Consultorio(s)</mat-label>
+            <textarea matInput formControlName="consultorios" rows="3" placeholder="Ej: Consultorio 1, Consultorio 2"></textarea>
+              @if (form.get('consultorios')?.invalid && (form.get('consultorios')?.touched || submitted())) {
+                <mat-error>Ingresa tus consultorios</mat-error>
+              }
           </mat-form-field>
-        </div>
-
-        <div class="form-row desktop-2col form-gap-40">
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Especialidad (opcional)</mat-label>
-            <input matInput formControlName="especialidad" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="flex-field">
-            <mat-label>Cédula profesional</mat-label>
-            <input matInput formControlName="cedula" />
-            @if (form.get('cedula')?.invalid && (form.get('cedula')?.touched || submitted())) {
-              <mat-error>Ingresa tu cédula profesional</mat-error>
-            }
-          </mat-form-field>
-        </div>
-
-        <mat-form-field appearance="outline" class="desktop-half">
-          <mat-label>Cédula de especialidad (opcional)</mat-label>
-          <input matInput formControlName="cedulaEspecialidad" />
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Consultorio(s)</mat-label>
-          <textarea matInput formControlName="consultorios" rows="3" placeholder="Ej: Consultorio 1, Consultorio 2"></textarea>
-            @if (form.get('consultorios')?.invalid && (form.get('consultorios')?.touched || submitted())) {
-              <mat-error>Ingresa tus consultorios</mat-error>
-            }
-        </mat-form-field>
+        }
 
       <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
@@ -113,20 +127,22 @@
       </div>
       </form>
 
-      <p class="hint">Para una experiencia personalizada, puedes subir tu logotipo y éste sustituirá el logo de Lilcare en tu cuenta y la de los asistentes y pacientes que agregues. Sólo se aceptan archivos .png y .jpg, éste no debe superar los 200 KB.</p>
+      @if (!isNonDoctor()) {
+        <p class="hint">Para una experiencia personalizada, puedes subir tu logotipo y éste sustituirá el logo de Lilcare en tu cuenta y la de los asistentes y pacientes que agregues. Sólo se aceptan archivos .png y .jpg, éste no debe superar los 200 KB.</p>
 
-      <app-file-upload
-        [id]="displayEmail()"
-        [label]="'Seleccionar archivo'"
-        (uploaded)="onLogoUploaded($event)"
-      />
+        <app-file-upload
+          [id]="displayEmail()"
+          [label]="'Seleccionar archivo'"
+          (uploaded)="onLogoUploaded($event)"
+        />
+      }
 
       <div class="button-row">
         <button mat-unelevated-button class="btn-primary finish-btn w-100-mobile" (click)="finish()" [disabled]="finishing()">
         @if (finishing()) {
           <mat-spinner diameter="18" />
-        } @else {
-          Crear mi cuenta
+        }         @else {
+          {{ isNonDoctor() ? 'Finalizar' : 'Crear mi cuenta' }}
         }
       </button>
       </div>

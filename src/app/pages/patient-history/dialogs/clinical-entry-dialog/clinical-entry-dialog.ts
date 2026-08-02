@@ -56,9 +56,14 @@ export class ClinicalEntryDialog {
   protected selectedTab = 0;
   protected saving = false;
   protected submitted = false;
+  protected editContext: 'general' | 'recommendations' | 'prescription' = 'general';
 
   protected get isEdit(): boolean {
     return this.record !== null;
+  }
+
+  protected get editTitle(): string {
+    return this.isEdit ? 'Editar datos de la consulta' : 'Nueva entrada';
   }
 
   protected tabHasInvalid(index: number): boolean {
@@ -133,6 +138,10 @@ export class ClinicalEntryDialog {
     this.cdr.markForCheck();
   }
 
+  setEditContext(context: 'general' | 'recommendations' | 'prescription') {
+    this.editContext = context;
+  }
+
   setAge(age: string) {
     this.ageDisplay = age;
   }
@@ -185,9 +194,21 @@ export class ClinicalEntryDialog {
     this.submitted = true;
     this.cdr.markForCheck();
     if (this.isEdit) {
-      if (this.step1Form.invalid || this.step2Form.invalid || this.step3Form.invalid) {
-        this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
-        return;
+      if (this.editContext === 'recommendations') {
+        if (this.step2Form.invalid) {
+          this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+          return;
+        }
+      } else if (this.editContext === 'prescription') {
+        if (this.step3Form.invalid) {
+          this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+          return;
+        }
+      } else {
+        if (this.step1Form.invalid || this.step2Form.invalid || this.step3Form.invalid) {
+          this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+          return;
+        }
       }
       if (!this.record) return;
     } else {
@@ -257,9 +278,21 @@ export class ClinicalEntryDialog {
     this.submitted = true;
     this.cdr.markForCheck();
     if (this.isEdit) {
-      if (this.step1Form.invalid || this.step2Form.invalid || this.step3Form.invalid) {
-        this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
-        return;
+      if (this.editContext === 'recommendations') {
+        if (this.step2Form.invalid) {
+          this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+          return;
+        }
+      } else if (this.editContext === 'prescription') {
+        if (this.step3Form.invalid) {
+          this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+          return;
+        }
+      } else {
+        if (this.step1Form.invalid || this.step2Form.invalid || this.step3Form.invalid) {
+          this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
+          return;
+        }
       }
       if (!this.record) return;
     } else {

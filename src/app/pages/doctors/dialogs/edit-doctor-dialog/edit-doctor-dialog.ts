@@ -43,6 +43,18 @@ export class EditDoctorDialog {
   protected submitted = false;
   protected showPasswordSection = false;
 
+  protected get subjectLabel(): string {
+    return this.doctor?.role === 'doctor' ? 'doctor' : 'asistente';
+  }
+
+  protected get title(): string {
+    return this.doctor?.role === 'doctor' ? 'Editar doctor' : 'Editar asistente';
+  }
+
+  protected get subjectTitleCase(): string {
+    return this.doctor?.role === 'doctor' ? 'Doctor' : 'Asistente';
+  }
+
   protected form = this.fb.group({
     name: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
@@ -105,13 +117,13 @@ export class EditDoctorDialog {
           firebaseUid: credential.user.uid,
         });
         await signOut(this.firebase.auth);
-        this.alert.success({ message: 'Asistente actualizado. Inicia sesión nuevamente.', duration: 5000 });
+        this.alert.success({ message: `${this.subjectTitleCase} actualizado. Inicia sesión nuevamente.`, duration: 5000 });
         this.dialogRef.close(true);
         return;
       }
 
       await this.userRepo.updateUser(this.doctor.uid, { name: name! });
-      this.alert.success({ message: 'Asistente actualizado', duration: 3000 });
+      this.alert.success({ message: `${this.subjectTitleCase} actualizado`, duration: 3000 });
       this.dialogRef.close(true);
     } catch (e: any) {
       this.error = e.message || 'Error al guardar';

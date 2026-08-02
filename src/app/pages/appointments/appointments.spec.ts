@@ -5,6 +5,8 @@ import { of } from 'rxjs';
 import { Appointments } from './appointments';
 import { AppointmentRepository } from '../../core/repositories/appointment.repository';
 import { PatientRepository } from '../../core/repositories/patient.repository';
+import { UserRepository } from '../../core/repositories/user.repository';
+import { AuditRepository } from '../../core/repositories/audit.repository';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
 
@@ -32,6 +34,8 @@ describe('Appointments', () => {
       updateAppointment: vi.fn(),
     } as any;
     const patientSpy = { getAllPatients: vi.fn().mockResolvedValue(mockPatients) } as any;
+    const userSpy = { getUser: vi.fn().mockResolvedValue({ timeSegments: [{ startTime: '08:00', endTime: '12:00' }], consultationDuration: 30 }) } as any;
+    const auditSpy = { log: vi.fn().mockResolvedValue(undefined) } as any;
     const authSpy = { currentDoctor: { uid: 'd1', name: 'Dr. X' } as any };
     const alertSpy = { success: vi.fn() } as any;
     const dialogSpy = {
@@ -49,6 +53,8 @@ describe('Appointments', () => {
       providers: [
         { provide: AppointmentRepository, useValue: aptSpy },
         { provide: PatientRepository, useValue: patientSpy },
+        { provide: UserRepository, useValue: userSpy },
+        { provide: AuditRepository, useValue: auditSpy },
         { provide: AuthService, useValue: authSpy },
         { provide: AlertService, useValue: alertSpy },
       ],

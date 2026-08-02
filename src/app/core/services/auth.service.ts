@@ -183,8 +183,8 @@ export class AuthService {
 
   async loginPatient(email: string, password: string): Promise<Patient> {
     const normalizedEmail = email.trim().toLowerCase();
-    const patients = await this.patientRepo.getAllPatients();
-    const patient = patients.find((p) => p.email === normalizedEmail && p.otpPassword === password);
+    const candidates = await this.patientRepo.findPatientsByLoginEmail(normalizedEmail);
+    const patient = candidates.find((p) => p.otpPassword === password);
     if (!patient) {
       throw new Error('Credenciales inválidas. Verifica tu correo y contraseña OTP.');
     }

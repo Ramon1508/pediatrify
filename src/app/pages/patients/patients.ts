@@ -14,6 +14,8 @@ import { CommonModule } from '@angular/common';
 import { PatientRepository } from '../../core/repositories/patient.repository';
 import { AppointmentRepository } from '../../core/repositories/appointment.repository';
 import { AuditRepository } from '../../core/repositories/audit.repository';
+import { CascadeService } from '../../core/services/cascade.service';
+import { EmailService } from '../../core/services/email.service';
 
 function calcAge(birthDate: unknown): string {
   let d: Date | null = null;
@@ -80,6 +82,8 @@ export class Patients implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private alert = inject(AlertService);
   private clipboard = inject(Clipboard);
+  private cascade = inject(CascadeService);
+  private emailService = inject(EmailService);
 
   protected patients = signal<Patient[]>([]);
   protected patientsWithAge = signal<(Patient & { ageDisplay: string })[]>([]);
@@ -107,7 +111,8 @@ export class Patients implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.isAdmin.set(this.authService.currentDoctor?.role === 'admin');
-    const currentDoctorUid = this.authService.currentDoctor?.uid;
+    const doctor = this.authService.currentDoctor;
+    const currentDoctorUid = doctor?.uid;
 
     this.subs.push(
       this.searchControl.valueChanges.subscribe((val) => {
@@ -116,14 +121,21 @@ export class Patients implements OnInit, OnDestroy {
     );
 
     this.patientRepo.watchAllPatients().subscribe((patients) => {
-      this.patients.set(patients);
-      this.patientsWithAge.set(patients.map((p) => ({ ...p, ageDisplay: calcAge(p.birthDate) })));
+      const doctor = this.authService.currentDoctor;
+      const isAdmin = doctor?.role === 'admin';
+      const doctorUid = doctor?.uid;
+      const filtered = isAdmin || !doctorUid
+        ? patients
+        : patients.filter((p) => !p.doctorId || p.doctorId === doctorUid);
+      this.patients.set(filtered);
+      this.patientsWithAge.set(filtered.map((p) => ({ ...p, ageDisplay: calcAge(p.birthDate) })));
       this.loading.set(false);
     });
 
     if (currentDoctorUid) {
       this.subs.push(
         this.appointmentRepo.watchAppointmentsByDoctor(currentDoctorUid).subscribe((appts) => {
+          console.log('Appointments for today:', appts);
           const today = new Date();
           const todayStr = this.formatDateStr(today);
           const filtered = appts.filter((a) => a.date === todayStr && a.status === 'scheduled');
@@ -253,7 +265,17 @@ export class Patients implements OnInit, OnDestroy {
   async regenerateOtp(patient: Patient) {
     const newOtp = this.generateOtpPassword();
     await this.patientRepo.updatePatient(patient.id, { otpPassword: newOtp });
-    this.alert.success({ message: `Nueva contraseña OTP: ${newOtp}`, duration: 5000 });
+    try {
+      await this.emailService.sendPatientAccessEmail({
+        email: patient.email,
+        otpPassword: newOtp,
+        patientName: `${patient.name} ${patient.lastName}`.trim(),
+        doctorName: this.authService.currentDoctor?.name ?? '',
+      });
+      this.alert.success({ message: `Nueva contraseña OTP: ${newOtp}`, duration: 5000 });
+    } catch {
+      this.alert.error({ message: 'No se pudo enviar el correo de acceso', duration: 5000 });
+    }
   }
 
   async setCustomOtp(patient: Patient) {
@@ -280,7 +302,7 @@ export class Patients implements OnInit, OnDestroy {
     const confirmed = await dialogRef.afterClosed().toPromise();
     if (!confirmed) return;
 
-    await this.patientRepo.deletePatient(patient.id);
+    await this.cascade.deletePatientCascade(patient.id);
     this.alert.success({ message: 'Paciente eliminado', duration: 3000 });
   }
 

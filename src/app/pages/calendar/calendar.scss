@@ -28,7 +28,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
     position: relative;
 
     .datepicker-trigger {
@@ -162,7 +165,7 @@
 
 .data-cell {
   background: transparent;
-  cursor: pointer;
+  border: 1px solid #CAC4D0;
   transition: background 0.15s;
   padding: 1px;
   display: flex;
@@ -171,6 +174,8 @@
   flex-wrap: wrap;
   gap: 1px;
   min-width: 0;
+  font: inherit;
+  color: inherit;
 
   &:hover {
     background: rgba(255, 255, 255, 0.15);
@@ -211,13 +216,14 @@
   letter-spacing: 0.4px;
   padding: 4px 7.5px;
   border-radius: 4px;
+  border: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  cursor: pointer;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  text-align: left;
 }
 
 /* Mobile view */
@@ -276,7 +282,9 @@
   font-size: 14px;
   line-height: 20px;
   letter-spacing: 0.1px;
-  cursor: pointer;
+  border: none;
+  border-radius: 0;
+  text-align: left;
   box-sizing: border-box;
 }
 

@@ -275,10 +275,15 @@
 .visible-until {
   font-family: Roboto, sans-serif;
   font-weight: 400;
-  font-size: 12px;
-  line-height: 16px;
-  color: #49454F;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+  color: #1D1B20;
   margin-bottom: 12px;
+  span {
+    font-weight: 500;
+    color: #49454F;
+  }
 }
 
 .rich-content {

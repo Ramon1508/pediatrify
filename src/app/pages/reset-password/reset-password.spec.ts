@@ -5,14 +5,15 @@ import { ResetPassword } from './reset-password';
 import { FirebaseService } from '../../core/firebase/firebase.service';
 import { AlertService } from '../../core/services/alert.service';
 
-const mockSendPasswordResetEmail = vi.fn();
 const mockConfirmPasswordReset = vi.fn();
 
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn().mockReturnValue({}),
-  sendPasswordResetEmail: (...args: any[]) => mockSendPasswordResetEmail(...args),
   confirmPasswordReset: (...args: any[]) => mockConfirmPasswordReset(...args),
 }));
+
+const CF_URL =
+  'https://us-central1-lilcare-afdf5.cloudfunctions.net/sendCustomPasswordResetEmail';
 
 describe('ResetPassword', () => {
   let fixture: ComponentFixture<ResetPassword>;
@@ -43,9 +44,12 @@ describe('ResetPassword', () => {
     component = fixture.componentInstance;
     alertService = TestBed.inject(AlertService);
     router = TestBed.inject(Router);
-    mockSendPasswordResetEmail.mockReset();
     mockConfirmPasswordReset.mockReset();
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('creates the component', () => {
@@ -71,58 +75,76 @@ describe('ResetPassword', () => {
     expect(email.valid).toBe(true);
   });
 
-  it('does not call sendPasswordResetEmail when form is invalid', async () => {
+  it('does not call fetch when form is invalid', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}'));
     await (component as any).onRequestLink();
     expect((component as any).loading()).toBe(false);
-    expect(mockSendPasswordResetEmail).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('calls sendPasswordResetEmail with correct data when form is valid', async () => {
+  it('calls Cloud Function with correct data when form is valid', async () => {
     (component as any).requestForm.setValue({ email: 'doc@test.com' });
-    mockSendPasswordResetEmail.mockResolvedValue(undefined);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ result: { success: true } })),
+    );
 
     await (component as any).onRequestLink();
 
-    expect(mockSendPasswordResetEmail).toHaveBeenCalledWith(
-      (component as any).firebase.auth,
-      'doc@test.com',
+    expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledWith(
+      CF_URL,
       expect.objectContaining({
-        url: expect.stringContaining('/reset-password'),
-        handleCodeInApp: true,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { email: 'doc@test.com' } }),
       }),
     );
   });
 
   it('shows success alert on email sent', async () => {
     (component as any).requestForm.setValue({ email: 'doc@test.com' });
-    mockSendPasswordResetEmail.mockResolvedValue(undefined);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ result: { success: true } })),
+    );
 
     await (component as any).onRequestLink();
 
-    expect(alertService.success).toHaveBeenCalledWith({ message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.', duration: 5000 });
+    expect(alertService.success).toHaveBeenCalledWith({
+      message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.',
+      duration: 5000,
+    });
   });
 
-  it('shows error alert on auth/user-not-found', async () => {
-    (component as any).requestForm.setValue({ email: 'missing@test.com' });
-    mockSendPasswordResetEmail.mockRejectedValue({ code: 'auth/user-not-found' });
-
-    await (component as any).onRequestLink();
-
-    expect(alertService.error).toHaveBeenCalledWith({ message: 'No se encontró una cuenta con este correo electrónico', duration: 5000 });
-  });
-
-  it('shows error alert on SDK failure', async () => {
+  it('shows error alert on Cloud Function error', async () => {
     (component as any).requestForm.setValue({ email: 'doc@test.com' });
-    mockSendPasswordResetEmail.mockRejectedValue({ message: 'Demasiados intentos' });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ error: { message: 'Error interno' } })),
+    );
 
     await (component as any).onRequestLink();
 
-    expect(alertService.error).toHaveBeenCalledWith({ message: 'Demasiados intentos', duration: 5000 });
+    expect(alertService.error).toHaveBeenCalledWith({
+      message: 'Error interno',
+      duration: 5000,
+    });
+  });
+
+  it('shows error alert on fetch failure', async () => {
+    (component as any).requestForm.setValue({ email: 'doc@test.com' });
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Demasiados intentos'));
+
+    await (component as any).onRequestLink();
+
+    expect(alertService.error).toHaveBeenCalledWith({
+      message: 'Demasiados intentos',
+      duration: 5000,
+    });
   });
 
   it('resets form after successful email send', async () => {
     (component as any).requestForm.setValue({ email: 'doc@test.com' });
-    mockSendPasswordResetEmail.mockResolvedValue(undefined);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ result: { success: true } })),
+    );
     const resetSpy = vi.spyOn((component as any).requestForm, 'reset');
 
     await (component as any).onRequestLink();
@@ -155,7 +177,6 @@ describe('ResetPassword', () => {
       component = fixture.componentInstance;
       router = TestBed.inject(Router);
       alertService = TestBed.inject(AlertService);
-      mockSendPasswordResetEmail.mockReset();
       mockConfirmPasswordReset.mockReset();
       fixture.detectChanges();
     });
@@ -201,7 +222,7 @@ describe('ResetPassword', () => {
       expect(mockConfirmPasswordReset).toHaveBeenCalledWith(
         (component as any).firebase.auth,
         'valid-code',
-        'NewValid1Pass!'
+        'NewValid1Pass!',
       );
     });
 
@@ -212,7 +233,10 @@ describe('ResetPassword', () => {
 
       await (component as any).onResetPassword();
 
-      expect(alertService.success).toHaveBeenCalledWith({ message: 'Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.', duration: 5000 });
+      expect(alertService.success).toHaveBeenCalledWith({
+        message: 'Contraseña restablecida correctamente. Inicia sesión con tu nueva contraseña.',
+        duration: 5000,
+      });
       expect(router.navigate).toHaveBeenCalledWith(['/login']);
     });
 
@@ -223,7 +247,10 @@ describe('ResetPassword', () => {
 
       await (component as any).onResetPassword();
 
-      expect(alertService.error).toHaveBeenCalledWith({ message: 'El enlace de recuperación ha expirado. Solicita uno nuevo.', duration: 5000 });
+      expect(alertService.error).toHaveBeenCalledWith({
+        message: 'El enlace de recuperación ha expirado. Solicita uno nuevo.',
+        duration: 5000,
+      });
     });
 
     it('shows error on invalid action code', async () => {
@@ -233,7 +260,10 @@ describe('ResetPassword', () => {
 
       await (component as any).onResetPassword();
 
-      expect(alertService.error).toHaveBeenCalledWith({ message: 'El enlace de recuperación no es válido. Solicita uno nuevo.', duration: 5000 });
+      expect(alertService.error).toHaveBeenCalledWith({
+        message: 'El enlace de recuperación no es válido. Solicita uno nuevo.',
+        duration: 5000,
+      });
     });
   });
 });

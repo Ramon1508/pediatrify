@@ -2,6 +2,7 @@ import { Component, inject, input, output, ChangeDetectionStrategy } from '@angu
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { Appointment } from '../../../core/models/user';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-appointment-detail-card',
@@ -16,6 +17,13 @@ export class AppointmentDetailCard {
   readonly edit = output<Appointment>();
   readonly cancel = output<void>();
 
+  private authService = inject(AuthService);
+  private router = inject(Router);
+
+  protected get isAssistant(): boolean {
+    return this.authService.currentDoctor?.role === 'assistant';
+  }
+
   onReagendar() {
     this.edit.emit(this.appointment());
   }
@@ -23,8 +31,6 @@ export class AppointmentDetailCard {
   onCancelar() {
     this.cancel.emit();
   }
-
-  private router = inject(Router);
 
   onVerHistorial() {
     this.router.navigate(['/app/patients/history', this.appointment().patientId]);

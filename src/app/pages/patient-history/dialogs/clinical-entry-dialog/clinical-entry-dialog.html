@@ -1,5 +1,5 @@
 <div class="dialog-title-container">
-  <h2 class="dialog-title">{{ isEdit ? 'Editar datos de la consulta' : 'Nueva entrada' }}</h2>
+  <h2 class="dialog-title">{{ editTitle }}</h2>
   <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
     <mat-icon>close</mat-icon>
   </button>
@@ -17,7 +17,7 @@
     </div>
   </div>
 
-  @if (isEdit) {
+  @if (isEdit && editContext === 'general') {
     <mat-tab-group [(selectedIndex)]="selectedTab">
       <mat-tab>
         <ng-template mat-tab-label>
@@ -177,6 +177,35 @@
         </form>
       </mat-tab>
     </mat-tab-group>
+  } @else if (isEdit && editContext === 'recommendations') {
+    <form [formGroup]="step2Form" class="context-form">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Visible para el paciente hasta</mat-label>
+        <input matInput [matDatepicker]="dpRecCtx" formControlName="visibleUntil" placeholder="DD/MM/AAAA" (click)="dpRecCtx.open()" [matDatepickerFilter]="noPastDates" />
+        <mat-icon matSuffix (click)="dpRecCtx.open()">calendar_today</mat-icon>
+        <mat-datepicker #dpRecCtx></mat-datepicker>
+        @if (step2Form.get('visibleUntil')?.invalid && submitted) {
+          <mat-error>Selecciona la fecha límite de visualización</mat-error>
+        }
+      </mat-form-field>
+
+      <app-rich-text-editor formControlName="recommendations" />
+    </form>
+  } @else if (isEdit && editContext === 'prescription') {
+    <form [formGroup]="step3Form" class="context-form">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Visible para el paciente hasta</mat-label>
+        <input matInput [matDatepicker]="dpRxCtx" formControlName="visibleUntilRx" placeholder="DD/MM/AAAA" (click)="dpRxCtx.open()" [matDatepickerFilter]="noPastDates" />
+        <mat-icon matSuffix (click)="dpRxCtx.open()">calendar_today</mat-icon>
+        <mat-datepicker #dpRxCtx></mat-datepicker>
+        @if (step3Form.get('visibleUntilRx')?.invalid && submitted) {
+          <mat-error>Selecciona la fecha límite de visualización</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="editor-label">Receta</div>
+      <app-rich-text-editor formControlName="prescription" />
+    </form>
   } @else {
     <div class="step-header">
       <span class="step-title">{{ stepLabel }}</span>
@@ -328,7 +357,15 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (isEdit) {
+  @if (isEdit && editContext !== 'general') {
+    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="saveAndPrint()" [disabled]="saving">
+      @if (saving) {
+        <mat-spinner diameter="18" />
+      } @else {
+        Guardar e imprimir
+      }
+    </button>
+  } @else if (isEdit) {
     <button mat-stroked-button class="btn-secondary dialog-btn" (click)="save()" [disabled]="saving">
       @if (saving) {
         <mat-spinner diameter="18" />
@@ -342,9 +379,6 @@
       } @else {
         Guardar e imprimir
       }
-    </button>
-    <button mat-stroked-button class="btn-tertiary dialog-btn" (click)="print()" [disabled]="saving">
-      Imprimir
     </button>
   } @else {
     @if (step > 1) {

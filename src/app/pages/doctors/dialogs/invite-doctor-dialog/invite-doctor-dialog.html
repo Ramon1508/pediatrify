@@ -1,5 +1,5 @@
 <div class="dialog-title-container">
-  <h2 class="dialog-title">Invitar asistente</h2>
+  <h2 class="dialog-title">{{ title }}</h2>
   <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
     <mat-icon>close</mat-icon>
   </button>
@@ -20,18 +20,6 @@
       <input matInput type="email" formControlName="email" />
       @if (form.get('email')?.invalid && (form.get('email')?.touched || submitted)) {
         <mat-error>Ingresa un correo electrónico válido</mat-error>
-      }
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Rol del usuario</mat-label>
-      <mat-select formControlName="role">
-        @for (r of roles; track r.value) {
-          <mat-option [value]="r.value">{{ r.label }}</mat-option>
-        }
-      </mat-select>
-      @if (form.get('role')?.invalid && (form.get('role')?.touched || submitted)) {
-        <mat-error>Selecciona un rol</mat-error>
       }
     </mat-form-field>
 
