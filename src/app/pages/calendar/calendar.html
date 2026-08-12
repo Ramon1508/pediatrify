@@ -65,6 +65,8 @@
               @for (apt of getAppointmentsForCell(day, slot); track apt.id) {
                 <button type="button" class="appointment-block"
                      [class.attended]="apt.status === 'attended'"
+                     [class.focused-appointment]="focusedAppointmentId() === apt.id"
+                     [attr.data-appointment-id]="apt.id"
                      [matTooltip]="apt.patientName"
                      (click)="$event.stopPropagation(); selectAppointment(apt, $event)"
                 >

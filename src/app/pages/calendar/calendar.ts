@@ -19,6 +19,8 @@ import { AuditRepository } from '../../core/repositories/audit.repository';
 import { Appointment, Patient, AppUser, TimeSegment } from '../../core/models/user';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { CalendarFocusService } from '../../core/services/calendar-focus.service';
 import { AppointmentDetailCard } from '../../shared/components/appointment-detail-card/appointment-detail-card';
 import { AppointmentDialog } from './dialogs/appointment-dialog/appointment-dialog';
 import { SettingsDialog, SettingsData } from './dialogs/settings-dialog/settings-dialog';
@@ -63,8 +65,10 @@ export class Calendar implements OnInit, OnDestroy {
   private auditRepo = inject(AuditRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
+  private notifications = inject(NotificationService);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
+  private focusService = inject(CalendarFocusService);
 
   readonly dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   readonly dayNamesShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -108,8 +112,12 @@ export class Calendar implements OnInit, OnDestroy {
   protected expandedAppointmentId = signal<string | null>(null);
   protected selectedAppointment = signal<Appointment | null>(null);
   protected overlayPosition = signal<{ top: number; left: number } | null>(null);
+  protected focusedAppointmentId = signal<string | null>(null);
+
+  private pendingFocus: { date: string; time: string; appointmentId: string } | null = null;
 
   private appointmentSub: Subscription | null = null;
+  private focusSub: Subscription | null = null;
 
   @ViewChild('picker') materialPicker!: any;
 
@@ -312,6 +320,7 @@ export class Calendar implements OnInit, OnDestroy {
       });
       this.allAppointments.set(merged);
       this.scrollToCurrentHour();
+      this.applyPendingFocus();
       this.cdr.markForCheck();
     });
 
@@ -357,13 +366,29 @@ export class Calendar implements OnInit, OnDestroy {
     }
 
     this.loadDoctorData(doctorId);
+
+    this.focusSub = this.focusService.target$.subscribe((focus) => {
+      if (!focus) return;
+      this.focusService.clear();
+      this.applyFocus(focus);
+    });
+  }
+
+  private applyFocus(focus: { date: string; time: string; appointmentId: string }) {
+    this.pendingFocus = this.pendingFocus ?? focus;
+    const d = new Date(focus.date + 'T12:00:00');
+    if (!isNaN(d.getTime())) {
+      this.weekStart.set(this.getWeekStart(d));
+      this.selectedDay.set(d);
+    }
+    this.applyPendingFocus();
   }
 
   private scrollToCurrentHour() {
     setTimeout(() => {
       const el = document.querySelector('.current-hour');
-      if (el) {
-        el.scrollIntoView({ block: 'center', behavior: 'auto' });
+      if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+        (el as HTMLElement).scrollIntoView({ block: 'center', behavior: 'auto' });
       } else {
         const container = document.querySelector('.calendar-scroll');
         if (container) {
@@ -373,10 +398,45 @@ export class Calendar implements OnInit, OnDestroy {
     });
   }
 
+  private applyPendingFocus() {
+    if (!this.pendingFocus) return;
+    const target = this.pendingFocus;
+
+    const found = this.allAppointments().find(
+      (a) => a.id === target.appointmentId
+    );
+
+    this.focusedAppointmentId.set(target.appointmentId);
+    this.selectedDay.set(new Date(target.date + 'T12:00:00'));
+    setTimeout(() => {
+      const now = this.weekStart();
+      const currentWeek = new Date(now);
+      currentWeek.setDate(currentWeek.getDate() + 7);
+      const targetDate = new Date(target.date + 'T12:00:00');
+      if (targetDate < now || targetDate >= currentWeek) {
+        this.weekStart.set(this.getWeekStart(targetDate));
+      }
+      setTimeout(() => {
+        const el = document.querySelector(`[data-appointment-id="${target.appointmentId}"]`);
+        if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+          (el as HTMLElement).scrollIntoView({ block: 'center', behavior: 'smooth' });
+          this.cdr.markForCheck();
+          this.pendingFocus = null;
+        } else if (found) {
+          this.pendingFocus = null;
+        }
+        if (found) {
+          this.selectedAppointment.set(found);
+        }
+      }, 50);
+    }, 50);
+  }
+
   ngOnDestroy() {
     if (this.appointmentSub) {
       this.appointmentSub.unsubscribe();
     }
+    this.focusSub?.unsubscribe();
   }
 
   private getWeekStart(date: Date): Date {
@@ -519,6 +579,7 @@ export class Calendar implements OnInit, OnDestroy {
 
   private async doCancelAppointment(apt: Appointment) {
     await this.appointmentRepo.updateAppointment(apt.id, { status: 'cancelled' });
+    await this.notifications.notifyAppointmentCancelled(apt);
     this.alert.success({ message: 'Cita cancelada', duration: 3000 });
   }
 

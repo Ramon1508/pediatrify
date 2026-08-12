@@ -1,10 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog } from '@angular/material/dialog';
+import { of } from 'rxjs';
 import { Header } from './header';
 import { AuthService } from '../../../core/services/auth.service';
+import { NotificationRepository } from '../../../core/repositories/notification.repository';
 import { BRAND_NAME } from '../../../core/config/brand';
 import { ProfileDialog } from '../profile-dialog/profile-dialog';
+import { NotificationsDialog } from '../notifications-dialog/notifications-dialog';
 
 describe('Header', () => {
   let fixture: ComponentFixture<Header>;
@@ -13,7 +16,7 @@ describe('Header', () => {
   let authService: AuthService;
 
   beforeEach(async () => {
-    const authSpy = { logout: vi.fn() } as any;
+    const authSpy = { logout: vi.fn(), session$: of(null) } as any;
     Object.defineProperty(authSpy, 'currentDoctor', { get: () => null, configurable: true });
     Object.defineProperty(authSpy, 'currentPatient', { get: () => null, configurable: true });
     Object.defineProperty(authSpy, 'isAuthenticated', { get: () => false, configurable: true });
@@ -24,6 +27,7 @@ describe('Header', () => {
       providers: [
         { provide: AuthService, useValue: authSpy },
         { provide: MatDialog, useValue: dialogSpy },
+        { provide: NotificationRepository, useValue: { watchForRecipient: vi.fn().mockReturnValue(of([])) } },
         { provide: BRAND_NAME, useValue: 'Lilcare' },
       ],
     }).compileComponents();
@@ -47,6 +51,17 @@ describe('Header', () => {
     expect(dialog.open).toHaveBeenCalledWith(ProfileDialog, expect.objectContaining({
       panelClass: 'profile-panel',
       disableClose: true,
+    }));
+  });
+
+  it('opens the notifications dialog when clicking the bell button', () => {
+    Object.defineProperty(authService, 'isAuthenticated', { get: () => true, configurable: true });
+    Object.defineProperty(authService, 'currentDoctor', { get: () => ({ uid: 'd1', role: 'doctor' }), configurable: true });
+    fixture.detectChanges();
+    const bell = fixture.nativeElement.querySelector('button[aria-label="Abrir notificaciones"]');
+    bell.click();
+    expect(dialog.open).toHaveBeenCalledWith(NotificationsDialog, expect.objectContaining({
+      panelClass: 'notif-panel',
     }));
   });
 });

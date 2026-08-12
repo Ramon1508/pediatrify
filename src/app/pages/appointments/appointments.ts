@@ -15,6 +15,7 @@ import { AuditRepository } from '../../core/repositories/audit.repository';
 import { Appointment, Patient } from '../../core/models/user';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { AppointmentFormDialog } from './dialogs/appointment-form-dialog/appointment-form-dialog';
 
 @Component({
@@ -44,6 +45,7 @@ export class Appointments implements OnInit {
   private auditRepo = inject(AuditRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
+  private notifications = inject(NotificationService);
   private cdr = inject(ChangeDetectorRef);
 
   protected allAppointments = signal<Appointment[]>([]);
@@ -198,6 +200,7 @@ export class Appointments implements OnInit {
 
   async cancelAppointment(appointment: Appointment) {
     await this.appointmentRepo.updateAppointment(appointment.id, { status: 'cancelled' });
+    await this.notifications.notifyAppointmentCancelled(appointment);
     this.alert.success({ message: 'Cita cancelada', duration: 3000 });
   }
 

@@ -15,6 +15,7 @@ import { AuditRepository } from '../../../../core/repositories/audit.repository'
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { Appointment, Patient, TimeSegment } from '../../../../core/models/user';
 import { NewPatientDialog } from '../new-patient-dialog/new-patient-dialog';
 import { MatDialog } from '@angular/material/dialog';
@@ -46,6 +47,7 @@ export class AppointmentDialog {
   private patientRepo = inject(PatientRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
+  private notifications = inject(NotificationService);
   private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
   private dialogRef = inject(MatDialogRef<AppointmentDialog>);
@@ -195,7 +197,8 @@ export class AppointmentDialog {
       const currentUser = this.authService.currentDoctor;
 
       if (this.editingAppointment) {
-        await this.appointmentRepo.updateAppointment(this.editingAppointment.id, {
+        const updatedAppointment: Appointment = {
+          ...this.editingAppointment,
           patientId: patient.id,
           patientName: `${patient.name} ${patient.lastName}`,
           patientLastName: patient.lastName,
@@ -209,14 +212,25 @@ export class AppointmentDialog {
           time: time!,
           notes: notes || '',
           updatedBy: currentUser?.email ?? '',
-        });
+        };
+        await this.appointmentRepo.updateAppointment(this.editingAppointment.id, updatedAppointment);
+        if (
+          updatedAppointment.date !== this.editingAppointment.date ||
+          updatedAppointment.time !== this.editingAppointment.time
+        ) {
+          await this.notifications.notifyAppointmentRescheduled(
+            updatedAppointment,
+            this.editingAppointment.date,
+            this.editingAppointment.time
+          );
+        }
         this.alert.success({ message: 'Cita actualizada', duration: 3000 });
         this.dialogRef.close(true);
         return;
       }
 
       const id = crypto.randomUUID();
-      await this.appointmentRepo.createAppointment(id, {
+      const newAppointment: Appointment = {
         id,
         patientId: patient.id,
         patientName: `${patient.name} ${patient.lastName}`,
@@ -234,7 +248,9 @@ export class AppointmentDialog {
         notes: notes || '',
         disabled: false,
         updatedBy: currentUser?.email ?? '',
-      });
+      };
+      await this.appointmentRepo.createAppointment(id, newAppointment);
+      await this.notifications.notifyAppointmentCreated(newAppointment);
 
       this.alert.success({ message: 'Cita agendada', duration: 3000 });
       this.dialogRef.close(true);

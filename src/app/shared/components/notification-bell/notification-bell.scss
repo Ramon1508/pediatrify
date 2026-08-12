@@ -1,0 +1,38 @@
+:host {
+  display: inline-flex;
+}
+
+.notification-button-wrapper {
+  position: relative;
+  display: inline-flex;
+  overflow: visible;
+}
+
+.notification-button {
+  width: 56px;
+  height: 32px;
+  min-width: 56px;
+  min-height: 32px;
+
+  padding: 6px 20px;
+  margin: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+
+  border: none;
+  border-radius: 16px;
+  background: #bfedfa;
+
+  cursor: pointer;
+
+  mat-icon {
+    height: 20px;
+    font-size: 20px;
+    line-height: 20px;
+    color: #4a4459;
+  }
+}

@@ -8,6 +8,7 @@ import { AppointmentRepository } from '../../../../core/repositories/appointment
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { AuditRepository } from '../../../../core/repositories/audit.repository';
 
 describe('AppointmentDialog', () => {
@@ -34,6 +35,7 @@ describe('AppointmentDialog', () => {
         { provide: AuthService, useValue: { currentDoctor: { uid: 'd1', firebaseUid: 'd1', name: 'Dr. Test', email: 'dr@test.com' } } },
         { provide: AlertService, useValue: { success: vi.fn(), error: vi.fn() } },
         { provide: AuditRepository, useValue: { log: vi.fn() } },
+        { provide: NotificationService, useValue: { notifyAppointmentCreated: vi.fn(), notifyAppointmentCancelled: vi.fn(), notifyAppointmentRescheduled: vi.fn() } },
       ],
     }).compileComponents();
 

@@ -9,6 +9,7 @@ import { AuditRepository } from '../../core/repositories/audit.repository';
 import { AlertService } from '../../core/services/alert.service';
 import { AuthService } from '../../core/services/auth.service';
 import { EmailService } from '../../core/services/email.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { MatDialog } from '@angular/material/dialog';
 import { provideNativeDateAdapter } from '@angular/material/core';
@@ -96,6 +97,7 @@ describe('Patients', () => {
         { provide: EmailService, useValue: emailSpy },
         { provide: Clipboard, useValue: clipboardSpy },
         { provide: MatDialog, useValue: dialogSpy },
+        { provide: NotificationService, useValue: { notifyAppointmentCreated: vi.fn(), notifyAppointmentCancelled: vi.fn(), notifyAppointmentRescheduled: vi.fn() } },
       ],
     }).compileComponents();
 

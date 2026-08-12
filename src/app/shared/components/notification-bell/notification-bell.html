@@ -1,0 +1,15 @@
+@if (recipientId()) {
+  <span class="notification-button-wrapper">
+    <button
+      mat-icon-button
+      type="button"
+      class="notification-button"
+      (click)="openNotifications()"
+      aria-label="Abrir notificaciones">
+      <mat-icon>notifications</mat-icon>
+      @if (unreadCount() > 0) {
+        <span class="notification-badge" aria-label="Notificaciones sin leer">{{ unreadCount() }}</span>
+      }
+    </button>
+  </span>
+}

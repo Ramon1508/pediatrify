@@ -6,6 +6,7 @@ import { AppointmentRepository } from '../../../../core/repositories/appointment
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { Patient } from '../../../../core/models/user';
 
 describe('AppointmentFormDialog', () => {
@@ -32,6 +33,7 @@ describe('AppointmentFormDialog', () => {
         { provide: AuthService, useValue: { currentDoctor: mockDoctor } },
         { provide: AlertService, useValue: alertService },
         { provide: MatDialogRef, useValue: dialogRef },
+        { provide: NotificationService, useValue: { notifyAppointmentCreated: vi.fn(), notifyAppointmentCancelled: vi.fn(), notifyAppointmentRescheduled: vi.fn() } },
       ],
     });
 

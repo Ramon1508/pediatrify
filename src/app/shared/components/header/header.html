@@ -6,9 +6,12 @@
 
   <div class="nav-right">
     @if (authService.isAuthenticated) {
-      <button mat-icon-button (click)="openProfileDialog()" aria-label="Perfil">
-        <mat-icon>account_circle</mat-icon>
-      </button>
+      <div class="notification-actions">
+        <app-notification-bell />
+        <button mat-icon-button (click)="openProfileDialog()" aria-label="Perfil">
+          <mat-icon>account_circle</mat-icon>
+        </button>
+      </div>
     }
   </div>
 </mat-toolbar>

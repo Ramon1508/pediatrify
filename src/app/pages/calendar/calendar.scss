@@ -226,6 +226,11 @@
   text-align: left;
 }
 
+.appointment-block.focused-appointment {
+  background: #0d6e8f;
+  color: #ffffff;
+}
+
 /* Mobile view */
 .mobile-only {
   display: none;

@@ -9,6 +9,7 @@ import { UserRepository } from '../../core/repositories/user.repository';
 import { AuditRepository } from '../../core/repositories/audit.repository';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
+import { NotificationService } from '../../core/services/notification.service';
 
 describe('Appointments', () => {
   let fixture: ComponentFixture<Appointments>;
@@ -38,6 +39,7 @@ describe('Appointments', () => {
     const auditSpy = { log: vi.fn().mockResolvedValue(undefined) } as any;
     const authSpy = { currentDoctor: { uid: 'd1', name: 'Dr. X' } as any };
     const alertSpy = { success: vi.fn() } as any;
+    const notificationSpy = { notifyAppointmentCreated: vi.fn(), notifyAppointmentCancelled: vi.fn(), notifyAppointmentRescheduled: vi.fn() } as any;
     const dialogSpy = {
       open: vi.fn().mockReturnValue({
         afterClosed: vi.fn().mockReturnValue(of(true)),
@@ -57,6 +59,7 @@ describe('Appointments', () => {
         { provide: AuditRepository, useValue: auditSpy },
         { provide: AuthService, useValue: authSpy },
         { provide: AlertService, useValue: alertSpy },
+        { provide: NotificationService, useValue: notificationSpy },
       ],
     }).overrideProvider(MatDialog, {
       useValue: dialogSpy,

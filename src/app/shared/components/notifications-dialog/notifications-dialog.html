@@ -1,0 +1,44 @@
+<div class="notif-dialog">
+  <header class="notif-header">
+    <h1 class="notif-title">Notificaciones</h1>
+    <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar notificaciones">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  @if (notifications().length === 0) {
+    <p class="notif-empty">
+      Aún no tienes notificaciones.
+    </p>
+  } @else {
+    <div class="notif-filters">
+      <mat-radio-group [formControl]="filterControl" aria-label="Filtrar notificaciones">
+        <mat-radio-button value="all">Todos</mat-radio-button>
+        <mat-radio-button value="unread">Sin leer</mat-radio-button>
+      </mat-radio-group>
+    </div>
+
+    <div class="notifications-list">
+      @for (n of filtered(); track n.id) {
+        <div class="notif-item">
+          <span
+            class="notif-dot"
+            [class.notif-dot-read]="isRead(n)"
+            aria-hidden="true"></span>
+          <div class="notif-body">
+            <h2 class="notif-item-title">{{ n.title }}</h2>
+            <p class="notif-item-desc">{{ n.description }}</p>
+            @if (canShowDetails(n)) {
+              <button mat-button class="notif-details-btn" (click)="openDetails(n)">
+                Ver detalles
+              </button>
+            }
+          </div>
+        </div>
+        @if (!$last) {
+          <mat-divider />
+        }
+      }
+    </div>
+  }
+</div>

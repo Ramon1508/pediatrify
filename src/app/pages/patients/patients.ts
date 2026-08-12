@@ -16,6 +16,7 @@ import { AppointmentRepository } from '../../core/repositories/appointment.repos
 import { AuditRepository } from '../../core/repositories/audit.repository';
 import { CascadeService } from '../../core/services/cascade.service';
 import { EmailService } from '../../core/services/email.service';
+import { NotificationService } from '../../core/services/notification.service';
 
 function calcAge(birthDate: unknown): string {
   let d: Date | null = null;
@@ -84,6 +85,7 @@ export class Patients implements OnInit, OnDestroy {
   private clipboard = inject(Clipboard);
   private cascade = inject(CascadeService);
   private emailService = inject(EmailService);
+  private notifications = inject(NotificationService);
 
   protected patients = signal<Patient[]>([]);
   protected patientsWithAge = signal<(Patient & { ageDisplay: string })[]>([]);
@@ -238,6 +240,7 @@ export class Patients implements OnInit, OnDestroy {
 
     try {
       await this.appointmentRepo.updateAppointment(appt.id, { status: 'cancelled' });
+      await this.notifications.notifyAppointmentCancelled(appt);
       await this.auditRepo.log({
         id: crypto.randomUUID(),
         action: 'update',

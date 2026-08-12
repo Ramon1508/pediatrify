@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../core/services/auth.service';
 import { BRAND_NAME } from '../../../core/config/brand';
 import { ProfileDialog } from '../profile-dialog/profile-dialog';
+import { NotificationBell } from '../notification-bell/notification-bell';
 
 @Component({
   selector: 'app-header',
@@ -20,6 +21,7 @@ import { ProfileDialog } from '../profile-dialog/profile-dialog';
     MatToolbarModule,
     MatButtonModule,
     MatIconModule,
+    NotificationBell,
   ],
 })
 export class Header {

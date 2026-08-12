@@ -56,6 +56,14 @@ private mapDoc(doc: any): AppUser {
     return snap.empty ? null : this.mapDoc(snap.docs[0]);
   }
 
+  async getAssistantsByDoctor(doctorUid: string): Promise<AppUser[]> {
+    const q = query(this.userRef, where('role', '==', 'assistant'));
+    const snap = await getDocs(q);
+    return snap.docs
+      .map((d) => this.mapDoc(d))
+      .filter((u) => u.createdBy === doctorUid);
+  }
+
   async createUser(uid: string, data: Partial<AppUser>): Promise<void> {
     await setDoc(this.docRef(uid), {
       ...data,
