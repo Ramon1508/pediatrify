@@ -6,30 +6,45 @@
     </button>
   </header>
 
-  @if (notifications().length === 0) {
+  @if (isInitialLoading()) {
+    <div class="notif-skeleton" aria-hidden="true">
+      @for (_ of skeletonItems; track $index) {
+        <div class="skeleton-item">
+          <span class="skeleton-dot"></span>
+          <div class="skeleton-lines">
+            <span class="skeleton-line skeleton-line-title"></span>
+            <span class="skeleton-line"></span>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (notifications().length === 0) {
     <p class="notif-empty">
       Aún no tienes notificaciones.
     </p>
   } @else {
     <div class="notif-filters">
-      <mat-radio-group [formControl]="filterControl" aria-label="Filtrar notificaciones">
+      <mat-radio-group
+        [value]="activeFilter()"
+        (change)="setFilter($event.value)"
+        aria-label="Filtrar notificaciones">
         <mat-radio-button value="all">Todos</mat-radio-button>
         <mat-radio-button value="unread">Sin leer</mat-radio-button>
       </mat-radio-group>
     </div>
 
-    <div class="notifications-list">
-      @for (n of filtered(); track n.id) {
+    <div class="notifications-list" #notifList (scroll)="onScroll($event)">
+      @for (item of items(); track item.notification.id) {
         <div class="notif-item">
           <span
             class="notif-dot"
-            [class.notif-dot-read]="isRead(n)"
+            [class.notif-dot-read]="item.read"
             aria-hidden="true"></span>
           <div class="notif-body">
-            <h2 class="notif-item-title">{{ n.title }}</h2>
-            <p class="notif-item-desc">{{ n.description }}</p>
-            @if (canShowDetails(n)) {
-              <button mat-button class="notif-details-btn" (click)="openDetails(n)">
+            <h2 class="notif-item-title">{{ item.notification.title }}</h2>
+            <p class="notif-item-desc">{{ item.notification.description }}</p>
+            @if (item.showDetails) {
+              <button mat-button class="notif-details-btn" (click)="openDetails(item.notification)">
                 Ver detalles
               </button>
             }
@@ -38,6 +53,13 @@
         @if (!$last) {
           <mat-divider />
         }
+      }
+      @if (isLoadingMore()) {
+        <div class="notif-loading-more">
+          <mat-spinner diameter="20" />
+        </div>
+      } @else if (!hasMore()) {
+        <p class="notif-end">Has llegado al final de tus notificaciones.</p>
       }
     </div>
   }

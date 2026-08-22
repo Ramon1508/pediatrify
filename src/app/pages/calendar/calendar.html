@@ -4,12 +4,14 @@
       <button type="button" class="date-picker-area" (click)="openDatePicker()">
         <input matInput [matDatepicker]="picker" class="datepicker-trigger" (dateChange)="onDateSelected($event)">
         <mat-datepicker #picker></mat-datepicker>
-        <input #dayPicker type="date" class="date-input mobile-only" [value]="formatDate(selectedDay())" (change)="onMobileDateChange(dayPicker.value)" />
+        <input #dayPicker type="date" class="date-input mobile-only" [value]="selectedDayFormatted()" (change)="onMobileDateChange(dayPicker.value)" />
         <span class="date-label desktop-only">{{ dateLabel() }}</span>
         <span class="date-label mobile-only">{{ mobileDateLabel() }}</span>
         <mat-icon class="dropdown-icon">keyboard_arrow_down</mat-icon>
       </button>
-      <button mat-stroked-button class="btn-secondary btn-hoy" (click)="goToToday()">Hoy</button>
+      @if (!isCurrentWeek()) {
+        <button mat-stroked-button class="btn-secondary btn-hoy" (click)="goToToday()">Hoy</button>
+      }
       @if (false) {
         <mat-form-field appearance="outline" class="doctor-selector">
           <mat-select [value]="selectedDoctorId()" (selectionChange)="onDoctorSelected($event.value)">
@@ -35,34 +37,36 @@
 
   <div class="calendar-scroll">
     @if (availableDaysSignal().length) {
-      <div class="calendar-grid" [style.grid-template-columns]="gridTemplateColumns">
+      <div class="calendar-grid-header" [style.grid-template-columns]="gridTemplateColumns">
         <div class="grid-cell corner-cell"></div>
 
-        @for (day of weekDays(); track day.getTime()) {
-          <div class="grid-cell day-header" [class.today]="isToday(day)" [class.disabled-header]="!isDayAvailable(day)">
-            <span class="day-number">{{ day.getDate() }}</span>
-            <span class="day-name">{{ dayNames[day.getDay()] }}</span>
+        @for (day of headerDays(); track day.day.getTime()) {
+          <div class="grid-cell day-header" [class.today]="day.isToday" [class.disabled-header]="!day.isAvailable">
+            <span class="day-number">{{ day.date }}</span>
+            <span class="day-name">{{ day.name }}</span>
           </div>
         }
+      </div>
 
-        @for (slot of timeSlots(); track slot.key) {
+      <div class="calendar-grid-body" [style.grid-template-columns]="gridTemplateColumns">
+        @for (row of gridRows(); track row.slot.key) {
           <div class="grid-cell time-label">
-            @if (slot.label) {
-              <span>{{ slot.label }}</span>
+            @if (row.slot.label) {
+              <span>{{ row.slot.label }}</span>
             }
           </div>
 
-          @for (day of weekDays(); track day.getTime()) {
+          @for (cell of row.cells; track cell.day.getTime()) {
             <button type="button"
               class="grid-cell data-cell"
-              [class.today-cell]="isToday(day)"
-              [class.current-hour]="isToday(day) && isCurrentHour(slot)"
-              [class.disabled-cell]="!isDayAvailable(day)"
-              (mouseenter)="canInteractWithCell(day) && onCellHover(day, slot)"
+              [class.today-cell]="cell.isToday"
+              [class.current-hour]="cell.isCurrentHour"
+              [class.disabled-cell]="!cell.isAvailable"
+              (mouseenter)="cell.canInteract && onCellHover(cell.day, cell.slot)"
               (mouseleave)="onCellLeave()"
-              (click)="canInteractWithCell(day) && openNewAppointment(day, slot)"
+              (click)="cell.canInteract && openNewAppointment(cell.day, cell.slot)"
             >
-              @for (apt of getAppointmentsForCell(day, slot); track apt.id) {
+              @for (apt of cell.appointments; track apt.id) {
                 <button type="button" class="appointment-block"
                      [class.attended]="apt.status === 'attended'"
                      [class.focused-appointment]="focusedAppointmentId() === apt.id"
@@ -73,7 +77,7 @@
                   {{ apt.patientName }}
                 </button>
               }
-              @if (canInteractWithCell(day) && !getAppointmentsForCell(day, slot).length && isHovered(day, slot)) {
+              @if (cell.canInteract && !cell.appointments.length && cell.isHovered) {
                 <button class="add-btn" mat-icon-button>
                   <mat-icon>add</mat-icon>
                 </button>
@@ -104,19 +108,19 @@
 
 <div class="mobile-view">
   <div class="mobile-cards">
-    @for (apt of getAppointmentsForDay(); track apt.id) {
-      <button type="button" class="mobile-card" (click)="toggleExpand(apt.id)">
-        <span>{{ formatTime(apt.time) }} | {{ apt.patientName }}</span>
+    @for (item of mobileDayAppointments(); track item.apt.id) {
+      <button type="button" class="mobile-card" (click)="toggleExpand(item.apt.id)">
+        <span>{{ item.timeLabel }} | {{ item.apt.patientName }}</span>
       </button>
-      @if (expandedAppointmentId() === apt.id) {
+      @if (expandedAppointmentId() === item.apt.id) {
         <app-appointment-detail-card
-          [appointment]="apt"
-          (cancel)="cancelAppointment(apt)"
+          [appointment]="item.apt"
+          (cancel)="cancelAppointment(item.apt)"
         />
       }
     }
-    @if (!getAppointmentsForDay().length) {
-      <p class="no-appointments">No hay citas para este día</p>
+    @if (!mobileDayAppointments().length) {
+      <p class="no-appointments">No tienes consultas agendadas para el día de hoy.</p>
     }
   </div>
 </div>

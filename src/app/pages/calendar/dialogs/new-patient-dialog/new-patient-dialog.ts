@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, Input, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -47,11 +47,21 @@ export class NewPatientDialog {
   private alert = inject(AlertService);
   private emailService = inject(EmailService);
   private cdr = inject(ChangeDetectorRef);
-  private dialogRef = inject(MatDialogRef<NewPatientDialog>);
+  private dialogRef = inject(MatDialogRef<NewPatientDialog>, { optional: true });
 
-  protected allPatients: Patient[] = [];
   protected editingPatient: Patient | null = null;
 
+  @Input() embedded = false;
+  @Input() set allPatients(patients: Patient[]) {
+    this.setPatients(patients);
+  }
+  get allPatients(): Patient[] {
+    return this._allPatients;
+  }
+  @Output() back = new EventEmitter<void>();
+  @Output() saved = new EventEmitter<Patient>();
+
+  private _allPatients: Patient[] = [];
   protected saving = false;
   protected submitted = false;
   protected alertMsg = '';
@@ -73,7 +83,7 @@ export class NewPatientDialog {
   });
 
   setPatients(patients: Patient[]) {
-    this.allPatients = patients;
+    this._allPatients = patients;
     this.buildParentCache();
   }
 
@@ -181,7 +191,11 @@ export class NewPatientDialog {
   }
 
   close() {
-    this.dialogRef.close();
+    if (this.embedded) {
+      this.back.emit();
+    } else {
+      this.dialogRef?.close();
+    }
   }
 
   async save() {
@@ -231,7 +245,7 @@ export class NewPatientDialog {
         };
         await this.patientRepo.updatePatient(this.editingPatient.id, updated);
         this.alert.success({ message: 'Paciente actualizado', duration: 3000 });
-        this.dialogRef.close({ ...this.editingPatient, ...updated });
+        this.complete({ ...this.editingPatient, ...updated });
       } else {
         const id = crypto.randomUUID();
         const otpPassword = this.generateOtpPassword();
@@ -265,7 +279,7 @@ export class NewPatientDialog {
         } catch {
           this.alert.error({ message: 'Paciente creado, pero no se pudo enviar el correo de acceso', duration: 5000 });
         }
-        this.dialogRef.close(newPatient);
+        this.complete(newPatient);
       }
     } catch (e: any) {
       this.alertMsg = e.message || 'Error al guardar paciente';
@@ -273,6 +287,14 @@ export class NewPatientDialog {
     } finally {
       this.saving = false;
       this.cdr.markForCheck();
+    }
+  }
+
+  private complete(patient: Patient) {
+    if (this.embedded) {
+      this.saved.emit(patient);
+    } else {
+      this.dialogRef?.close(patient);
     }
   }
 

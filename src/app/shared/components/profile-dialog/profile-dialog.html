@@ -20,36 +20,48 @@
       } @else if (readOnly) {
         <div class="profile-field">
           <span class="field-label">Doctor(a)</span>
-          <span class="field-value">{{ doctor?.name }}</span>
+          <span class="field-value">{{ doctor?.name || '—' }}</span>
         </div>
-        <div class="profile-field">
-          <span class="field-label">Sexo</span>
-          <span class="field-value">{{ doctor?.sexo ? SexoLabel[doctor!.sexo!] : '' }}</span>
-        </div>
-        <div class="profile-field">
-          <span class="field-label">Teléfono</span>
-          <span class="field-value">{{ doctor?.phone }}</span>
-        </div>
-        <div class="profile-field">
-          <span class="field-label">Especialidad</span>
-          <span class="field-value">{{ doctor?.especialidad }}</span>
-        </div>
-        <div class="profile-field">
-          <span class="field-label">Cédula profesional</span>
-          <span class="field-value">{{ doctor?.cedula }}</span>
-        </div>
-        <div class="profile-field">
-          <span class="field-label">Cédula de especialidad</span>
-          <span class="field-value">{{ doctor?.cedulaEspecialidad }}</span>
-        </div>
+        @if (doctor?.sexo) {
+          <div class="profile-field">
+            <span class="field-label">Sexo</span>
+            <span class="field-value">{{ SexoLabel[doctor!.sexo!] }}</span>
+          </div>
+        }
+        @if(doctor?.phone) {
+          <div class="profile-field">
+            <span class="field-label">Teléfono</span>
+            <span class="field-value">{{ doctor?.phone || '—' }}</span>
+          </div>
+        }
+        @if (doctor?.especialidad) {
+          <div class="profile-field">
+            <span class="field-label">Especialidad</span>
+            <span class="field-value">{{ doctor?.especialidad || '—' }}</span>
+          </div>
+        }
+        @if (doctor?.cedula) {
+          <div class="profile-field">
+            <span class="field-label">Cédula profesional</span>
+            <span class="field-value">{{ doctor?.cedula || '—' }}</span>
+          </div>
+        }
+        @if (doctor?.cedulaEspecialidad) {
+          <div class="profile-field">
+            <span class="field-label">Cédula de especialidad</span>
+            <span class="field-value">{{ doctor?.cedulaEspecialidad || '—' }}</span>
+          </div>
+        }
         <div class="profile-field">
           <span class="field-label">Correo electrónico</span>
-          <span class="field-value">{{ doctor?.email }}</span>
+          <span class="field-value">{{ doctor?.email || '—' }}</span>
         </div>
-        <div class="profile-field">
-          <span class="field-label">Consultorio</span>
-          <span class="field-value consultorio-value">{{ doctor?.consultorios }}</span>
-        </div>
+        @if (doctor?.consultorios) {
+          <div class="profile-field">
+            <span class="field-label">Consultorio</span>
+            <span class="field-value consultorio-value">{{ doctor?.consultorios || '—' }}</span>
+          </div>
+        }
         @if (logoFileName) {
           <div class="profile-field">
             <span class="field-label">Logotipo</span>
@@ -68,8 +80,8 @@
         <mat-form-field appearance="outline" class="profile-form-field">
           <mat-label>Sexo</mat-label>
           <mat-select formControlName="sexo">
-            @for (entry of SexoLabel | keyvalue; track entry.key) {
-              <mat-option [value]="entry.key">{{ entry.value }}</mat-option>
+            @for (opt of sexoOptions; track opt.value) {
+              <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
             }
           </mat-select>
         </mat-form-field>

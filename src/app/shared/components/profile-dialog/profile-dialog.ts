@@ -1,5 +1,4 @@
 import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { KeyValuePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -28,7 +27,6 @@ import { FileUpload, UploadResult } from '../file-upload/file-upload';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
-    KeyValuePipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -52,6 +50,11 @@ export class ProfileDialog {
   private router = inject(Router);
 
   protected SexoLabel = SexoLabel;
+  protected readonly sexoOptions: { value: Sexo; label: string }[] = [
+    { value: Sexo.Masculino, label: 'Masculino' },
+    { value: Sexo.Femenino, label: 'Femenino' },
+    { value: Sexo.Otro, label: 'Otro' },
+  ];
   protected readOnly = true;
   protected saving = false;
   protected showSaved = false;
@@ -180,22 +183,23 @@ export class ProfileDialog {
     this.cdr.markForCheck();
 
     try {
-      let logoPath = this.doctor.logoPath;
+      let logoPath = this.doctor.logoPath ?? '';
       if (this.logoUpload !== undefined) {
         logoPath = this.logoUpload ? this.logoUpload.url : '';
       }
 
       const v = this.form.value;
-      await this.userRepo.updateUser(this.doctor.uid, {
+      const payload: Partial<AppUser> = {
         name: v.name ?? '',
-        sexo: v.sexo ?? undefined,
         phone: v.phone ?? '',
         especialidad: v.especialidad ?? '',
         cedula: v.cedula ?? '',
         cedulaEspecialidad: v.cedulaEspecialidad ?? '',
         consultorios: v.consultorios ?? '',
         logoPath,
-      });
+      };
+      if (v.sexo != null) payload.sexo = v.sexo;
+      await this.userRepo.updateUser(this.doctor.uid, payload);
 
       this.doctor = { ...this.doctor, ...this.form.value, logoPath } as AppUser;
       this.logoFileName = logoPath ? this.extractFileName(logoPath) : '';
@@ -235,10 +239,6 @@ export class ProfileDialog {
   }
 
   close() {
-    if (!this.readOnly) {
-      const confirmed = confirm('¿Descartar cambios?');
-      if (!confirmed) return;
-    }
     this.dialogRef.close();
   }
 }

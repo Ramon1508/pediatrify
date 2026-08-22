@@ -96,11 +96,12 @@ describe('SettingsDialog', () => {
 
   it('calls setDoc and audit on save', async () => {
     const { setDoc } = await import('firebase/firestore');
-    const { component, auditRepo, alertService } = createFixture();
+    const { component, auditRepo, alertService, dialogRef } = createFixture();
     await component.save();
     expect(setDoc).toHaveBeenCalled();
     expect(auditRepo.log).toHaveBeenCalled();
     expect(alertService.success).toHaveBeenCalledWith({ message: 'Configuración guardada', duration: 5000 });
+    expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 
   it('shows error on save failure', async () => {

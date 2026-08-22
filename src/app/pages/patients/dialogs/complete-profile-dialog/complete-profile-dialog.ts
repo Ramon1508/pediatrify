@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Patient, VaccineDose } from '../../../../core/models/user';
 import { Sexo } from '../../../../core/models/sexo';
+import { dateStringToLocalDate } from '../../../../core/utils/date-utils';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
 
@@ -108,10 +109,20 @@ export class CompleteProfileDialog {
   protected bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   protected vaccines = VACCINES;
   protected ages = AGES;
-  protected hasDoseAt = hasDoseAt;
   protected submitting = false;
   protected patient: Patient | null = null;
   protected vaccinationMap = new Map<string, VaccineDose>();
+  protected vaccinationVersion = signal(0);
+  protected vaccineRows = computed(() =>
+    VACCINES.map((vac) => ({
+      vaccine: vac,
+      doses: AGES.map((age) => ({
+        age,
+        hasDose: hasDoseAt(vac, age),
+        applied: this.isVaccineApplied(vac, age),
+      })),
+    }))
+  );
   protected step = 1;
   protected submittedSteps: [boolean, boolean, boolean] = [false, false, false];
 
@@ -121,7 +132,7 @@ export class CompleteProfileDialog {
 
   protected form = this.fb.group({
     fullName: ['', Validators.required],
-    birthDate: ['', Validators.required],
+    birthDate: [null as unknown as string | Date, Validators.required],
     bloodType: ['', Validators.required],
     birthWeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
     birthHeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
@@ -158,7 +169,7 @@ export class CompleteProfileDialog {
     const dateStr = toDateString(p.birthDate);
     this.form.patchValue({
       fullName: `${p.name} ${p.lastName}`.trim(),
-      birthDate: dateStr,
+      birthDate: dateStringToLocalDate(dateStr),
       bloodType: p.bloodType ?? '',
       birthWeight: p.birthWeight ?? null,
       birthHeight: p.birthHeight ?? null,
@@ -249,10 +260,12 @@ export class CompleteProfileDialog {
         this.vaccinationMap.set(key, dose);
       }
     }
+    this.vaccinationVersion.update((v) => v + 1);
   }
 
   protected isVaccineApplied(vaccine: string, age: string): boolean {
     if (!hasDoseAt(vaccine, age)) return false;
+    this.vaccinationVersion();
     return this.vaccinationMap.get(`${vaccine}|${ age}`)?.applied ?? false;
   }
 
@@ -261,6 +274,7 @@ export class CompleteProfileDialog {
     const key = `${vaccine}|${age}`;
     const current = this.vaccinationMap.get(key) ?? { applied: false };
     this.vaccinationMap.set(key, { ...current, applied: !current.applied });
+    this.vaccinationVersion.update((v) => v + 1);
   }
 
   protected onHasAllergiesChange(value: boolean): void {

@@ -52,6 +52,7 @@ describe('Patients', () => {
         setPatients: vi.fn(),
         setEditData: vi.fn(),
         setPatient: vi.fn(),
+        switchToEdit: vi.fn(),
       },
       close: vi.fn(),
     };
@@ -158,6 +159,7 @@ describe('Patients', () => {
       panelClass: 'right-panel',
     }));
     expect(dialogRefMock.componentInstance.setPatient).toHaveBeenCalledWith(mockPatients[0]);
+    expect(dialogRefMock.componentInstance.switchToEdit).toHaveBeenCalled();
   });
 
   it('logs audit when new patient dialog returns a result', async () => {

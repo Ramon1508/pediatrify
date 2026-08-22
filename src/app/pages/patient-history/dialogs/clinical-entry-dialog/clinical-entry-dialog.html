@@ -22,7 +22,7 @@
       <mat-tab>
         <ng-template mat-tab-label>
           Datos y diagnóstico
-          @if (tabHasInvalid(0)) {
+          @if (tabsInvalid()[0]) {
             <span class="tab-error-dot"></span>
           }
         </ng-template>
@@ -135,7 +135,7 @@
       <mat-tab>
         <ng-template mat-tab-label>
           Recomendaciones
-          @if (tabHasInvalid(1)) {
+          @if (tabsInvalid()[1]) {
             <span class="tab-error-dot"></span>
           }
         </ng-template>
@@ -157,7 +157,7 @@
       <mat-tab>
         <ng-template mat-tab-label>
           Receta
-          @if (tabHasInvalid(2)) {
+          @if (tabsInvalid()[2]) {
             <span class="tab-error-dot"></span>
           }
         </ng-template>

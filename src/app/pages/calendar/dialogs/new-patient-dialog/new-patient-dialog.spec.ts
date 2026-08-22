@@ -130,4 +130,42 @@ describe('NewPatientDialog', () => {
     component.close();
     expect(dialogRef.close).toHaveBeenCalled();
   });
+
+  it('emits back instead of closing when embedded', () => {
+    const { fixture, component } = createFixture();
+    component.embedded = true;
+    const backSpy = vi.fn();
+    component.back.subscribe(backSpy);
+    component.close();
+    expect(backSpy).toHaveBeenCalled();
+  });
+
+  it('emits saved instead of closing when embedded after creating a patient', async () => {
+    const { component, patientRepo, emailService } = createFixture();
+    component.embedded = true;
+    const savedSpy = vi.fn();
+    component.saved.subscribe(savedSpy);
+    component.form.setValue({
+      fullName: 'Ana López', birthDate: '2020-01-01',
+      email: 'ana@mail.com', secondaryEmail: '', fatherName: 'Luis', motherName: 'María', phone: '5555555555',
+    });
+    await component.save();
+    expect(patientRepo.createPatient).toHaveBeenCalled();
+    expect(emailService.sendPatientAccessEmail).toHaveBeenCalled();
+    expect(savedSpy).toHaveBeenCalledWith(expect.objectContaining({ name: 'Ana', lastName: 'López' }));
+  });
+
+  it('shows a back arrow in the header when embedded', () => {
+    const { fixture } = createFixture();
+    fixture.componentRef.setInput('embedded', true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.btn-back-dialog')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.btn-close-dialog')).toBeNull();
+  });
+
+  it('shows a close button in the header when not embedded', () => {
+    const { fixture } = createFixture();
+    expect(fixture.nativeElement.querySelector('.btn-close-dialog')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.btn-back-dialog')).toBeNull();
+  });
 });

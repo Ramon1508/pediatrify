@@ -11,6 +11,7 @@ import { AppointmentRepository } from '../../../../core/repositories/appointment
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { UserRepository } from '../../../../core/repositories/user.repository';
 import { Appointment, Patient, TimeSegment } from '../../../../core/models/user';
+import { dateStringToLocalDate, dateToString } from '../../../../core/utils/date-utils';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -52,7 +53,7 @@ export class AppointmentFormDialog {
 
   protected form = this.fb.group({
     patientId: ['', Validators.required],
-    date: ['', Validators.required],
+    date: [null as unknown as string | Date, Validators.required],
     time: ['', Validators.required],
     notes: [''],
   });
@@ -97,7 +98,7 @@ export class AppointmentFormDialog {
     this.editingAppointment = appointment;
     this.form.setValue({
       patientId: appointment.patientId,
-      date: appointment.date,
+      date: dateStringToLocalDate(appointment.date),
       time: appointment.time,
       notes: appointment.notes || '',
     });
@@ -117,6 +118,7 @@ export class AppointmentFormDialog {
     try {
       const doctor = this.authService.currentDoctor;
       const { patientId, date, time, notes } = this.form.value;
+      const dateStr = dateToString(date);
       const patient = this.allPatients.find((p) => p.id === patientId);
       if (!doctor || !patient) return;
 
@@ -132,7 +134,7 @@ export class AppointmentFormDialog {
           patientPhone: patient.phone ?? '',
           doctorId: doctor.uid,
           doctorName: doctor.name,
-          date: date!,
+          date: dateStr,
           time: time!,
           notes: notes || '',
           updatedBy: doctor.email,
@@ -165,7 +167,7 @@ export class AppointmentFormDialog {
         patientPhone: patient.phone ?? '',
         doctorId: doctor.uid,
         doctorName: doctor.name,
-        date: date!,
+        date: dateStr,
         time: time!,
         status: 'scheduled',
         type: 'scheduled',

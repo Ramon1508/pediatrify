@@ -8,7 +8,7 @@
       }
 
       <div class="table-wrapper">
-        <table mat-table [dataSource]="entries()" class="audit-table">
+        <table mat-table [dataSource]="rows()" class="audit-table">
           <ng-container matColumnDef="action">
             <th mat-header-cell *matHeaderCellDef>Acción</th>
             <td mat-cell *matCellDef="let e">
@@ -35,12 +35,12 @@
 
           <ng-container matColumnDef="timestamp">
             <th mat-header-cell *matHeaderCellDef>Fecha</th>
-            <td mat-cell *matCellDef="let e">{{ formatTimestamp(e.timestamp) }}</td>
+            <td mat-cell *matCellDef="let e">{{ e.timestampLabel }}</td>
           </ng-container>
 
           <ng-container matColumnDef="changes">
             <th mat-header-cell *matHeaderCellDef>Cambios</th>
-            <td mat-cell *matCellDef="let e" class="changes-cell">{{ formatChanges(e) }}</td>
+            <td mat-cell *matCellDef="let e" class="changes-cell">{{ e.changesLabel }}</td>
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>

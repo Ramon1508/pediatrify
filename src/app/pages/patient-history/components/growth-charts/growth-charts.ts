@@ -1,5 +1,5 @@
 import {
-  Component, input, signal, effect, inject, ChangeDetectionStrategy, ViewEncapsulation,
+  Component, input, signal, computed, effect, inject, ChangeDetectionStrategy, ViewEncapsulation,
 } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MatIconModule } from '@angular/material/icon';
@@ -51,6 +51,15 @@ export class GrowthCharts {
   protected calStep = signal(-1);
   protected calRecorded = signal<{ ref: number; x: number; y: number }[]>([]);
   protected calResult = signal<CalResult | null>(null);
+  protected calResultDisplay = computed(() => {
+    const r = this.calResult();
+    if (!r) return null;
+    return {
+      intercept: this.round4(r.intercept),
+      slope: this.round4(r.slope),
+      r2: this.round4(r.r2),
+    };
+  });
 
   protected readonly CAL_CONFIG: Record<CalMode, { refs: number[]; label: string; unit: string }> = {
     x: { refs: [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36], label: 'Edad', unit: 'meses' },

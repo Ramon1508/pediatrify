@@ -32,7 +32,7 @@ describe('EditPatientDialog', () => {
   };
 
   const patientRepo = { updatePatient: vi.fn().mockResolvedValue(undefined), getAllPatients: vi.fn().mockResolvedValue([]) };
-  const alertService = { success: vi.fn(), error: vi.fn() };
+  const alertService = { success: vi.fn(), error: vi.fn(), warning: vi.fn() };
   const snackBar = { open: vi.fn() };
   const dialogRef = { close: vi.fn() };
 

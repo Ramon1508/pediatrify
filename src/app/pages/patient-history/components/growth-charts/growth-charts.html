@@ -62,8 +62,8 @@
         } @else if (calResult(); as r) {
           <div class="cal-header">✅ {{ CAL_CONFIG[calMode()!].label }} calibrado</div>
           <div class="cal-result-box">
-            <code>y = {{ round4(r.intercept) }} + x × {{ round4(r.slope) }}</code>
-            <div class="cal-r2">R² = {{ round4(r.r2) }} (n = {{ r.count }})</div>
+            <code>y = {{ calResultDisplay()?.intercept }} + x × {{ calResultDisplay()?.slope }}</code>
+            <div class="cal-r2">R² = {{ calResultDisplay()?.r2 }} (n = {{ r.count }})</div>
           </div>
           <div class="cal-buttons">
             <button class="cal-copy-btn" (click)="copyResult()">📋 Copiar constantes</button>

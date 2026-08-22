@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { MatIconModule } from '@angular/material/icon';
 import { AlertService } from '../../../core/services/alert.service';
@@ -22,6 +22,23 @@ import { AlertService } from '../../../core/services/alert.service';
     ]),
   ],
 })
-export class AlertOverlay {
+export class AlertOverlay implements OnDestroy {
   protected alertService = inject(AlertService);
+  protected inRightPanel = signal(false);
+
+  private observer: MutationObserver | null = null;
+
+  constructor() {
+    this.observer = new MutationObserver(() => this.refreshPanelState());
+    this.observer.observe(document.body, { childList: true, subtree: true });
+    this.refreshPanelState();
+  }
+
+  ngOnDestroy() {
+    this.observer?.disconnect();
+  }
+
+  private refreshPanelState(): void {
+    this.inRightPanel.set(!!document.querySelector('.cdk-overlay-pane.right-panel'));
+  }
 }

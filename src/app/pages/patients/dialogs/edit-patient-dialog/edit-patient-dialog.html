@@ -6,13 +6,10 @@
 </div>
 
 <mat-dialog-content>
-  <mat-tab-group>
+  <mat-tab-group [selectedIndex]="selectedTabIndex()" (selectedIndexChange)="onTabChange($event)">
     <mat-tab>
       <ng-template mat-tab-label>
         Datos generales
-        @if (tabHasInvalid(0)) {
-          <span class="tab-error-dot"></span>
-        }
       </ng-template>
       @if (readOnly) {
         <div class="tab-content">
@@ -114,7 +111,7 @@
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Nombre completo</mat-label>
               <input matInput formControlName="fullName" />
-              @if (form.get('fullName')?.invalid && (form.get('fullName')?.touched)) {
+              @if (form.get('fullName')?.invalid && saved()) {
                 <mat-error>Ingresa el nombre completo del paciente</mat-error>
               }
             </mat-form-field>
@@ -124,7 +121,7 @@
               <input matInput [matDatepicker]="dp" formControlName="birthDate" placeholder="DD/MM/AAAA" (click)="dp.open()" />
               <mat-datepicker #dp></mat-datepicker>
               <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
-              @if (form.get('birthDate')?.invalid && (form.get('birthDate')?.touched)) {
+              @if (form.get('birthDate')?.invalid && saved()) {
                 <mat-error>Selecciona la fecha de nacimiento</mat-error>
               }
             </mat-form-field>
@@ -138,7 +135,7 @@
                   <mat-option [value]="bt">{{ bt }}</mat-option>
                 }
               </mat-select>
-              @if (form.get('bloodType')?.invalid && (form.get('bloodType')?.touched)) {
+              @if (form.get('bloodType')?.invalid && saved()) {
                 <mat-error>Selecciona el grupo sangu&iacute;neo</mat-error>
               }
             </mat-form-field>
@@ -147,7 +144,7 @@
               <mat-label>Peso al nacer</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="birthWeight" />
               <mat-hint>En kilogramos</mat-hint>
-              @if (form.get('birthWeight')?.invalid && (form.get('birthWeight')?.touched)) {
+              @if (form.get('birthWeight')?.invalid && saved()) {
                 <mat-error>Ingresa un peso v&aacute;lido (n&uacute;mero positivo)</mat-error>
               }
             </mat-form-field>
@@ -158,7 +155,7 @@
               <mat-label>Talla al nacer</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="birthHeight" />
               <mat-hint>En cent&iacute;metros</mat-hint>
-              @if (form.get('birthHeight')?.invalid && (form.get('birthHeight')?.touched)) {
+              @if (form.get('birthHeight')?.invalid && saved()) {
                 <mat-error>Ingresa una talla v&aacute;lida (n&uacute;mero positivo)</mat-error>
               }
             </mat-form-field>
@@ -177,7 +174,7 @@
                 <mat-radio-button [value]="1">Masculino</mat-radio-button>
                 <mat-radio-button [value]="2">Femenino</mat-radio-button>
               </mat-radio-group>
-              @if (form.get('sex')?.invalid && saved) {
+              @if (form.get('sex')?.invalid && saved()) {
                 <span class="radio-error">Selecciona el sexo del paciente</span>
               }
             </div>
@@ -188,7 +185,7 @@
                 <mat-radio-button value="vaginal">Parto</mat-radio-button>
                 <mat-radio-button value="cesarean">Ces&aacute;rea</mat-radio-button>
               </mat-radio-group>
-              @if (form.get('birthMethod')?.invalid && saved) {
+              @if (form.get('birthMethod')?.invalid && saved()) {
                 <span class="radio-error">Selecciona el m&eacute;todo de nacimiento</span>
               }
             </div>
@@ -200,7 +197,7 @@
               <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
               <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
-            @if (form.get('hasAllergies')?.invalid && saved) {
+            @if (form.get('hasAllergies')?.invalid && saved()) {
               <span class="radio-error">Selecciona si el paciente tiene alergias</span>
             }
           </div>
@@ -210,7 +207,7 @@
               <mat-label>Alergias del paciente</mat-label>
               <textarea matInput formControlName="allergies" rows="3"></textarea>
               <mat-hint>Ej. Penicilina, Polen, Lactosa</mat-hint>
-              @if (form.get('allergies')?.invalid && saved) {
+              @if (form.get('allergies')?.invalid && saved()) {
                 <mat-error>Describe las alergias del paciente</mat-error>
               }
             </mat-form-field>
@@ -222,7 +219,7 @@
               <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
               <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
-            @if (form.get('hasBeenHospitalized')?.invalid && saved) {
+            @if (form.get('hasBeenHospitalized')?.invalid && saved()) {
               <span class="radio-error">Selecciona si el paciente ha sido hospitalizado</span>
             }
           </div>
@@ -231,7 +228,7 @@
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Motivo de hospitalizaci&oacute;n</mat-label>
               <textarea matInput formControlName="hospitalizationReason" rows="3"></textarea>
-              @if (form.get('hospitalizationReason')?.invalid && saved) {
+              @if (form.get('hospitalizationReason')?.invalid && saved()) {
                 <mat-error>Describe el motivo de hospitalizaci&oacute;n</mat-error>
               }
             </mat-form-field>
@@ -243,7 +240,7 @@
               <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
               <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
-            @if (form.get('hasDisease')?.invalid && saved) {
+            @if (form.get('hasDisease')?.invalid && saved()) {
               <span class="radio-error">Selecciona si el paciente tiene alguna enfermedad</span>
             }
           </div>
@@ -252,7 +249,7 @@
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Enfermedad que padece el paciente</mat-label>
               <textarea matInput formControlName="diseaseDescription" rows="3"></textarea>
-              @if (form.get('diseaseDescription')?.invalid && saved) {
+              @if (form.get('diseaseDescription')?.invalid && saved()) {
                 <mat-error>Describe la enfermedad del paciente</mat-error>
               }
             </mat-form-field>
@@ -264,7 +261,7 @@
               <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
               <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
-            @if (form.get('takesMedication')?.invalid && saved) {
+            @if (form.get('takesMedication')?.invalid && saved()) {
               <span class="radio-error">Selecciona si el paciente toma medicamentos</span>
             }
           </div>
@@ -273,7 +270,7 @@
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Medicamentos que toma el paciente</mat-label>
               <textarea matInput formControlName="medicationDescription" rows="3"></textarea>
-              @if (form.get('medicationDescription')?.invalid && saved) {
+              @if (form.get('medicationDescription')?.invalid && saved()) {
                 <mat-error>Describe los medicamentos del paciente</mat-error>
               }
             </mat-form-field>
@@ -285,9 +282,6 @@
     <mat-tab>
       <ng-template mat-tab-label>
         Datos de contacto
-        @if (tabHasInvalid(1)) {
-          <span class="tab-error-dot"></span>
-        }
       </ng-template>
       @if (readOnly) {
         <div class="tab-content">
@@ -337,11 +331,17 @@
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Correo electr&oacute;nico</mat-label>
               <input matInput type="email" formControlName="email" />
+              @if (form.get('email')?.invalid && saved()) {
+                <mat-error>Ingresa un correo electr&oacute;nico v&aacute;lido</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Correo secundario (opcional)</mat-label>
               <input matInput type="email" formControlName="secondaryEmail" />
+              @if (form.get('secondaryEmail')?.invalid && saved()) {
+                <mat-error>Ingresa un correo electr&oacute;nico v&aacute;lido</mat-error>
+              }
             </mat-form-field>
           </div>
 
@@ -387,9 +387,6 @@
     <mat-tab>
       <ng-template mat-tab-label>
         Esquema de vacunaci&oacute;n
-        @if (tabHasInvalid(2)) {
-          <span class="tab-error-dot"></span>
-        }
       </ng-template>
       <div class="tab-content vac-content">
         <h3 class="vac-title">Esquema de vacunaci&oacute;n</h3>
@@ -404,15 +401,15 @@
               </tr>
             </thead>
             <tbody>
-              @for (vac of vaccines; track vac; let last = $last) {
+              @for (row of vaccineRows(); track row.vaccine; let last = $last) {
                 <tr>
-                  <td class="vac-td vac-td-name">{{ vac }}</td>
-                  @for (age of ages; track age) {
-                    @if (hasDoseAt(vac, age)) {
+                  <td class="vac-td vac-td-name">{{ row.vaccine }}</td>
+                  @for (dose of row.doses; track dose.age) {
+                    @if (dose.hasDose) {
                       <td class="vac-td vac-td-cb">
                         <mat-checkbox
-                          [checked]="isVaccineApplied(vac, age)"
-                          (change)="toggleDose(vac, age)"
+                          [checked]="dose.applied"
+                          (change)="toggleDose(row.vaccine, dose.age)"
                           [disabled]="readOnly"
                         />
                       </td>

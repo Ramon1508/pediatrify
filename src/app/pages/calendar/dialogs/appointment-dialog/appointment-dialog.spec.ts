@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
 import { provideNativeDateAdapter } from '@angular/material/core';
-import { MatDialogRef, MatDialog } from '@angular/material/dialog';
+import { MAT_DATE_LOCALE } from '@angular/material/core';
+import { MatDialogRef } from '@angular/material/dialog';
 import { AppointmentDialog } from './appointment-dialog';
 import { AppointmentRepository } from '../../../../core/repositories/appointment.repository';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
@@ -10,6 +10,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { AuditRepository } from '../../../../core/repositories/audit.repository';
+import { EmailService } from '../../../../core/services/email.service';
 
 describe('AppointmentDialog', () => {
   let fixture: ComponentFixture<AppointmentDialog>;
@@ -28,14 +29,15 @@ describe('AppointmentDialog', () => {
       imports: [AppointmentDialog, NoopAnimationsModule],
       providers: [
         provideNativeDateAdapter(),
+        { provide: MAT_DATE_LOCALE, useValue: 'es-MX' },
         { provide: MatDialogRef, useValue: dialogRef },
-        { provide: MatDialog, useValue: { open: vi.fn().mockReturnValue({ afterClosed: () => of(null), componentInstance: { setPatients: vi.fn() } }) } },
         { provide: AppointmentRepository, useValue: { createAppointment: vi.fn(), updateAppointment: vi.fn() } },
         { provide: PatientRepository, useValue: { getAllPatients: vi.fn().mockResolvedValue(mockPatients) } },
         { provide: AuthService, useValue: { currentDoctor: { uid: 'd1', firebaseUid: 'd1', name: 'Dr. Test', email: 'dr@test.com' } } },
         { provide: AlertService, useValue: { success: vi.fn(), error: vi.fn() } },
         { provide: AuditRepository, useValue: { log: vi.fn() } },
         { provide: NotificationService, useValue: { notifyAppointmentCreated: vi.fn(), notifyAppointmentCancelled: vi.fn(), notifyAppointmentRescheduled: vi.fn() } },
+        { provide: EmailService, useValue: { sendPatientAccessEmail: vi.fn().mockResolvedValue(undefined) } },
       ],
     }).compileComponents();
 
@@ -89,5 +91,53 @@ describe('AppointmentDialog', () => {
     expect(aptRepo.createAppointment).toHaveBeenCalled();
     expect(alertService.success).toHaveBeenCalled();
     expect(dialogRef.close).toHaveBeenCalledWith(true);
+  });
+
+  it('shows the embedded new patient form instead of a stacked dialog', () => {
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegments: [{ startTime: '09:00', endTime: '17:00' }], consultationDuration: 30 });
+    fixture.detectChanges();
+
+    const addBtn = Array.from(fixture.nativeElement.querySelectorAll('button')).find(
+      (b: any) => (b.textContent || '').includes('Añadir nuevo paciente')
+    );
+    expect(addBtn).toBeTruthy();
+
+    (addBtn as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect((component as any).showNewPatient()).toBe(true);
+    expect(el.textContent).toContain('Nombre completo');
+    expect(el.querySelector('.btn-back-dialog')).toBeTruthy();
+    expect(el.querySelector('app-new-patient-dialog')).toBeTruthy();
+  });
+
+  it('returns to the appointment form from the embedded new patient view', async () => {
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegments: [{ startTime: '09:00', endTime: '17:00' }], consultationDuration: 30 });
+    fixture.detectChanges();
+
+    (component as any).showNewPatient.set(true);
+    fixture.detectChanges();
+
+    const backBtn = fixture.nativeElement.querySelector('.btn-back-dialog') as HTMLButtonElement;
+    backBtn.click();
+    fixture.detectChanges();
+
+    expect((component as any).showNewPatient()).toBe(false);
+    expect(fixture.nativeElement.textContent).toContain('Agendar una consulta');
+  });
+
+  it('selects the newly created patient after saving from the embedded form', async () => {
+    const patientRepo = TestBed.inject(PatientRepository);
+    (patientRepo.getAllPatients as any).mockResolvedValue([...mockPatients, { id: 'p2', name: 'Ana', lastName: 'López', email: 'ana@test.com', phone: '5599999999', fatherName: 'Luis', motherName: 'Lucía', birthDate: '2021-05-10', otpPassword: 'XYZ789' }]);
+
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegments: [{ startTime: '09:00', endTime: '17:00' }], consultationDuration: 30 });
+    fixture.detectChanges();
+
+    const newPatient = { id: 'p2', name: 'Ana', lastName: 'López' };
+    await component.onPatientCreated(newPatient as any);
+
+    expect((component as any).showNewPatient()).toBe(false);
+    expect((component as any).form.get('patientId')?.value).toBe('p2');
   });
 });

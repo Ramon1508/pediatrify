@@ -137,7 +137,6 @@ export class Patients implements OnInit, OnDestroy {
     if (currentDoctorUid) {
       this.subs.push(
         this.appointmentRepo.watchAppointmentsByDoctor(currentDoctorUid).subscribe((appts) => {
-          console.log('Appointments for today:', appts);
           const today = new Date();
           const todayStr = this.formatDateStr(today);
           const filtered = appts.filter((a) => a.date === todayStr && a.status === 'scheduled');
@@ -206,6 +205,7 @@ export class Patients implements OnInit, OnDestroy {
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatient(patient);
+    dialogRef.componentInstance.switchToEdit();
 
     const result = await dialogRef.afterClosed().toPromise();
     if (result) {

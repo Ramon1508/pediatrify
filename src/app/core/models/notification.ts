@@ -7,12 +7,18 @@ export type NotificationType =
 
 export type NotificationRecipientType = 'doctor' | 'assistant' | 'patient';
 
-export interface NotificationRecipientStatus {
+export type NotificationFilter = 'all' | 'unread';
+
+/** Destinatario de una notificación (fan-out: un doc por destinatario). */
+export interface NotificationRecipient {
   recipientId: string;
   recipientType: NotificationRecipientType;
-  read: boolean;
 }
 
+/**
+ * Notificación ENVIADA a un destinatario individual (modelo fan-out).
+ * `read` es el estado de lectura de ESTE destinatario (única fuente de verdad).
+ */
 export interface AppNotification {
   id: string;
   type: NotificationType;
@@ -22,6 +28,7 @@ export interface AppNotification {
   createdAt: Timestamp | Date;
   originatorId: string;
   originatorName: string;
-  recipientIds: string[];
-  recipients: NotificationRecipientStatus[];
+  recipientId: string;
+  recipientType: NotificationRecipientType;
+  read: boolean;
 }

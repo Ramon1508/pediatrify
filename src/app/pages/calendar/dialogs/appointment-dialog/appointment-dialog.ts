@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,8 +17,8 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Appointment, Patient, TimeSegment } from '../../../../core/models/user';
+import { dateStringToLocalDate } from '../../../../core/utils/date-utils';
 import { NewPatientDialog } from '../new-patient-dialog/new-patient-dialog';
-import { MatDialog } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-appointment-dialog',
@@ -38,6 +38,7 @@ import { MatDialog } from '@angular/material/dialog';
     MatDatepickerModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    NewPatientDialog,
   ],
 })
 export class AppointmentDialog {
@@ -48,7 +49,6 @@ export class AppointmentDialog {
   private authService = inject(AuthService);
   private alert = inject(AlertService);
   private notifications = inject(NotificationService);
-  private dialog = inject(MatDialog);
   private cdr = inject(ChangeDetectorRef);
   private dialogRef = inject(MatDialogRef<AppointmentDialog>);
 
@@ -64,12 +64,13 @@ export class AppointmentDialog {
   protected patientSearchControl = new FormControl('');
   protected filteredPatients: Patient[] = [];
   protected overlapWarning = '';
+  protected showNewPatient = signal(false);
   private existingAppointments: Appointment[] = [];
   private overlapSub: any = null;
 
   protected form = this.fb.group({
     patientId: ['', Validators.required],
-    date: ['', Validators.required],
+    date: [null as unknown as string | Date, Validators.required],
     time: ['', Validators.required],
     notes: [''],
   });
@@ -110,7 +111,7 @@ export class AppointmentDialog {
       const apt = data.editingAppointment;
       this.form.setValue({
         patientId: apt.patientId,
-        date: this.toDateStr(apt.date),
+        date: dateStringToLocalDate(apt.date),
         time: apt.time,
         notes: apt.notes || '',
       });
@@ -137,7 +138,6 @@ export class AppointmentDialog {
     }
     const dateStr = this.toDateStr(date);
     const editingId = this.editingAppointment?.id;
-    console.log(this.existingAppointments);
     const conflicted = this.existingAppointments.some(
       (a) => a.date === dateStr && a.time === time && a.id !== editingId
     );
@@ -148,7 +148,7 @@ export class AppointmentDialog {
   }
 
   setPrefill(date: string, time: string) {
-    this.form.patchValue({ date, time });
+    this.form.patchValue({ date: dateStringToLocalDate(date), time });
     this.form.markAsDirty();
   }
 
@@ -293,24 +293,22 @@ export class AppointmentDialog {
     this.filterPatients(typeof val === 'string' ? val : '');
   }
 
-  openNewPatientDialog() {
-    const dialogRef = this.dialog.open(NewPatientDialog, {
-      width: '400px',
-      disableClose: true,
-      panelClass: 'right-panel',
-    });
-    const instance = dialogRef.componentInstance;
-    instance.setPatients(this.allPatients);
+  openNewPatient() {
+    this.showNewPatient.set(true);
+    this.cdr.markForCheck();
+  }
 
-    dialogRef.afterClosed().subscribe(async (result) => {
-      if (result) {
-        this.allPatients = await this.patientRepo.getAllPatients();
-        this.filteredPatients = this.allPatients;
-        this.filterPatients('');
-        this.patientSearchControl.setValue(result as any);
-        this.form.patchValue({ patientId: result.id });
-        this.cdr.markForCheck();
-      }
-    });
+  goBackToAppointment() {
+    this.showNewPatient.set(false);
+    this.cdr.markForCheck();
+  }
+
+  async onPatientCreated(patient: Patient) {
+    this.allPatients = await this.patientRepo.getAllPatients();
+    this.filteredPatients = this.allPatients;
+    this.filterPatients('');
+    this.patientSearchControl.setValue(patient as any);
+    this.form.patchValue({ patientId: patient.id });
+    this.goBackToAppointment();
   }
 }

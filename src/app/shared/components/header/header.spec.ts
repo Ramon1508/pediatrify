@@ -1,10 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog } from '@angular/material/dialog';
+import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { Header } from './header';
 import { AuthService } from '../../../core/services/auth.service';
-import { NotificationRepository } from '../../../core/repositories/notification.repository';
+import { NotificationService } from '../../../core/services/notification.service';
 import { BRAND_NAME } from '../../../core/config/brand';
 import { ProfileDialog } from '../profile-dialog/profile-dialog';
 import { NotificationsDialog } from '../notifications-dialog/notifications-dialog';
@@ -21,13 +22,17 @@ describe('Header', () => {
     Object.defineProperty(authSpy, 'currentPatient', { get: () => null, configurable: true });
     Object.defineProperty(authSpy, 'isAuthenticated', { get: () => false, configurable: true });
     const dialogSpy = { open: vi.fn() } as any;
+    const notificationsSpy = {
+      unreadCount: signal(0),
+      recipientId: signal(null),
+    };
 
     await TestBed.configureTestingModule({
       imports: [Header, NoopAnimationsModule],
       providers: [
         { provide: AuthService, useValue: authSpy },
         { provide: MatDialog, useValue: dialogSpy },
-        { provide: NotificationRepository, useValue: { watchForRecipient: vi.fn().mockReturnValue(of([])) } },
+        { provide: NotificationService, useValue: notificationsSpy },
         { provide: BRAND_NAME, useValue: 'Lilcare' },
       ],
     }).compileComponents();
@@ -57,6 +62,8 @@ describe('Header', () => {
   it('opens the notifications dialog when clicking the bell button', () => {
     Object.defineProperty(authService, 'isAuthenticated', { get: () => true, configurable: true });
     Object.defineProperty(authService, 'currentDoctor', { get: () => ({ uid: 'd1', role: 'doctor' }), configurable: true });
+    const service = TestBed.inject(NotificationService) as any;
+    service.recipientId.set('d1');
     fixture.detectChanges();
     const bell = fixture.nativeElement.querySelector('button[aria-label="Abrir notificaciones"]');
     bell.click();

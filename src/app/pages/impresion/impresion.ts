@@ -50,10 +50,11 @@ export class Impresion implements OnInit {
 
   protected readonly paperSizes = PAPER_SIZES;
 
-  protected paperSizeLabel(value: string): string {
+  protected paperSizeLabel = computed(() => {
+    const value = this.settings().paperSize;
     const found = PAPER_SIZES.find((s) => s.value === value);
     return found ? found.label : value === 'custom' ? 'Personalizado' : value;
-  }
+  });
 
   protected paperSizeShortLabel(value: string): string {
     const found = PAPER_SIZES.find((s) => s.value === value);

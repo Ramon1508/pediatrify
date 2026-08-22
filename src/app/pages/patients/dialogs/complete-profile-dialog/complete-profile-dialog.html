@@ -265,15 +265,15 @@
             </tr>
           </thead>
           <tbody>
-            @for (vac of vaccines; track vac; let last = $last) {
+            @for (row of vaccineRows(); track row.vaccine; let last = $last) {
               <tr>
-                <td class="vac-td vac-td-name">{{ vac }}</td>
-                @for (age of ages; track age) {
-                  @if (hasDoseAt(vac, age)) {
+                <td class="vac-td vac-td-name">{{ row.vaccine }}</td>
+                @for (dose of row.doses; track dose.age) {
+                  @if (dose.hasDose) {
                     <td class="vac-td vac-td-cb">
                       <mat-checkbox
-                        [checked]="isVaccineApplied(vac, age)"
-                        (change)="toggleDose(vac, age)"
+                        [checked]="dose.applied"
+                        (change)="toggleDose(row.vaccine, dose.age)"
                       />
                     </td>
                   } @else {

@@ -1,8 +1,15 @@
 <div class="dialog-title-container">
+  @if (embedded) {
+    <button mat-icon-button type="button" class="btn-back-dialog" (click)="close()" aria-label="Regresar">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+  }
   <h2 class="dialog-title">{{ editingPatient ? 'Editar paciente' : 'Añadir nuevo paciente' }}</h2>
-  <button mat-icon-button class="btn-close-dialog" [mat-dialog-close]="false" aria-label="Cerrar">
-    <mat-icon>close</mat-icon>
-  </button>
+  @if (!embedded) {
+    <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
+      <mat-icon>close</mat-icon>
+    </button>
+  }
 </div>
 
 <mat-dialog-content>
@@ -90,7 +97,7 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-stroked-button class="btn-secondary dialog-btn" [mat-dialog-close]="false">
+  <button mat-stroked-button class="btn-secondary dialog-btn" (click)="close()">
     Cancelar
   </button>
   <button

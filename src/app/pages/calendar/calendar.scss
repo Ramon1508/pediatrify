@@ -80,12 +80,25 @@
   overflow: auto;
 }
 
-.calendar-grid {
+.calendar-grid-header {
+  display: grid;
+  min-width: 700px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f5f5f5;
+  border: 1px solid #CAC4D0;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+.calendar-grid-body {
   display: grid;
   min-width: 700px;
   background: transparent;
   border: 1px solid #CAC4D0;
-  border-radius: 8px;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
   overflow: hidden;
 }
 
@@ -190,7 +203,7 @@
   }
 
   &.disabled-cell {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--State-Layers-Scrim-Opacity-16, #00000029);
 
     .appointment-block {
       opacity: 0.5;
@@ -273,24 +286,28 @@
 .mobile-cards {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
+  margin-top: 24px;
 }
 
 .mobile-card {
   width: 100%;
-  height: auto;
-  padding: 8px 16px;
+  max-width: 100%;
+  box-sizing: border-box;
   background: #FFBAD9;
   color: #000000;
   font-family: Roboto, sans-serif;
   font-weight: 500;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0.1px;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.4px;
+  padding: 4px 7.5px;
   border: none;
-  border-radius: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-align: left;
-  box-sizing: border-box;
 }
 
 .no-days-message {
@@ -304,8 +321,10 @@
 
 .no-appointments {
   font-family: Roboto, sans-serif;
-  font-weight: 400;
-  font-size: 1rem;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
   color: #49454F;
   text-align: center;
   padding: 2rem 0;

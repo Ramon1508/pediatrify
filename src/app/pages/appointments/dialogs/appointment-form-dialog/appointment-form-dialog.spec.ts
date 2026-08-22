@@ -61,7 +61,7 @@ describe('AppointmentFormDialog', () => {
   it('pre-fills form with edit data', () => {
     const { component } = createFixture(mockAppointment);
     expect(component.form.value.patientId).toBe('p1');
-    expect(component.form.value.date).toBe('2026-06-15');
+    expect(component.form.value.date).toEqual(new Date(2026, 5, 15));
     expect(component.form.value.time).toBe('10:00');
     expect(component.form.value.notes).toBe('nota existente');
   });

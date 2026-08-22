@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -11,6 +11,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { TextFieldModule, CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { Subscription } from 'rxjs';
 import { ClinicalRecordRepository } from '../../../../core/repositories/clinical-record.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
@@ -40,13 +41,14 @@ import { RichTextEditor } from '../../../../shared/components/rich-text-editor/r
     RichTextEditor,
   ],
 })
-export class ClinicalEntryDialog {
+export class ClinicalEntryDialog implements OnDestroy {
   private fb = inject(FormBuilder);
   private repo = inject(ClinicalRecordRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
   private dialogRef = inject(MatDialogRef<ClinicalEntryDialog>);
   private cdr = inject(ChangeDetectorRef);
+  private statusSub: Subscription | null = null;
 
   protected record: ClinicalRecord | null = null;
   protected patientId = '';
@@ -66,12 +68,33 @@ export class ClinicalEntryDialog {
     return this.isEdit ? 'Editar datos de la consulta' : 'Nueva entrada';
   }
 
-  protected tabHasInvalid(index: number): boolean {
-    if (!this.submitted) return false;
+  protected tabsInvalid = signal<boolean[]>([false, false, false]);
+
+  private refreshTabsInvalid(): void {
     const forms = [this.step1Form, this.step2Form, this.step3Form];
-    const form = forms[index];
-    if (!form) return false;
-    return Object.values(form.controls).some((c) => c.invalid);
+    this.tabsInvalid.set(
+      forms.map((form) => {
+        if (!form) return false;
+        return Object.values(form.controls).some((c) => c.invalid);
+      })
+    );
+  }
+
+  constructor() {
+    this.statusSub = [
+      this.step1Form,
+      this.step2Form,
+      this.step3Form,
+    ].reduce((acc, form) => {
+      if (form) acc.add(form.statusChanges.subscribe(() => {
+        if (this.submitted) this.refreshTabsInvalid();
+      }));
+      return acc;
+    }, new Subscription());
+  }
+
+  ngOnDestroy() {
+    this.statusSub?.unsubscribe();
   }
 
   protected noPastDates = (date: Date | null): boolean => {
@@ -162,6 +185,7 @@ export class ClinicalEntryDialog {
 
   nextStep() {
     this.submitted = true;
+    this.refreshTabsInvalid();
     this.cdr.markForCheck();
     if (this.step === 1 && this.step1Form.invalid) return;
     if (this.step === 2 && this.step2Form.invalid) return;
@@ -169,6 +193,7 @@ export class ClinicalEntryDialog {
     if (this.step < 3) {
       this.step++;
       this.submitted = false;
+      this.refreshTabsInvalid();
       this.cdr.markForCheck();
     }
   }
@@ -192,6 +217,7 @@ export class ClinicalEntryDialog {
 
   async save() {
     this.submitted = true;
+    this.refreshTabsInvalid();
     this.cdr.markForCheck();
     if (this.isEdit) {
       if (this.editContext === 'recommendations') {
@@ -276,6 +302,7 @@ export class ClinicalEntryDialog {
 
   async saveAndPrint() {
     this.submitted = true;
+    this.refreshTabsInvalid();
     this.cdr.markForCheck();
     if (this.isEdit) {
       if (this.editContext === 'recommendations') {

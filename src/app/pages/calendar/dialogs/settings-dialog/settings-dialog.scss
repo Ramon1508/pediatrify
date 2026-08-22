@@ -8,7 +8,7 @@
 .scheduling-label {
   font-family: Roboto, sans-serif;
   font-size: 14px;
-  color: #49454F;
+  color: #49454f;
 }
 
 .availability-section {
@@ -39,9 +39,9 @@
 .chip-day {
   padding: 6px 16px;
   border-radius: 8px;
-  border: 1px solid #0D6E8F;
+  border: 1px solid #0d6e8f;
   background: transparent;
-  color: #49454F;
+  color: #49454f;
   font-family: Roboto, sans-serif;
   font-weight: 500;
   font-size: 14px;
@@ -50,8 +50,8 @@
   cursor: pointer;
 
   &.active {
-    background: #0D6E8F;
-    color: #FFFFFF;
+    background: #0d6e8f;
+    color: #ffffff;
   }
 }
 
@@ -68,12 +68,12 @@
 .segments-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
 .segment-divider {
-  border: 1px solid #C6C6C6;
-  margin: 16px 0;
+  border: 1px solid #c6c6c6;
+  margin-bottom: 16px;
+  width: 100%;
 }
 
 .segment-header-row {
@@ -92,7 +92,7 @@
 .btn-segment-remove {
   background: none;
   border: none;
-  color: #B3261E;
+  color: #b3261e;
   cursor: pointer;
   font-family: Roboto, sans-serif;
   font-size: 14px;
@@ -126,7 +126,7 @@
 .btn-add-segment {
   background: none;
   border: none;
-  color: #0D6E8F;
+  color: #0d6e8f;
   font-family: Roboto, sans-serif;
   font-weight: 500;
   font-size: 14px;

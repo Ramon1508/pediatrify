@@ -38,7 +38,9 @@
       <div formArrayName="timeSegments" class="segments-list">
         @for (seg of timeSegments.controls; track $index) {
           @if (timeSegments.length > 1) {
-            <hr class="segment-divider" />
+            @if ($index > 0) {
+              <hr class="segment-divider" />
+            }
             <div class="segment-header-row">
               <span class="segment-number">{{ $index + 1 }}° Segmento</span>
               <button type="button" class="btn-segment-remove" (click)="removeSegment($index)">- Eliminar</button>

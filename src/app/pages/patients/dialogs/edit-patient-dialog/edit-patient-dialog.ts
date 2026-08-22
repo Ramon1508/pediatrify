@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -16,6 +16,7 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Patient, VaccineDose } from '../../../../core/models/user';
 import { Sexo, SexoLabel } from '../../../../core/models/sexo';
+import { dateStringToLocalDate } from '../../../../core/utils/date-utils';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
 
@@ -127,20 +128,59 @@ export class EditPatientDialog {
     [],
   ];
 
-  protected tabHasInvalid(index: number): boolean {
-    if (!this.saved) return false;
-    return this.tabControls[index].some((name) => this.form.get(name)?.invalid ?? false);
+  private tabLabels = ['Datos generales', 'Datos de contacto', 'Esquema de vacunación'];
+
+  protected saved = signal(false);
+  protected selectedTabIndex = signal(0);
+
+  private currentTabInvalid(): boolean {
+    const names = this.tabControls[this.selectedTabIndex()] ?? [];
+    return names.some((name) => this.form.get(name)?.invalid ?? false);
   }
+
+  protected onTabChange(index: number): void {
+    if (this.readOnly) {
+      this.selectedTabIndex.set(index);
+      return;
+    }
+    if (this.currentTabInvalid()) {
+      this.warnPendingFields();
+      return;
+    }
+    this.selectedTabIndex.set(index);
+  }
+
+  private warnPendingFields(): void {
+    const pendingTabs = this.tabControls
+      .map((names, i) => (names.some((name) => this.form.get(name)?.invalid ?? false) ? this.tabLabels[i] : null))
+      .filter((label): label is string => !!label);
+    const message =
+      pendingTabs.length > 0
+        ? `Campos requeridos pendientes en: ${pendingTabs.join(', ')}. Completa los campos obligatorios.`
+        : 'Campos requeridos pendientes. Completa los campos obligatorios.';
+    this.alert.warning({ message, duration: 5000 });
+  }
+
   protected vaccines = VACCINES;
   protected ages = AGES;
   protected submitting = false;
-  protected saved = false;
   protected saveSuccess = '';
   protected referredBySearchControl = new FormControl('');
   protected filteredPatients: Patient[] = [];
   private allPatients: Patient[] = [];
   protected patient: Patient | null = null;
   protected vaccinationMap = new Map<VaccineKey, VaccineDose>();
+  protected vaccinationVersion = signal(0);
+  protected vaccineRows = computed(() =>
+    VACCINES.map((vac) => ({
+      vaccine: vac,
+      doses: AGES.map((age) => ({
+        age,
+        hasDose: hasDoseAt(vac, age),
+        applied: this.isVaccineApplied(vac, age),
+      })),
+    }))
+  );
   private initialFormValue: Record<string, any> | null = null;
 
   private splitFullName(fullName: string): { name: string; lastName: string } {
@@ -173,7 +213,7 @@ export class EditPatientDialog {
 
   protected form = this.fb.group({
     fullName: ['', Validators.required],
-    birthDate: ['', Validators.required],
+    birthDate: [null as unknown as string | Date, Validators.required],
     bloodType: ['', Validators.required],
     birthWeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
     birthHeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
@@ -203,7 +243,7 @@ export class EditPatientDialog {
     const dateStr = toDateString(p.birthDate);
     this.form.patchValue({
       fullName: `${p.name} ${p.lastName}`.trim(),
-      birthDate: dateStr,
+      birthDate: dateStringToLocalDate(dateStr),
       bloodType: p.bloodType ?? '',
       birthWeight: p.birthWeight ?? null,
       birthHeight: p.birthHeight ?? null,
@@ -295,12 +335,12 @@ export class EditPatientDialog {
         this.vaccinationMap.set(key, dose);
       }
     }
+    this.vaccinationVersion.update((v) => v + 1);
   }
-
-  protected hasDoseAt = hasDoseAt;
 
   protected isVaccineApplied(vaccine: string, age: string): boolean {
     if (!hasDoseAt(vaccine, age)) return false;
+    this.vaccinationVersion();
     return this.vaccinationMap.get(makeKey(vaccine, age))?.applied ?? false;
   }
 
@@ -310,6 +350,7 @@ export class EditPatientDialog {
     const key = makeKey(vaccine, age);
     const current = this.vaccinationMap.get(key) ?? { applied: false };
     this.vaccinationMap.set(key, { ...current, applied: !current.applied });
+    this.vaccinationVersion.update((v) => v + 1);
   }
 
   protected onHasAllergiesChange(value: boolean): void {
@@ -372,9 +413,12 @@ export class EditPatientDialog {
   }
 
   async save(): Promise<void> {
-    this.saved = true;
+    this.saved.set(true);
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.warnPendingFields();
+      return;
+    }
     const p = this.patient;
     if (!p) return;
 

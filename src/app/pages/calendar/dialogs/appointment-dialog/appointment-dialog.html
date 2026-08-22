@@ -1,4 +1,5 @@
-<div class="dialog-title-container">
+@if (!showNewPatient()) {
+  <div class="dialog-title-container">
     <h2 class="dialog-title">{{ editingAppointment ? 'Reagendar consulta' : 'Agendar una consulta' }}</h2>
     <button mat-icon-button class="btn-close-dialog" [mat-dialog-close]="false" aria-label="Cerrar">
       <mat-icon>close</mat-icon>
@@ -30,7 +31,7 @@
         <mat-error>Selecciona un paciente</mat-error>
       }
 
-      <button type="button" class="btn-add-patient" (click)="openNewPatientDialog()">
+      <button type="button" class="btn-add-patient" (click)="openNewPatient()">
         + Añadir nuevo paciente
       </button>
 
@@ -93,3 +94,11 @@
       }
     </button>
   </mat-dialog-actions>
+} @else {
+  <app-new-patient-dialog
+    [embedded]="true"
+    [allPatients]="allPatients"
+    (saved)="onPatientCreated($event)"
+    (back)="goBackToAppointment()"
+  />
+}

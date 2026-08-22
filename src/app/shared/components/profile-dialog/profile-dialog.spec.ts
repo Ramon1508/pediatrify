@@ -142,13 +142,10 @@ describe('ProfileDialog', () => {
     expect(dialogRef.close).toHaveBeenCalled();
   });
 
-  it('close() in edit mode asks for confirmation before closing', () => {
+  it('close() closes the dialog even in edit mode (no confirmation)', () => {
     const { component, dialogRef } = createFixture();
     component.switchToEdit();
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    component.close();
-    expect(dialogRef.close).not.toHaveBeenCalled();
-    confirmSpy.mockReturnValue(true);
     component.close();
     expect(dialogRef.close).toHaveBeenCalled();
     confirmSpy.mockRestore();

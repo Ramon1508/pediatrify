@@ -75,6 +75,9 @@ export class Calendar implements OnInit, OnDestroy {
   readonly monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
   protected weekStart = signal<Date>(this.getWeekStart(new Date()));
+  protected isCurrentWeek = computed(
+    () => this.getWeekStart(new Date()).getTime() === this.weekStart().getTime()
+  );
   protected allAppointments = signal<Appointment[]>([]);
   protected visibleWeekAppointments = computed(() => {
     const start = this.weekStart();
@@ -170,6 +173,8 @@ export class Calendar implements OnInit, OnDestroy {
     return `${year}, ${month} ${d.getDate()}`;
   });
 
+  protected selectedDayFormatted = computed(() => this.formatDate(this.selectedDay()));
+
   protected formatTime(time: string): string {
     const [h, m] = time.split(':').map(Number);
     const period = h >= 12 ? 'pm' : 'am';
@@ -208,6 +213,45 @@ export class Calendar implements OnInit, OnDestroy {
 
   protected gridTemplateColumns = '90px repeat(7, 1fr)';
 
+  protected headerDays = computed(() =>
+    this.weekDays().map((day) => ({
+      day,
+      date: day.getDate(),
+      name: this.dayNames[day.getDay()],
+      isToday: this.isToday(day),
+      isAvailable: this.isDayAvailable(day),
+    }))
+  );
+
+  protected gridRows = computed(() =>
+    this.timeSlots().map((slot) => {
+      const cells = this.weekDays().map((day) => {
+        const appointments = this.getAppointmentsForCell(day, slot);
+        return {
+          day,
+          slot,
+          isToday: this.isToday(day),
+          isCurrentHour: this.isToday(day) && this.isCurrentHour(slot),
+          isAvailable: this.isDayAvailable(day),
+          canInteract: this.canInteractWithCell(day),
+          appointments,
+          isHovered: this.isHovered(day, slot),
+        };
+      });
+      return { slot, cells };
+    })
+  );
+
+  protected mobileDayAppointments = computed(() =>
+    this.getAppointmentsForDay()
+      .slice()
+      .sort((a, b) => a.time.localeCompare(b.time))
+      .map((apt) => ({
+        apt,
+        timeLabel: this.formatTime(apt.time),
+      }))
+  );
+
   protected dateLabel = computed(() => {
     const start = this.weekStart();
     const allDays = Array.from({ length: 7 }, (_, i) => {
@@ -230,7 +274,7 @@ export class Calendar implements OnInit, OnDestroy {
     return `${startYear}, ${startMonth} ${start.getDate()} - ${endYear}, ${endMonth} ${end.getDate()}`;
   });
 
-  protected hoveredCell: { date: Date; slot: TimeSlot } | null = null;
+  protected hoveredCell = signal<{ date: Date; slot: TimeSlot } | null>(null);
 
   protected timeSlots = computed(() => {
     const segments = this.timeSegmentsSignal();
@@ -319,7 +363,6 @@ export class Calendar implements OnInit, OnDestroy {
         return true;
       });
       this.allAppointments.set(merged);
-      this.scrollToCurrentHour();
       this.applyPendingFocus();
       this.cdr.markForCheck();
     });
@@ -384,20 +427,6 @@ export class Calendar implements OnInit, OnDestroy {
     this.applyPendingFocus();
   }
 
-  private scrollToCurrentHour() {
-    setTimeout(() => {
-      const el = document.querySelector('.current-hour');
-      if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
-        (el as HTMLElement).scrollIntoView({ block: 'center', behavior: 'auto' });
-      } else {
-        const container = document.querySelector('.calendar-scroll');
-        if (container) {
-          container.scrollTop = container.scrollHeight / 2;
-        }
-      }
-    });
-  }
-
   private applyPendingFocus() {
     if (!this.pendingFocus) return;
     const target = this.pendingFocus;
@@ -460,7 +489,7 @@ export class Calendar implements OnInit, OnDestroy {
 
   goToToday() {
     this.weekStart.set(this.getWeekStart(new Date()));
-    setTimeout(() => this.scrollToCurrentHour());
+    this.selectedDay.set(new Date());
   }
 
   jumpToWeek(dateValue: string) {
@@ -488,11 +517,11 @@ export class Calendar implements OnInit, OnDestroy {
   }
 
   onCellHover(date: Date, slot: TimeSlot) {
-    this.hoveredCell = { date, slot };
+    this.hoveredCell.set({ date, slot });
   }
 
   onCellLeave() {
-    this.hoveredCell = null;
+    this.hoveredCell.set(null);
   }
 
   getAppointmentsForCell(date: Date, slot: TimeSlot): Appointment[] {
@@ -506,10 +535,11 @@ export class Calendar implements OnInit, OnDestroy {
   }
 
   isHovered(date: Date, slot: TimeSlot): boolean {
-    if (!this.hoveredCell) return false;
+    const hovered = this.hoveredCell();
+    if (!hovered) return false;
     return (
-      this.hoveredCell.date.getTime() === date.getTime() &&
-      this.hoveredCell.slot.key === slot.key
+      hovered.date.getTime() === date.getTime() &&
+      hovered.slot.key === slot.key
     );
   }
 

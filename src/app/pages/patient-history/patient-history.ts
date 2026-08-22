@@ -112,6 +112,12 @@ export class PatientHistory implements OnInit, OnDestroy {
   protected selectedRecord = computed(() =>
     this.records().find((r) => r.id === this.selectedRecordId()) ?? null
   );
+  protected selectedRecordAge = computed(() => {
+    const record = this.selectedRecord();
+    const p = this.patient();
+    if (!record || !p) return '';
+    return calcAgeAtDate(p.birthDate, record.date);
+  });
   protected loading = signal(true);
   protected isAdmin = signal(false);
 
@@ -188,12 +194,6 @@ export class PatientHistory implements OnInit, OnDestroy {
     for (const s of this.subs) s.unsubscribe();
     this.resizeObserver?.disconnect();
     if (this.patientId) this.patientStore.unwatchOne(this.patientId);
-  }
-
-  protected getAgeAtRecord(record: ClinicalRecord): string {
-    const p = this.patient();
-    if (!p) return '';
-    return calcAgeAtDate(p.birthDate, record.date);
   }
 
   protected async printSection(type: 'recommendations' | 'prescription') {

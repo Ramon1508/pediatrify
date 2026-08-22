@@ -154,6 +154,7 @@ export class SettingsDialog {
         },
       });
       this.alert.success({ message: 'Configuración guardada', duration: 5000 });
+      this.dialogRef.close(true);
     } catch (e: any) {
       console.error('Settings save error:', e);
       this.alert.error({ message: 'Error al guardar configuración' });

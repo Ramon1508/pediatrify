@@ -109,6 +109,15 @@ describe('Calendar', () => {
     expect((component as any).weekStart().getTime()).toBe(sunday.getTime());
   });
 
+  it('flags current week correctly', () => {
+    const isCurrent = (component as any).isCurrentWeek();
+    expect(isCurrent).toBe(true);
+    (component as any).nextWeek();
+    expect((component as any).isCurrentWeek()).toBe(false);
+    (component as any).goToToday();
+    expect((component as any).isCurrentWeek()).toBe(true);
+  });
+
   it('tracks hovered cell', () => {
     fixture.detectChanges();
     const date = new Date(2026, 5, 1);

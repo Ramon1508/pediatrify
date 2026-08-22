@@ -199,12 +199,6 @@ export class PrintPreview implements OnInit {
     this.appRef.tick();
     await this.waitForPrintableLayout();
     this.paginateContent();
-    console.log('paginateContent result', {
-      pages: this.pages().length,
-      hasMeasurePage: !!this.measurePage?.nativeElement,
-      hasScratch: !!this.measureScratch?.nativeElement,
-      debug: this.debugInfo(),
-    });
     this.cdr.markForCheck();
 
     setTimeout(() => {
