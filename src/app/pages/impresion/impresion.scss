@@ -11,6 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 24px;
 
   .header-left {
@@ -22,6 +23,8 @@
   .header-actions {
     display: flex;
     gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }
 
@@ -65,6 +68,7 @@
 
 .preview-panel {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -262,9 +266,38 @@
 }
 
 @media (max-width: 768px) {
+  .impresion-page {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 16px;
+    overflow: auto;
+  }
+
+  .impresion-header {
+    flex-direction: column;
+    align-items: stretch;
+
+    .header-left {
+      min-width: 0;
+    }
+
+    .header-actions {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+
+      button {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  }
+
   .impresion-body {
     flex-direction: column;
     overflow: auto;
+    gap: 16px;
   }
 
   .settings-panel {
@@ -274,5 +307,29 @@
 
   .preview-panel {
     padding-top: 0;
+  }
+
+  .preview-label,
+  .preview-frame {
+    margin-left: 0;
+  }
+
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+}
+
+@media (max-width: 1024px) and (min-width: 769px) {
+  .settings-panel {
+    width: 400px;
+    min-width: 400px;
+  }
+}
+
+@media (max-width: 320px) {
+  .impresion-page {
+    padding: 12px;
   }
 }

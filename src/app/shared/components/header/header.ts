@@ -38,7 +38,7 @@ export class Header {
     this.dialog.open(ProfileDialog, {
       panelClass: 'profile-panel',
       backdropClass: 'profile-backdrop',
-      disableClose: true,
+      disableClose: false,
     });
   }
 }

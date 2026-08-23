@@ -108,7 +108,7 @@ export class PrintPreview implements OnInit {
 
   protected paperSizeCss = computed(() => {
     const s = this.settings();
-    const size = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const size = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
     return `${size.width}cm ${size.height}cm`;
   });
 
@@ -119,7 +119,7 @@ export class PrintPreview implements OnInit {
 
   protected pageStyle = computed(() => {
     const s = this.settings();
-    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
     const scale = this.printScale();
     return {
       '--paper-width': `${dim.width}cm`,
@@ -143,7 +143,7 @@ export class PrintPreview implements OnInit {
 
   protected screenPageWrapperStyle = computed(() => {
     const s = this.settings();
-    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
     const scale = this.screenScale();
     return {
       width: `${Math.round(dim.width * PX_PER_CM * scale)}px`,
@@ -153,7 +153,7 @@ export class PrintPreview implements OnInit {
 
   private printScale(): number {
     const s = this.settings();
-    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
     const contentWidth = dim.width - s.marginLeft - s.marginRight;
     const baseContentWidth = 19.5;
     const scale = Math.max(0.72, Math.min(1, contentWidth / baseContentWidth));
@@ -162,7 +162,7 @@ export class PrintPreview implements OnInit {
 
   private screenScale(): number {
     const s = this.settings();
-    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
     const availableWidth = Math.max(window.innerWidth - 32, 280);
     const scale = Math.min(1, availableWidth / (dim.width * PX_PER_CM));
     return Math.round(scale * 1000) / 1000;
@@ -408,7 +408,7 @@ export class PrintPreview implements OnInit {
     const html = clone.outerHTML;
 
     const s = this.settings();
-    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
 
     printWindow.document.write(`<!DOCTYPE html>
 <html>

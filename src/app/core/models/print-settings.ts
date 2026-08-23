@@ -1,8 +1,10 @@
 export type PaperSize = 'media-carta' | 'carta' | 'oficio' | 'custom';
 export type LogoPosition = 'top-left' | 'top-right';
+export type PaperOrientation = 'horizontal' | 'vertical';
 
 export interface PrintSettings {
   paperSize: PaperSize;
+  orientation: PaperOrientation;
   customWidth?: number;
   customHeight?: number;
   marginTop: number;
@@ -37,6 +39,7 @@ export const PAPER_SIZES: { value: PaperSize; label: string; width: number; heig
 export function getDefaultSettings(): PrintSettings {
   return {
     paperSize: 'media-carta',
+    orientation: 'horizontal',
     marginTop: 1,
     marginBottom: 1,
     marginLeft: 1,
@@ -60,8 +63,17 @@ export function getDefaultSettings(): PrintSettings {
   };
 }
 
-export function getPaperDimensions(size: PaperSize, customWidth?: number, customHeight?: number): { width: number; height: number } {
+export function getPaperDimensions(
+  size: PaperSize,
+  customWidth?: number,
+  customHeight?: number,
+  orientation: PaperOrientation = 'horizontal'
+): { width: number; height: number } {
   const preset = PAPER_SIZES.find((s) => s.value === size);
-  if (preset) return { width: preset.width, height: preset.height };
-  return { width: customWidth ?? 21.5, height: customHeight ?? 14 };
+  const base = preset
+    ? { width: preset.width, height: preset.height }
+    : { width: customWidth ?? 21.5, height: customHeight ?? 14 };
+  return orientation === 'vertical'
+    ? { width: base.height, height: base.width }
+    : base;
 }

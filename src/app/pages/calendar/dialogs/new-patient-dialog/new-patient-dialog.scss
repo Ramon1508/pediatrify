@@ -73,9 +73,31 @@
 
 .full-width {
   width: 100%;
+  margin-bottom: 0.75rem;
 }
 
 mat-dialog-actions {
   padding: 0 24px 16px !important;
   gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .new-patient-alert {
+    align-items: stretch;
+  }
+
+  .alert-continue-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }

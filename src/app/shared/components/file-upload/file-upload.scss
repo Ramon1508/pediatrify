@@ -73,3 +73,25 @@
   color: #0D6E8F;
   font-weight: 500;
 }
+
+@media (max-width: 768px) {
+  .upload-area {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem 1rem;
+  }
+
+  .preview-wrapper {
+    flex-wrap: wrap;
+  }
+
+  .file-name {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .remove-btn {
+    top: 6px;
+    right: 6px;
+  }
+}

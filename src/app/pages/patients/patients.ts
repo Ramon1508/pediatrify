@@ -165,7 +165,7 @@ export class Patients implements OnInit, OnDestroy {
   async openNewPatient() {
     const dialogRef = this.dialog.open(NewPatientDialog, {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatients(this.patients());
@@ -190,7 +190,7 @@ export class Patients implements OnInit, OnDestroy {
   async openCompleteProfile(patient: Patient) {
     const dialogRef = this.dialog.open(CompleteProfileDialog, {
       width: '736px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatient(patient);
@@ -201,7 +201,7 @@ export class Patients implements OnInit, OnDestroy {
   async openEditPatient(patient: Patient) {
     const dialogRef = this.dialog.open(EditPatientDialog, {
       width: '736px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatient(patient);
@@ -226,6 +226,7 @@ export class Patients implements OnInit, OnDestroy {
 
   async cancelAppointment(appt: Appointment) {
     const dialogRef = this.dialog.open(ConfirmDialog, {
+      panelClass: 'context-card-panel',
       data: {
         title: 'Cancelar consulta',
         message: 'Al cancelar una consulta el padre o tutor del paciente recibirá una notificación de la cancelación y podrá seleccionar un nuevo día y horario para la consulta si así lo desea.',
@@ -275,7 +276,7 @@ export class Patients implements OnInit, OnDestroy {
         patientName: `${patient.name} ${patient.lastName}`.trim(),
         doctorName: this.authService.currentDoctor?.name ?? '',
       });
-      this.alert.success({ message: `Nueva contraseña OTP: ${newOtp}`, duration: 5000 });
+      this.alert.success({ message: `Nueva contraseña de acceso: ${newOtp}`, duration: 5000 });
     } catch {
       this.alert.error({ message: 'No se pudo enviar el correo de acceso', duration: 5000 });
     }
@@ -284,7 +285,8 @@ export class Patients implements OnInit, OnDestroy {
   async setCustomOtp(patient: Patient) {
     const dialogRef = this.dialog.open(ViewOtpDialog, {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
+      panelClass: 'context-card-panel',
     });
     dialogRef.componentInstance.setPatient(patient);
     await dialogRef.afterClosed().toPromise();

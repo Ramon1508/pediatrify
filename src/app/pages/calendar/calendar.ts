@@ -127,7 +127,10 @@ export class Calendar implements OnInit, OnDestroy {
   protected onDateSelected(event: any) {
     const d = event?.value;
     if (!d || isNaN(d.getTime())) return;
+    // Desktop: la semana se ancla al día elegido. Mobile: el día seleccionado
+    // muestra SOLO esas citas (getAppointmentsForDay usa selectedDay).
     this.weekStart.set(this.getWeekStart(d));
+    this.selectedDay.set(d);
   }
 
   protected openDatePicker() {
@@ -148,7 +151,7 @@ export class Calendar implements OnInit, OnDestroy {
     };
     const dialogRef = this.dialog.open(SettingsDialog, {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setData(data);
@@ -546,7 +549,7 @@ export class Calendar implements OnInit, OnDestroy {
   private openAppointmentDialog(editingAppointment?: Appointment | null, prefill?: { date: Date; slot: TimeSlot }) {
     const dialogRef = this.dialog.open(AppointmentDialog, {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     const instance = dialogRef.componentInstance;
@@ -601,10 +604,17 @@ export class Calendar implements OnInit, OnDestroy {
     this.openAppointmentDialog(apt);
   }
 
-  protected cancelAppointment(apt: Appointment) {
+  protected async cancelAppointment(apt: Appointment) {
     this.selectedAppointment.set(null);
     this.overlayPosition.set(null);
-    this.doCancelAppointment(apt);
+    const dialogRef = this.alert.confirm({
+      title: 'Cancelar cita',
+      message: `¿Cancelar la cita de ${apt.patientName} para el ${apt.date} a las ${apt.time}?`,
+      confirmText: 'Cancelar cita',
+    });
+    const result = await dialogRef.afterClosed().toPromise();
+    if (!result) return;
+    await this.doCancelAppointment(apt);
   }
 
   private async doCancelAppointment(apt: Appointment) {

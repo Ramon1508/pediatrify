@@ -297,3 +297,34 @@ $pink: #E91E63;
   color: #666;
   margin-top: 2px;
 }
+
+@media (max-width: 768px) {
+  .charts-header {
+    gap: 12px;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chart-chip {
+    padding: 6px 10px;
+  }
+
+  .zoom-btn {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 320px) {
+  .charts-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chart-chip {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

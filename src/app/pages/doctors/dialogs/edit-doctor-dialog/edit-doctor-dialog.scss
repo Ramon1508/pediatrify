@@ -25,3 +25,15 @@
 mat-dialog-actions {
   padding: 10px 16px !important;
 }
+
+@media (max-width: 768px) {
+  mat-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}

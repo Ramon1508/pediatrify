@@ -211,7 +211,7 @@ export class PatientHistory implements OnInit, OnDestroy {
     if (!doctor) return;
 
     const settings = await this.printRepo.getSettings(doctor.uid);
-    const dim = getPaperDimensions(settings.paperSize, settings.customWidth, settings.customHeight);
+    const dim = getPaperDimensions(settings.paperSize, settings.customWidth, settings.customHeight, settings.orientation);
     const logoUrl = settings.usePreloadedLogo
       ? (doctor.logoPath || '/images/Logo.jpg')
       : (settings.logoUrl || doctor.logoPath || '/images/Logo.jpg');
@@ -259,6 +259,7 @@ export class PatientHistory implements OnInit, OnDestroy {
     .doctor-info { color: #333; text-align: center; font-size: ${12}pt; line-height: 1.25; }
     .doctor-info .doctor-name { margin-bottom: 0.1cm; font-size: ${16}pt; font-weight: 500; letter-spacing: 0.15px; }
     .doctor-info .field { margin-bottom: 0.04cm; font-weight: 500; letter-spacing: 0.5px; }
+    .doctor-info .field-row { display: flex; justify-content: center; gap: 0.5cm; flex-wrap: wrap; }
     .gap-large { height: 0.65cm; }
     .gap-medium { height: 0.28cm; }
     .body-text { clear: both; color: #444; font-size: ${12}pt; font-weight: 500; line-height: 1.3; letter-spacing: 0.15px; }
@@ -273,7 +274,10 @@ export class PatientHistory implements OnInit, OnDestroy {
     .rich-content ul { list-style: disc; }
     .rich-content ol { list-style: decimal; }
     .rich-content li { list-style: inherit; }
+    .rich-content li[data-list="bullet"] { list-style-type: disc; }
+    .rich-content li[data-list="ordered"] { list-style-type: decimal; }
     .rich-content li::before { display: none !important; }
+    .rich-content .ql-ui { display: none; }
     .rich-content img, .rich-content table { max-width: 100%; }
     .rich-content img { display: block; height: auto; max-height: calc(100vh - ${marginTop + marginBottom + 4}cm); object-fit: contain; }
     .rich-content table { border-collapse: collapse; }
@@ -289,8 +293,7 @@ export class PatientHistory implements OnInit, OnDestroy {
       <div class="doctor-info">
         ${settings.showDoctorName ? `<div class="doctor-name">${prefix} ${doctor.name?.toUpperCase() ?? ''}</div>` : ''}
         ${settings.showSpecialty ? `<div class="field">${doctor.especialidad || 'Pediatría'}</div>` : ''}
-        ${settings.showProfessionalId ? `<div class="field">CED. PROF. ${doctor.cedula || ''}</div>` : ''}
-        ${settings.showSpecialtyId ? `<div class="field">CED. ESP. ${doctor.cedulaEspecialidad || ''}</div>` : ''}
+        ${(settings.showProfessionalId || settings.showSpecialtyId) ? `<div class="field-row">${settings.showProfessionalId ? `<div class="field">CED. PROF. ${doctor.cedula || ''}</div>` : ''}${settings.showSpecialtyId ? `<div class="field">CED. ESP. ${doctor.cedulaEspecialidad || ''}</div>` : ''}</div>` : ''}
         ${settings.showDoctorPhone ? `<div class="field">TEL. ${doctor.phone || ''}</div>` : ''}
         ${settings.showDoctorOffice ? `<div class="field">CONSULTORIO: ${doctor.consultorios || ''}</div>` : ''}
       </div>
@@ -335,7 +338,7 @@ export class PatientHistory implements OnInit, OnDestroy {
     const allPatients = await this.patientRepo.getAllPatients();
     const patientId = this.route.snapshot.paramMap.get('patientId')!;
     const dialogRef = this.dialog.open(AppointmentFormDialog, {
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatients(allPatients);
@@ -355,7 +358,7 @@ export class PatientHistory implements OnInit, OnDestroy {
 
     const dialogRef = this.dialog.open(ClinicalEntryDialog, {
       width: '736px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatientId(patientId);
@@ -373,7 +376,7 @@ export class PatientHistory implements OnInit, OnDestroy {
 
     const dialogRef = this.dialog.open(ClinicalEntryDialog, {
       width: context && context !== 'general' ? '600px' : '736px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setRecord(record);
@@ -389,7 +392,7 @@ export class PatientHistory implements OnInit, OnDestroy {
   protected viewProfile(patient: Patient) {
     const dialogRef = this.dialog.open(EditPatientDialog, {
       width: '736px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatient(patient);
@@ -399,7 +402,7 @@ export class PatientHistory implements OnInit, OnDestroy {
   protected editProfile(patient: Patient) {
     const dialogRef = this.dialog.open(EditPatientDialog, {
       width: '736px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatient(patient);
@@ -409,7 +412,7 @@ export class PatientHistory implements OnInit, OnDestroy {
   protected async openCompleteProfile(patient: Patient) {
     const dialogRef = this.dialog.open(CompleteProfileDialog, {
       width: '736px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setPatient(patient);
@@ -418,6 +421,7 @@ export class PatientHistory implements OnInit, OnDestroy {
 
   protected async deletePatient(patient: Patient) {
     const dialogRef = this.dialog.open(ConfirmDialog, {
+      panelClass: 'context-card-panel',
       data: {
         title: 'Eliminar paciente',
         message: `¿Eliminar a ${patient.name} ${patient.lastName}?`,

@@ -125,3 +125,33 @@
     height: 16px;
   }
 }
+
+@media (max-width: 768px) {
+  .profile-content {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .profile-header {
+    padding: 16px 16px 0;
+  }
+
+  .profile-body {
+    padding: 16px 16px 0;
+  }
+
+  .profile-footer {
+    padding: 16px;
+  }
+
+  .footer-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .footer-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}

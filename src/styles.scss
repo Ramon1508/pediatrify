@@ -7,6 +7,9 @@ $on-primary: #ffffff;
 $danger: #b3261e;
 $on-danger: #ffffff;
 $body-color: #49454f;
+$bp-mobile: 768px;
+$bp-tablet: 1024px;
+$bp-fold: 320px;
 
 html {
   height: 100%;
@@ -22,6 +25,8 @@ html {
   );
 }
 :root {
+  --app-header-h: 56px;
+  --app-nav-h: 0px;
   --mat-sys-primary: #{$primary};
   --mat-sys-on-primary: #{$on-primary};
   --mat-sys-primary-container: #{color.adjust($primary, $lightness: 45%)};
@@ -258,6 +263,142 @@ p {
   color: #ffffff;
 }
 
+.page-shell {
+  width: auto;
+  margin: 2rem 40px;
+  padding: 0 1rem;
+}
+
+.page-shell-contained {
+  width: min(100%, 900px);
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 1rem;
+}
+
+.page-actions,
+.action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: 24px;
+}
+
+.responsive-card {
+  width: 100%;
+  min-width: 0;
+}
+
+.form-row-responsive {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row-responsive > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.desktop-only {
+  display: initial;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: $bp-tablet) {
+  .page-shell {
+    margin: 24px;
+  }
+}
+
+@media (max-width: $bp-mobile) {
+  .page-shell,
+  .page-shell-contained {
+    margin: 16px;
+    padding: 0;
+    width: auto;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .page-actions,
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .page-header button,
+  .page-actions button,
+  .action-row button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .responsive-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .form-row-responsive {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: initial;
+  }
+}
+
+@media (max-width: $bp-fold) {
+  .page-shell,
+  .page-shell-contained {
+    margin: 12px;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-tertiary,
+  .btn-danger {
+    padding: 12px 16px;
+  }
+}
+
 .icon-outlined {
   font-family: 'Material Icons Outlined', sans-serif;
 }
@@ -312,6 +453,23 @@ p {
       background: transparent !important;
     }
   }
+}
+
+.context-card-panel {
+  .mat-mdc-dialog-container {
+    border-radius: 12px !important;
+
+    .mdc-dialog__surface.mat-mdc-dialog-surface {
+      border-radius: 12px !important;
+      background: transparent !important;
+      overflow: hidden;
+    }
+  }
+}
+
+.cdk-overlay-pane.context-card-panel,
+.cdk-overlay-pane.cancel-dialog {
+  max-width: calc(100vw - 32px) !important;
 }
 
 .profile-panel {
@@ -446,25 +604,29 @@ p {
       border-radius: 0 !important;
 
       .mdc-dialog__container {
-        align-items: flex-start;
+        align-items: stretch;
       }
 
       .mdc-dialog__surface.mat-mdc-dialog-surface {
         width: 100%;
-        height: auto;
-        min-height: 168px;
-        max-height: calc(100dvh - 88px);
+        height: 100%;
+        max-height: 100%;
+        min-height: 0;
         border-radius: 0 !important;
       }
     }
   }
 
   .cdk-overlay-pane.notif-panel {
-    right: 0 !important;
+    top: var(--app-header-h, 56px) !important;
+    bottom: var(--app-nav-h, 0px) !important;
     left: 0 !important;
-    top: 56px !important;
+    right: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: auto !important;
+    max-height: calc(100dvh - var(--app-header-h, 56px) - var(--app-nav-h, 0px)) !important;
+    overflow: hidden;
   }
 }
 
@@ -508,6 +670,49 @@ p {
     width: 100% !important;
   }
 
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) {
+    top: var(--app-header-h, 56px) !important;
+    bottom: var(--app-nav-h, 0px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    max-height: calc(100dvh - var(--app-header-h, 56px) - var(--app-nav-h, 0px)) !important;
+    position: absolute !important;
+    overflow: hidden;
+  }
+
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mat-mdc-dialog-container,
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mdc-dialog__container,
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mdc-dialog__surface.mat-mdc-dialog-surface {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+  }
+
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mdc-dialog__surface.mat-mdc-dialog-surface {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mat-mdc-dialog-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mat-mdc-dialog-actions {
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
   .right-panel {
     .mat-mdc-dialog-container {
       .mdc-dialog__surface.mat-mdc-dialog-surface {
@@ -517,8 +722,8 @@ p {
   }
 
   .cdk-overlay-pane.right-panel {
-    height: 100vh !important;
-    height: 100dvh !important;
+    height: auto !important;
+    max-height: calc(100dvh - var(--app-header-h, 56px) - var(--app-nav-h, 0px)) !important;
     width: 100% !important;
     max-width: 100% !important;
     overflow: hidden;

@@ -153,7 +153,7 @@ export class GrowthCharts {
       } catch { /* use defaults */ }
     }
 
-    const dim = getPaperDimensions(settings.paperSize, settings.customWidth, settings.customHeight);
+    const dim = getPaperDimensions(settings.paperSize, settings.customWidth, settings.customHeight, settings.orientation);
 
     const w = window.open('', '_blank');
     if (!w) return;

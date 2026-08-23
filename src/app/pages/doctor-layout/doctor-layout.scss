@@ -14,3 +14,17 @@
   flex: 1;
   overflow-y: auto;
 }
+
+@media (max-width: 768px) {
+  .layout-body {
+    flex-direction: column;
+  }
+
+  .main-content {
+    order: 1;
+  }
+
+  app-sidebar {
+    order: 2;
+  }
+}

@@ -55,7 +55,7 @@ describe('Header', () => {
     button.click();
     expect(dialog.open).toHaveBeenCalledWith(ProfileDialog, expect.objectContaining({
       panelClass: 'profile-panel',
-      disableClose: true,
+      disableClose: false,
     }));
   });
 

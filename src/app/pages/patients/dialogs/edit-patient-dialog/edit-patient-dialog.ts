@@ -191,12 +191,18 @@ export class EditPatientDialog {
   }
 
   protected readOnly = true;
+  private initialReadOnly = true;
+  private initialModeSet = false;
 
   protected get sexoLabel(): string {
     return this.patient?.sex ? SexoLabel[this.patient.sex] : '';
   }
 
   setMode(mode: 'view' | 'edit') {
+    if (!this.initialModeSet) {
+      this.initialModeSet = true;
+      this.initialReadOnly = mode === 'view';
+    }
     this.readOnly = mode === 'view';
     if (this.readOnly) {
       this.form.disable();
@@ -479,5 +485,18 @@ export class EditPatientDialog {
 
   close(): void {
     this.dialogRef.close(false);
+  }
+
+  /**
+   * Cancelar al editar: si el drawer se abrió en modo visualización, vuelve a
+   * visualización (descartando cambios). Si se abrió en modo edición, cierra.
+   */
+  cancel(): void {
+    if (this.initialReadOnly) {
+      if (this.patient) this.setPatient(this.patient);
+      this.setMode('view');
+    } else {
+      this.close();
+    }
   }
 }

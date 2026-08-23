@@ -51,11 +51,11 @@ export class ViewOtpDialog {
   private async save() {
     if (!this.patient) return;
     if (!this.otpValue || this.otpValue.length < 4) {
-      this.alert.error({ message: 'La contraseña OTP debe tener al menos 4 caracteres', duration: 3000 });
+      this.alert.error({ message: 'La contraseña debe tener al menos 4 caracteres', duration: 3000 });
       return;
     }
     await this.patientRepo.updatePatient(this.patient.id, { otpPassword: this.otpValue });
-    this.alert.success({ message: 'Contraseña OTP actualizada', duration: 3000 });
+    this.alert.success({ message: 'Contraseña actualizada', duration: 3000 });
     this.editing = false;
     this.cdr.markForCheck();
   }

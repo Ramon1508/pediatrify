@@ -109,7 +109,7 @@ export class Appointments implements OnInit {
   async openNewAppointment() {
     const dialogRef = this.dialog.open(AppointmentFormDialog, {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
     });
     dialogRef.componentInstance.setPatients(this.allPatients());
     await dialogRef.afterClosed().toPromise();
@@ -118,7 +118,7 @@ export class Appointments implements OnInit {
   async editAppointment(apt: Appointment) {
     const dialogRef = this.dialog.open(AppointmentFormDialog, {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
     });
     dialogRef.componentInstance.setPatients(this.allPatients());
     dialogRef.componentInstance.setEditData(apt);
@@ -199,6 +199,13 @@ export class Appointments implements OnInit {
   }
 
   async cancelAppointment(appointment: Appointment) {
+    const dialogRef = this.alert.confirm({
+      title: 'Cancelar cita',
+      message: `¿Cancelar la cita de ${appointment.patientName} para el ${appointment.date} a las ${appointment.time}?`,
+      confirmText: 'Cancelar cita',
+    });
+    const result = await dialogRef.afterClosed().toPromise();
+    if (!result) return;
     await this.appointmentRepo.updateAppointment(appointment.id, { status: 'cancelled' });
     await this.notifications.notifyAppointmentCancelled(appointment);
     this.alert.success({ message: 'Cita cancelada', duration: 3000 });

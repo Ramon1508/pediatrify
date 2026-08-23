@@ -198,6 +198,15 @@ export class NewPatientDialog {
     }
   }
 
+  /** El botón X cierra el diálogo; en modo embedded sale del sub-paso. */
+  closeDialog() {
+    if (this.embedded) {
+      this.back.emit();
+    } else {
+      this.dialogRef?.close();
+    }
+  }
+
   async save() {
     this.submitted = true;
     this.form.markAllAsTouched();

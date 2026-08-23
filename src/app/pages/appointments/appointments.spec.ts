@@ -38,7 +38,7 @@ describe('Appointments', () => {
     const userSpy = { getUser: vi.fn().mockResolvedValue({ timeSegments: [{ startTime: '08:00', endTime: '12:00' }], consultationDuration: 30 }) } as any;
     const auditSpy = { log: vi.fn().mockResolvedValue(undefined) } as any;
     const authSpy = { currentDoctor: { uid: 'd1', name: 'Dr. X' } as any };
-    const alertSpy = { success: vi.fn() } as any;
+    const alertSpy = { success: vi.fn(), confirm: vi.fn().mockReturnValue({ afterClosed: () => ({ toPromise: () => Promise.resolve(true) }) }) } as any;
     const notificationSpy = { notifyAppointmentCreated: vi.fn(), notifyAppointmentCancelled: vi.fn(), notifyAppointmentRescheduled: vi.fn() } as any;
     const dialogSpy = {
       open: vi.fn().mockReturnValue({

@@ -110,6 +110,7 @@
 
   .time-field {
     flex: 1;
+    min-width: 0;
   }
 }
 
@@ -147,4 +148,27 @@
 mat-dialog-actions {
   padding: 0 24px 16px !important;
   gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .scheduling-row,
+  .segment-inputs-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .segment-header-row {
+    gap: 8px;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }

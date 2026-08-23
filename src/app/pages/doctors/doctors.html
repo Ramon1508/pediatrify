@@ -1,10 +1,12 @@
 <div class="doctors-container">
   <div class="header-actions">
     <span class="page-title">{{ pageTitle }}</span>
-    <button mat-unelevated-button class="btn-primary" (click)="openNewDoctor()">
-      <mat-icon>add</mat-icon>
-      {{ addLabel }}
-    </button>
+    @if (doctors().length > 0) {
+      <button mat-unelevated-button class="btn-primary" (click)="openNewDoctor()">
+        <mat-icon>add</mat-icon>
+        {{ addLabel }}
+      </button>
+    }
   </div>
 
   @if (loading()) {

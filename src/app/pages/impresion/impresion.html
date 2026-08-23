@@ -33,6 +33,16 @@
                 </mat-select>
               </mat-form-field>
               </div>
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="margin-input">
+                  <mat-label>Orientación</mat-label>
+                  <mat-select [value]="settings().orientation" (valueChange)="updateSetting('orientation', $event)">
+                    @for (o of orientations; track o.value) {
+                      <mat-option [value]="o.value">{{ o.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </div>
               @if (settings().paperSize === 'custom') {
                 <div class="form-row">
                   <mat-form-field appearance="outline" class="margin-input">
@@ -51,6 +61,10 @@
               <div class="view-field">
                 <span class="view-label">Tamaño</span>
                 <span class="view-value">{{ paperSizeLabel() }}</span>
+              </div>
+              <div class="view-field">
+                <span class="view-label">Orientación</span>
+                <span class="view-value">{{ settings().orientation === 'vertical' ? 'Vertical' : 'Horizontal' }}</span>
               </div>
               @if (settings().paperSize === 'custom') {
                 <div class="view-field">

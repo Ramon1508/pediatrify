@@ -27,6 +27,7 @@
     font-size: 16px;
     font-weight: 700;
     line-height: 24px;
+    overflow-wrap: anywhere;
   }
 
   .child-age {
@@ -54,5 +55,19 @@
     font-size: 14px;
     font-weight: 400;
     line-height: 20px;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 768px) {
+  .child-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 320px) {
+  .child-card {
+    padding: 16px;
   }
 }

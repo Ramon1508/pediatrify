@@ -93,6 +93,7 @@
 
 ### Done
 - Print preview fixed: CSS `page-break-after` / `page-break-before` / named `@page` didn't work in Angular context (Chrome ignored page breaks). Solution: `printViaNewWindow()` opens a new tab, clones the rendered `app-print-preview` DOM, injects fresh `@page { size }` + print CSS directly, and calls `print()` from the new window. 3 pages print correctly. Debug info div hidden with `.print-debug { display: none; }`.
+- **Orientación de papel + cédulas en un renglón**: `PrintSettings` ahora tiene `orientation: 'horizontal' | 'vertical'` (default horizontal). `getPaperDimensions(size, customW, customH, orientation)` intercambia `width/height` cuando es vertical y se usa en `@page`/preview. En impresión se agregó un selector "Orientación" (Horizontal/Vertical). Además, en TODAS las vistas de impresión (`/print/:recordId` y `printSection`) las cédulas `CED. PROF.` + `CED. ESP.` van ahora en el MISMO renglón (`.print-field-row` / `.field-row`) para ahorrar espacio. Retrocompatible: docs guardados sin `orientation` caen a horizontal.
 
 ### Done (continued) — per-doctor patient records
 - **Profile dialog** (`shared/components/profile-dialog/`): 456px, radius 20px, read/edit modes; admins+asistentes (`roles !== 'doctor'`) see only nombre+correo; logo link (solo si subido) + `FileUpload` in edit; snackbar "Cambios guardados."
@@ -318,6 +319,26 @@ Use `pattern` to validate format without blocking typing. Mark field invalid and
   gap: 0;
 }
 ```
+
+## Responsividad (estándar del sistema)
+
+**Breakpoints** (variables en `styles.scss`): `$bp-mobile: 768px`, `$bp-tablet: 1024px`, `$bp-fold: 320px`.
+
+- **Desktop** es el diseño base actual.
+- **Tablet** mantiene la estructura desktop con ajustes menores de spacing (mismo layout, menos márgenes).
+- **Mobile** inicia en `max-width: 768px`; aquí sí cambia la estructura (apila, full-width, etiquetas compactas).
+- **Fold / ultra-small** (`≤ 320px`): revisar textos largos, botones y paddings (márgenes `12px`, botones `padding: 12px 16px`).
+
+**Reglas aplicables en mobile:**
+- Formularios y `action-row` se apilan (`flex-direction: column`) y los botones principales ocupan `width: 100%`.
+- Usar `width: 100% + max-width`, no widths rígidos (evitar `width: 360px` solo; preferir `width: min(100%, 360px)`).
+- `min-width: 0` en hijos flex/grid con texto; `.truncate` / `.wrap-anywhere` para overflow.
+- En mobile, **todos los `MatDialog`** de captura, edición o flujo ocupan el área **entre el header de la app y la barra de navegación inferior** (no toda la pantalla): el pane se inseta con `top: var(--app-header-h, 56px)` y `bottom: var(--app-nav-h, 0px)`, `max-height: calc(100dvh - header - nav)`, sin `border-radius`, contenido con `overflow-y:auto`. Variables CSS en `:root`; `doctor-layout` setea `--app-nav-h` (64px si tiene sidebar, 0px si no — en ese caso el modal baja al `100dvh - header`). (Regla global en `styles.scss` para `:has(.mat-mdc-dialog-container)`; excepciones que se quedan como card: `cancel-dialog`, `context-card-panel`; `notif-panel` también es full-screen entre header/nav).
+- **Excepción**: overlays/cards contextuales tipo menú o detalle rápido (p. ej. `appointment-detail-card` en el calendario) deben mantenerse como cards y NO convertirse en pantalla completa.
+- Vistas densas no deben comprimirse; deben cambiar a lista, cards o acordeones conservando todas las acciones (patrón calendario).
+- En mobile la **sidebar** se convierte en **barra de navegación inferior** (iconos, labels pequeños, footer oculto); el contenido (`main-content`) queda entre el header y la barra inferior.
+
+**Utilidades globales reutilizables** (`styles.scss`): `.page-shell` / `.page-shell-contained`, `.page-header`, `.page-actions` / `.action-row`, `.responsive-grid`, `.responsive-card`, `.form-row-responsive`, `.desktop-only` / `.mobile-only`, `.w-100-mobile`, `.truncate`, `.wrap-anywhere`.
 
 ## Patrones clave de arquitectura
 

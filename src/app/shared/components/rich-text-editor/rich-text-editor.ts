@@ -13,6 +13,13 @@ import Quill from 'quill';
     :host ::ng-deep .ql-editor {
       min-height: 200px;
     }
+    :host ::ng-deep .ql-editor img {
+      max-width: 100%;
+      height: auto;
+    }
+    :host ::ng-deep .ql-toolbar {
+      flex-wrap: wrap;
+    }
   `],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

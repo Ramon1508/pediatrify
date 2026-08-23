@@ -20,6 +20,7 @@
 
   mat-form-field {
     flex: 1;
+    min-width: 0;
   }
 }
 
@@ -63,6 +64,7 @@
   mat-radio-group {
     display: flex;
     gap: 16px;
+    flex-wrap: wrap;
   }
 }
 
@@ -158,6 +160,22 @@ mat-dialog-content {
   position: relative;
 }
 
+/* El tab-group llena el contenido del drawer y el scroll ocurre dentro del tab body,
+   no en toda la pantalla. */
+::ng-deep mat-tab-group,
+::ng-deep .mat-mdc-tab-group,
+::ng-deep .mat-mdc-tab-group .mat-mdc-tab-body-wrapper,
+::ng-deep .mat-mdc-tab-body-wrapper,
+::ng-deep .mat-mdc-tab-body {
+  height: 100%;
+}
+
+::ng-deep .mat-mdc-tab-body-content {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 mat-dialog-actions {
   gap: 8px;
 }
@@ -204,4 +222,36 @@ mat-dialog-actions {
   border-radius: 4px;
   white-space: nowrap;
   z-index: 10;
+}
+
+@media (max-width: 768px) {
+  .tab-content {
+    padding: 16px;
+  }
+
+  .form-row.desktop-2col {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .desktop-2col > * {
+    width: 100%;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .save-success {
+    left: 16px;
+    right: 16px;
+    transform: none;
+    white-space: normal;
+  }
 }

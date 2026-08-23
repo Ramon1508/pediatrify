@@ -15,11 +15,15 @@
           @if (settings().showSpecialty) {
             <div class="print-field">{{ doctor?.especialidad || 'Pediatría' }}</div>
           }
-          @if (settings().showProfessionalId) {
-            <div class="print-field">CED. PROF. {{ doctor?.cedula || '1234567' }}</div>
-          }
-          @if (settings().showSpecialtyId) {
-            <div class="print-field">CED. ESP. {{ doctor?.cedulaEspecialidad || '9876543' }}</div>
+          @if (settings().showProfessionalId || settings().showSpecialtyId) {
+            <div class="print-field-row">
+              @if (settings().showProfessionalId) {
+                <div class="print-field">CED. PROF. {{ doctor?.cedula || '1234567' }}</div>
+              }
+              @if (settings().showSpecialtyId) {
+                <div class="print-field">CED. ESP. {{ doctor?.cedulaEspecialidad || '9876543' }}</div>
+              }
+            </div>
           }
           @if (settings().showDoctorPhone) {
             <div class="print-field">TEL. {{ doctor?.phone || '555-0000' }}</div>

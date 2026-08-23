@@ -50,3 +50,15 @@
 .btn-detail {
   padding: 10px 16px !important;
 }
+
+@media (max-width: 768px) {
+  .detail-card {
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
+  }
+
+  .detail-actions {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}

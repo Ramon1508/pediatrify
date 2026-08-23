@@ -116,6 +116,7 @@
 
   mat-form-field {
     flex: 1;
+    min-width: 0;
   }
 }
 
@@ -159,6 +160,7 @@
   mat-radio-group {
     display: flex;
     gap: 16px;
+    flex-wrap: wrap;
   }
 }
 
@@ -242,4 +244,25 @@
 
 mat-dialog-actions {
   gap: 8px;
+}
+
+@media (max-width: 768px) {
+  .form-row.desktop-2col {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .desktop-2col > * {
+    width: 100%;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }

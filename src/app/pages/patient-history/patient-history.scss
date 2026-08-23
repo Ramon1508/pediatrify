@@ -7,6 +7,7 @@
 .breadcrumbs {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 24px;
   font-family: Roboto, sans-serif;
@@ -44,6 +45,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   margin-bottom: 24px;
 }
 
@@ -60,6 +62,8 @@
 .consultas-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .empty-state {
@@ -94,6 +98,7 @@
 .record-card {
   display: flex;
   gap: 24px;
+  min-width: 0;
 
   &:last-child {
     border-bottom: none;
@@ -188,6 +193,7 @@
 
 .qv-item {
   flex: 0 0 216px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -232,6 +238,7 @@
   line-height: 24px;
   letter-spacing: 0.5px;
   color: #49454F;
+  overflow-wrap: anywhere;
 }
 
 .detail-fields {
@@ -270,6 +277,7 @@
   line-height: 24px;
   letter-spacing: 0.5px;
   color: #49454F;
+  overflow-wrap: anywhere;
 }
 
 .visible-until {
@@ -321,4 +329,79 @@
 .seed-btn {
   margin-top: 8px;
   font-size: 12px;
+}
+
+@media (max-width: 1024px) {
+  .history-container {
+    margin: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .history-container {
+    width: auto;
+    margin: 16px;
+    padding: 0;
+  }
+
+  .consultas-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .consultas-actions,
+  .entry-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .consultas-actions button,
+  .entry-actions button,
+  .empty-state button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .record-card {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .record-date-header {
+    padding-top: 0;
+  }
+
+  .date-radio-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+
+  .quick-values-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .qv-item,
+  .qv-item.row-end {
+    flex: 1 1 auto;
+    width: 100%;
+    padding: 0 0 16px;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  .detail-field {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 320px) {
+  .history-container {
+    margin: 12px;
+  }
 }

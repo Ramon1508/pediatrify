@@ -155,12 +155,12 @@ describe('NewPatientDialog', () => {
     expect(savedSpy).toHaveBeenCalledWith(expect.objectContaining({ name: 'Ana', lastName: 'López' }));
   });
 
-  it('shows a back arrow in the header when embedded', () => {
+  it('shows a back arrow and close button in the header when embedded', () => {
     const { fixture } = createFixture();
     fixture.componentRef.setInput('embedded', true);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.btn-back-dialog')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.btn-close-dialog')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.btn-close-dialog')).toBeTruthy();
   });
 
   it('shows a close button in the header when not embedded', () => {

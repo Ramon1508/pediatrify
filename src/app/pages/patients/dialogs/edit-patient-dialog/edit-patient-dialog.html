@@ -440,7 +440,7 @@
       Editar perfil
     </button>
   } @else {
-    <button mat-stroked-button class="btn-tertiary dialog-btn" (click)="close()">Cancelar</button>
+    <button mat-stroked-button class="btn-tertiary dialog-btn" (click)="cancel()">Cancelar</button>
     <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="submitting">
       @if (submitting) {
         <mat-spinner diameter="18" />

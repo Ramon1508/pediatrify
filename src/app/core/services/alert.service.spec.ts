@@ -151,7 +151,8 @@ describe('AlertService', () => {
 
       expect(dialog.open).toHaveBeenCalledWith(AlertDialog, {
         width: '400px',
-        disableClose: true,
+        disableClose: false,
+        panelClass: 'context-card-panel',
         data: { title: 'Confirm', message: 'Sure?' },
       });
     });

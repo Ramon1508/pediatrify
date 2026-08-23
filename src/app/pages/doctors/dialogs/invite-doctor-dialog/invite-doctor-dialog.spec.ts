@@ -5,6 +5,7 @@ import { InviteDoctorDialog } from './invite-doctor-dialog';
 import { FirebaseService } from '../../../../core/firebase/firebase.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
+import { EmailService } from '../../../../core/services/email.service';
 import { Clipboard } from '@angular/cdk/clipboard';
 
 vi.mock('firebase/firestore', () => ({
@@ -28,6 +29,7 @@ describe('InviteDoctorDialog', () => {
         { provide: AuthService, useValue: authService },
         { provide: AlertService, useValue: alertService },
         { provide: Clipboard, useValue: clipboard },
+        { provide: EmailService, useValue: { sendInvitationEmail: vi.fn().mockResolvedValue(undefined), sendPatientAccessEmail: vi.fn().mockResolvedValue(undefined) } },
         { provide: MatDialogRef, useValue: dialogRef },
       ],
     });

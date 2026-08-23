@@ -370,3 +370,75 @@ export const sendPatientAccessEmail = onCall(async (request) => {
     throw new Error("Error al enviar el correo de acceso." + ((error as any)["message"] ?? ""));
   }
 });
+
+// -------------------------------------------------------------
+// 4. FUNCIÓN: Enviar invitación (doctor/asistente) por correo
+// -------------------------------------------------------------
+export const sendInvitationEmail = onCall(async (request) => {
+  const { email, inviteeName, doctorName, link } = request.data || {};
+
+  if (!email || !link) {
+    throw new Error("El correo y el enlace de invitación son requeridos.");
+  }
+
+  await checkAndIncrementCounter();
+
+  try {
+    const htmlTemplate = `
+        <div style="font-family: Arial, sans-serif; background-color: #ffffff">
+        <div style="background: #0000000d; padding: 16px 122px">
+            <div style="background: white; padding: 8px 40px; border-bottom: 2px solid #0d6e8f">
+            <img
+                src="https://lilcare-afdf5.web.app/images/Logo.jpg"
+                alt="Lilcare"
+                style="width: 40px; height: 40px; vertical-align: middle; margin-right: 8px"
+            />
+            <span
+                style="color: #0d6e8f; font-weight: 500; font-size: 22px; line-height: 20px; vertical-align: middle"
+            >
+                Lilcare
+            </span>
+            </div>
+
+            <div
+            style="background-image: url('https://lilcare-afdf5.web.app/images/Fondo.svg'); background-repeat: repeat; background-position: center; padding: 40px"
+            >
+            <div style="color: #49454f; font-size: 16px; line-height: 24px">
+                Hola${inviteeName ? ` ${inviteeName}` : ""},
+                <br /><br />
+                Has sido invitado${doctorName ? ` por ${doctorName}` : ""} a formar parte de
+                <b>Lilcare</b>.
+                <br /><br />
+                Para crear tu cuenta y empezar a usar el sistema, haz clic en el siguiente enlace:
+                <br /><br />
+                <a href="${link}" style="color: #0d6e8f; font-weight: 600">Crear mi cuenta</a>
+                <br /><br />
+                Si el enlace no funciona, cópialo en tu navegador:
+                <br />
+                <span style="word-break: break-all; color: #49454f">${link}</span>
+                <br /><br />
+                Si tienes alguna duda, no dudes en contactar al equipo de Lilcare.
+                <br /><br />
+                Saludos,
+                <br />
+                <b>Equipo Lilcare</b>
+            </div>
+            </div>
+        </div>
+        </div>
+    `;
+
+    await transporter.sendMail({
+      from: "\"Lilcare\" <noreply@lilcare.com.mx>",
+      to: email,
+      subject: "Invitación a Lilcare",
+      html: htmlTemplate,
+    });
+
+    console.log(`Invitation email sent successfully to ${email} via SMTP`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error al procesar el correo de invitación:", error);
+    throw new Error("Error al enviar el correo de invitación." + ((error as any)["message"] ?? ""));
+  }
+});

@@ -142,7 +142,7 @@ describe('Patients', () => {
 
     expect(dialog.open).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({
       width: '400px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     }));
     expect(dialogRefMock.componentInstance.setPatients).toHaveBeenCalledWith(mockPatients);
@@ -155,7 +155,7 @@ describe('Patients', () => {
 
     expect(dialog.open).toHaveBeenCalledWith(expect.any(Function), expect.objectContaining({
       width: '736px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     }));
     expect(dialogRefMock.componentInstance.setPatient).toHaveBeenCalledWith(mockPatients[0]);

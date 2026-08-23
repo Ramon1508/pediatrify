@@ -5,11 +5,9 @@
     </button>
   }
   <h2 class="dialog-title">{{ editingPatient ? 'Editar paciente' : 'Añadir nuevo paciente' }}</h2>
-  @if (!embedded) {
-    <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
-      <mat-icon>close</mat-icon>
-    </button>
-  }
+  <button mat-icon-button class="btn-close-dialog" (click)="closeDialog()" aria-label="Cerrar">
+    <mat-icon>close</mat-icon>
+  </button>
 </div>
 
 <mat-dialog-content>

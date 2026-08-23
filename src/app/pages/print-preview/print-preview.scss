@@ -108,6 +108,13 @@ app-print-preview {
     font-weight: 500;
     letter-spacing: 0.5px;
   }
+
+  .print-field-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.5cm;
+    flex-wrap: wrap;
+  }
 }
 
 .print-gap-large {

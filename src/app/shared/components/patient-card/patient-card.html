@@ -17,12 +17,12 @@
     @if (isAdmin) {
       <button mat-menu-item (click)="setCustomOtp.emit(patient)">
         <mat-icon>lock_reset</mat-icon>
-        <span>Ver contrase&ntilde;a OTP</span>
+        <span>Ver contrase&ntilde;a de acceso</span>
       </button>
     } @else {
       <button mat-menu-item (click)="regenerateOtp.emit(patient)">
         <mat-icon>refresh</mat-icon>
-        <span>Regenerar OTP</span>
+        <span>Regenerar contrase&ntilde;a</span>
       </button>
     }
     <button mat-menu-item (click)="delete.emit(patient)">

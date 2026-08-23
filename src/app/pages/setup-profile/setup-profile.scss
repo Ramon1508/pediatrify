@@ -9,8 +9,16 @@
 .setup-body {
   padding: 40px 200px;
 
+  @media (max-width: 1024px) {
+    padding: 32px 80px;
+  }
+
   @media (max-width: 768px) {
     padding: 23px 16px;
+  }
+
+  @media (max-width: 320px) {
+    padding: 16px 12px;
   }
 }
 

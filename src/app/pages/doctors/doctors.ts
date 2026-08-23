@@ -13,6 +13,7 @@ import { UserRepository } from '../../core/repositories/user.repository';
 import { AppUser } from '../../core/models/user';
 import { AlertService } from '../../core/services/alert.service';
 import { AuthService } from '../../core/services/auth.service';
+import { EmailService } from '../../core/services/email.service';
 import { InviteDoctorDialog } from './dialogs/invite-doctor-dialog/invite-doctor-dialog';
 import { EditDoctorDialog } from './dialogs/edit-doctor-dialog/edit-doctor-dialog';
 import { DeleteDoctorDialog } from './dialogs/delete-doctor-dialog/delete-doctor-dialog';
@@ -41,6 +42,7 @@ export class Doctors implements OnInit, OnDestroy {
   private alert = inject(AlertService);
   private dialog = inject(MatDialog);
   private authService = inject(AuthService);
+  private email = inject(EmailService);
 
   protected doctors = signal<AppUser[]>([]);
   protected loading = signal(true);
@@ -106,7 +108,7 @@ export class Doctors implements OnInit, OnDestroy {
   openNewDoctor() {
     this.dialog.open(InviteDoctorDialog, {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
   }
@@ -114,23 +116,39 @@ export class Doctors implements OnInit, OnDestroy {
   openEditDoctor(doctor: AppUser) {
     const dialogRef = this.dialog.open(EditDoctorDialog, {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
       panelClass: 'right-panel',
     });
     dialogRef.componentInstance.setDoctor(doctor);
   }
 
-  resendInvitation(doctor: AppUser) {
+  async resendInvitation(doctor: AppUser) {
     const origin = window.location.origin;
     const link = `${origin}/setup-profile?email=${encodeURIComponent(doctor.email)}`;
-    navigator.clipboard.writeText(link);
-    this.alert.success({ message: `Enlace de invitación copiado para ${doctor.name}`, duration: 3000 });
+    try {
+      await this.email.sendInvitationEmail({
+        email: doctor.email,
+        inviteeName: doctor.name,
+        doctorName: this.authService.currentDoctor?.name ?? '',
+        link,
+      });
+      this.alert.success({
+        message: `Reenviamos el enlace de invitación por correo a ${doctor.name}`,
+        duration: 4000,
+      });
+    } catch (e: any) {
+      this.alert.error({
+        message: `No se pudo reenviar el correo. Copia el enlace manualmente.`,
+        duration: 5000,
+      });
+    }
   }
 
   deleteDoctor(doctor: AppUser) {
     const dialogRef = this.dialog.open(DeleteDoctorDialog, {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
+      panelClass: 'context-card-panel',
     });
     dialogRef.componentInstance.setDoctor(doctor);
   }

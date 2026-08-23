@@ -1,5 +1,6 @@
 .login-background {
   min-height: 100vh;
+  min-height: 100dvh;
   background: url('/images/Fondo.svg') repeat;
   background-size: auto;
   background-color: #ffffff;
@@ -69,7 +70,19 @@
     width: 100%;
   }
 
+  .login-actions .btn-primary,
+  .login-actions .btn-secondary,
   .login-submit-btn {
     width: 100%;
+  }
+}
+
+@media (max-width: 320px) {
+  .login-container {
+    padding: 0 12px;
+  }
+
+  .login-actions {
+    gap: 16px;
   }
 }

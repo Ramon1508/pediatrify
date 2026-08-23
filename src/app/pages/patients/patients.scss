@@ -8,6 +8,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    gap: 16px;
   }
 }
 
@@ -44,14 +45,14 @@
 }
 
 .search-field {
-  width: 360px;
+  width: min(100%, 360px);
   max-width: 100%;
   margin-bottom: 24px;
 }
 
 .patients-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
   gap: 24px;
 }
 
@@ -59,8 +60,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  width: 360px;
-  flex: none;
+  width: 100%;
+  min-width: 0;
   padding: 12px 16px;
   background-color: #ffffff;
   border: 2px solid #0D6E8F;
@@ -132,5 +133,45 @@
     letter-spacing: 0px;
     color: #000000;
     margin-bottom: 12px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .patients-container {
+    margin: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .patients-container {
+    width: auto;
+    margin: 16px;
+    padding: 0;
+
+    .header-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  .patients-container .header-actions button,
+  .empty-state-content button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .search-field {
+    width: 100%;
+  }
+
+  .patients-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 320px) {
+  .patients-container {
+    margin: 12px;
   }
 }

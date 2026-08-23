@@ -4,10 +4,28 @@
 
   mat-form-field {
     flex: 1;
+    min-width: 0;
   }
 }
 
 .dialog-error {
   display: block;
   margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  mat-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }

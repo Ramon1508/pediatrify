@@ -65,7 +65,8 @@ export class AlertService {
   confirm(options: ConfirmOptions) {
     const config: MatDialogConfig = {
       width: '400px',
-      disableClose: true,
+      disableClose: false,
+      panelClass: 'context-card-panel',
       data: options,
     };
     return this.dialog.open(AlertDialog, config);

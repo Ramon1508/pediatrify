@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { PrintSettingsRepository } from '../../core/repositories/print-settings.repository';
 import { AuthService } from '../../core/services/auth.service';
 import { AppUser } from '../../core/models/user';
-import { PrintSettings, PAPER_SIZES, getDefaultSettings, getPaperDimensions } from '../../core/models/print-settings';
+import { PrintSettings, PAPER_SIZES, PaperOrientation, getDefaultSettings, getPaperDimensions } from '../../core/models/print-settings';
 import { DEFAULT_LOGO_URL } from '../../core/config/brand';
 import { Sexo } from '../../core/models/sexo';
 
@@ -49,6 +49,11 @@ export class Impresion implements OnInit {
   protected loading = signal(true);
 
   protected readonly paperSizes = PAPER_SIZES;
+
+  protected readonly orientations: { value: PaperOrientation; label: string }[] = [
+    { value: 'horizontal', label: 'Horizontal' },
+    { value: 'vertical', label: 'Vertical' },
+  ];
 
   protected paperSizeLabel = computed(() => {
     const value = this.settings().paperSize;
@@ -162,13 +167,13 @@ export class Impresion implements OnInit {
 
   private previewScaleCmPerPx = computed(() => {
     const s = this.settings();
-    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
     const previewMaxWidth = 400;
     return dim.width / previewMaxWidth;
   });
 
   private ptToPx = computed(() => {
-    const dim = getPaperDimensions(this.settings().paperSize, this.settings().customWidth, this.settings().customHeight);
+    const dim = getPaperDimensions(this.settings().paperSize, this.settings().customWidth, this.settings().customHeight, this.settings().orientation);
     const previewWidth = 400;
     const cmPerPx = dim.width / previewWidth;
     const ptToCm = 2.54 / 72;
@@ -185,7 +190,7 @@ export class Impresion implements OnInit {
 
   protected previewStyle = computed(() => {
     const s = this.settings();
-    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight);
+    const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
     const aspect = dim.width / dim.height;
     return { width: '400px', aspectRatio: `${aspect}` };
   });

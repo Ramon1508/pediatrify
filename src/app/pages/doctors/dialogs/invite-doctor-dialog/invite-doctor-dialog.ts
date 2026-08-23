@@ -13,6 +13,7 @@ import { setDoc, doc, Timestamp } from 'firebase/firestore';
 import { FirebaseService } from '../../../../core/firebase/firebase.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { EmailService } from '../../../../core/services/email.service';
 import { UserRole } from '../../../../core/models/user';
 import { normalizeEmail } from '../../../../core/utils/normalize-email';
 
@@ -39,6 +40,7 @@ export class InviteDoctorDialog {
   private firebase = inject(FirebaseService);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
+  private email = inject(EmailService);
   private clipboard = inject(Clipboard);
   private cdr = inject(ChangeDetectorRef);
   private dialogRef = inject(MatDialogRef<InviteDoctorDialog>);
@@ -94,7 +96,22 @@ export class InviteDoctorDialog {
 
       const origin = window.location.origin;
       this.invitationLink = `${origin}/setup-profile?email=${encodeURIComponent(email!)}`;
-      this.alert.success({ message: `Invitación creada para ${name}`, duration: 3000 });
+
+      // Envía el enlace por correo al invitado (no depende del doctor para compartirlo).
+      try {
+        await this.email.sendInvitationEmail({
+          email: normalizedEmail,
+          inviteeName: name ?? '',
+          doctorName: this.authService.currentDoctor?.name ?? '',
+          link: this.invitationLink,
+        });
+        this.alert.success({ message: `Invitación enviada por correo a ${name}`, duration: 4000 });
+      } catch (e: any) {
+        this.alert.error({
+          message: `Invitación creada, pero no se pudo enviar el correo. Copia el enlace manualmente.`,
+          duration: 5000,
+        });
+      }
       this.cdr.markForCheck();
     } catch (e: any) {
       this.error = e.message || 'Error al crear invitación';

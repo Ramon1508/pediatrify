@@ -33,7 +33,7 @@ describe('ViewOtpDialog', () => {
   it('renders title', () => {
     const { fixture } = createFixture();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Contraseña OTP');
+    expect(el.textContent).toContain('Contraseña de acceso');
   });
 
   it('displays patient name', () => {
@@ -69,7 +69,7 @@ describe('ViewOtpDialog', () => {
     component.otpValue = 'NEW456';
     await component.save();
     expect(patientRepo.updatePatient).toHaveBeenCalledWith('p1', { otpPassword: 'NEW456' });
-    expect(alertService.success).toHaveBeenCalledWith({ message: 'Contraseña OTP actualizada', duration: 3000 });
+    expect(alertService.success).toHaveBeenCalledWith({ message: 'Contraseña actualizada', duration: 3000 });
     expect(component.editing).toBe(false);
   });
 
