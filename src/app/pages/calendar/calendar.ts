@@ -448,15 +448,6 @@ export class Calendar implements OnInit, OnDestroy {
   async ngOnInit() {
     const doctor = this.authService.currentDoctor;
     const patient = this.authService.currentPatient;
-    // eslint-disable-next-line no-console
-    console.log('[calendar ngOnInit]', {
-      sessionType: this.authService.isPatient ? 'patient' : 'doctor',
-      hasPatient: !!patient,
-      patientId: patient?.id,
-      patientDoctorId: patient?.doctorId,
-      hasDoctor: !!doctor,
-      doctorId: doctor?.uid,
-    });
 
     // Modo paciente: calendario de US citas con el doctor con el que se logueó.
     if (patient) {
@@ -465,7 +456,6 @@ export class Calendar implements OnInit, OnDestroy {
       const doctorId = patient.doctorId ?? '';
       this.selectedDoctorId.set(doctorId);
       const loginEmail = this.authService.currentPatientLoginEmail ?? patient.email;
-      console.log('[calendar patient]', { loginEmail, patientId: patient.id, doctorId: patient.doctorId });
       const group = await this.patientRepo.getChildrenGroup(loginEmail, patient.doctorId ?? '');
       this.patientChildren.set(group);
       this.allPatients = group;

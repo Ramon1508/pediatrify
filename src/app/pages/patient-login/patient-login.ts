@@ -1,7 +1,7 @@
 import { Component, inject, signal, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,14 +10,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
-  selector: 'app-otp-login',
-  templateUrl: './otp-login.html',
-  styleUrl: './otp-login.scss',
+  selector: 'app-patient-login',
+  templateUrl: './patient-login.html',
+  styleUrl: './patient-login.scss',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
-    RouterLink,
     NgOptimizedImage,
     MatFormFieldModule,
     MatInputModule,
@@ -26,7 +25,7 @@ import { AuthService } from '../../core/services/auth.service';
     MatProgressSpinnerModule,
   ],
 })
-export class OtpLogin {
+export class PatientLogin {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { Header } from '../../shared/components/header/header';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,4 +11,15 @@ import { MatIconModule } from '@angular/material/icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, Header, MatIconModule],
 })
-export class PatientLayout {}
+export class PatientLayout implements OnInit, OnDestroy {
+  ngOnInit() {
+    // Modales a pantalla completa en mobile: dejan libre el header (arriba) y la barra de
+    // navegación inferior (el portal del paciente siempre la tiene).
+    document.body.style.setProperty('--app-header-h', '56px');
+    document.body.style.setProperty('--app-nav-h', '64px');
+  }
+
+  ngOnDestroy() {
+    document.body.style.removeProperty('--app-nav-h');
+  }
+}

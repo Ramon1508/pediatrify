@@ -25,14 +25,6 @@ export class PatientPatients implements OnInit {
   protected loading = signal(true);
 
   async ngOnInit() {
-    // eslint-disable-next-line no-console
-    console.log('[patient-patients ngOnInit]', {
-      sessionType: this.auth.isPatient ? 'patient' : 'doctor',
-      hasPatient: !!this.auth.currentPatient,
-      patientId: this.auth.currentPatient?.id,
-      patientDoctorId: this.auth.currentPatient?.doctorId,
-      loginEmail: this.auth.currentPatientLoginEmail,
-    });
     try {
       const me = this.auth.currentPatient;
       if (!me) {
@@ -40,9 +32,7 @@ export class PatientPatients implements OnInit {
         return;
       }
       const loginEmail = this.auth.currentPatientLoginEmail ?? me.email;
-      console.log('[patient-patients]', { loginEmail, patientId: me.id, doctorId: me.doctorId, otp: me.otpPassword });
       const group = await this.patientRepo.getChildrenGroup(loginEmail, me.doctorId ?? '');
-      console.log('[patient-patients group]', group.map((g) => `${g.name} ${g.lastName} [${g.id}]`));
       this.children.set(group);
     } catch {
       this.children.set([]);

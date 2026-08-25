@@ -46,6 +46,9 @@ export class PatientRepository {
   }
 
   async createPatient(id: string, data: Patient): Promise<void> {
+    if (!data.doctorId) {
+      throw new Error('createPatient: doctorId es obligatorio para crear un paciente');
+    }
     await setDoc(this.docRef(id), {
       ...data,
       createdAt: new Date(),
@@ -54,8 +57,13 @@ export class PatientRepository {
   }
 
   async updatePatient(id: string, data: Partial<Patient>): Promise<void> {
+    // Nunca permitir que un update sobrescriba/borre el doctorId del paciente.
+    const clean = { ...data };
+    if (clean.doctorId === undefined) {
+      delete clean.doctorId;
+    }
     await updateDoc(this.docRef(id), {
-      ...data,
+      ...clean,
       updatedAt: new Date(),
     });
   }
@@ -108,20 +116,6 @@ export class PatientRepository {
       const primary = normalizeEmail(p.email || '');
       const secondary = p.secondaryEmail ? normalizeEmail(p.secondaryEmail) : '';
       return (primary && primary === normalizedEmail) || (secondary && secondary === normalizedEmail);
-    });
-    // eslint-disable-next-line no-console
-    console.log('[getChildrenGroup]', {
-      email,
-      normalizedEmail,
-      doctorId,
-      totalByDoctor: byDoc.length,
-      groupMembers: group.map((g) => ({
-        id: g.id,
-        name: `${g.name} ${g.lastName}`,
-        email: g.email,
-        secondaryEmail: g.secondaryEmail ?? '',
-        docId: g.doctorId ?? '',
-      })),
     });
     return group;
   }

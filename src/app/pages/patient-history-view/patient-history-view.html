@@ -24,29 +24,42 @@
             <h2 class="consultas-title">Recomendaciones y recetas</h2>
           </div>
 
-          @if (hasRecommendations) {
-            <div class="entry">
-              <div class="entry-header">
-                <h3 class="entry-title">Recomendaciones</h3>
-              </div>
-              <div class="rich-content" [innerHTML]="recommendationsHtml()"></div>
-              @if (record()?.visibleUntil) {
-                <p class="visible-until">Visible hasta el: {{ record()?.visibleUntil }}</p>
-              }
-            </div>
-          }
-
-          @if (hasPrescription) {
-            <div class="entry">
-              <div class="entry-header">
-                <h3 class="entry-title">Receta</h3>
-              </div>
-              <div class="rich-content" [innerHTML]="prescriptionHtml()"></div>
-              @if (record()?.visibleUntilRx) {
-                <p class="visible-until">Visible hasta el: {{ record()?.visibleUntilRx }}</p>
-              }
-            </div>
-          }
+          <mat-tab-group>
+            @if (hasRecommendations) {
+              <mat-tab label="Recomendaciones">
+                <div class="tab-content">
+                  <div class="entry-actions">
+                    <button class="btn-tertiary" (click)="print('recommendations')" aria-label="Imprimir recomendaciones">
+                      <mat-icon>print</mat-icon> Imprimir
+                    </button>
+                  </div>
+                  @if (record()?.visibleUntil) {
+                    <div class="visible-until">
+                      Visible para el paciente hasta el: <span>{{ record()?.visibleUntil | date: 'dd/MM/yyyy' }}</span>
+                    </div>
+                  }
+                  <div class="rich-content" [innerHTML]="recommendationsHtml()"></div>
+                </div>
+              </mat-tab>
+            }
+            @if (hasPrescription) {
+              <mat-tab label="Receta">
+                <div class="tab-content">
+                  <div class="entry-actions">
+                    <button class="btn-tertiary" (click)="print('prescription')" aria-label="Imprimir receta">
+                      <mat-icon>print</mat-icon> Imprimir
+                    </button>
+                  </div>
+                  @if (record()?.visibleUntilRx) {
+                    <div class="visible-until">
+                      Visible para el paciente hasta el: <span>{{ record()?.visibleUntilRx | date: 'dd/MM/yyyy' }}</span>
+                    </div>
+                  }
+                  <div class="rich-content" [innerHTML]="prescriptionHtml()"></div>
+                </div>
+              </mat-tab>
+            }
+          </mat-tab-group>
         } @else {
           <p class="empty-message">
             Por el momento no cuentas con recomendaciones o recetas por consultar.

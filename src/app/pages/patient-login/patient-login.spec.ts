@@ -1,12 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { OtpLogin } from './otp-login';
+import { PatientLogin } from './patient-login';
 import { AuthService } from '../../core/services/auth.service';
 
-describe('OtpLogin', () => {
-  let fixture: ComponentFixture<OtpLogin>;
-  let component: OtpLogin;
+describe('PatientLogin', () => {
+  let fixture: ComponentFixture<PatientLogin>;
+  let component: PatientLogin;
   let authService: AuthService;
   let router: Router;
 
@@ -15,7 +15,7 @@ describe('OtpLogin', () => {
     const routerSpy = { navigate: vi.fn() } as any;
 
     await TestBed.configureTestingModule({
-      imports: [OtpLogin, NoopAnimationsModule],
+      imports: [PatientLogin, NoopAnimationsModule],
       providers: [
         { provide: AuthService, useValue: authSpy },
         { provide: Router, useValue: routerSpy },
@@ -23,7 +23,7 @@ describe('OtpLogin', () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(OtpLogin);
+    fixture = TestBed.createComponent(PatientLogin);
     component = fixture.componentInstance;
     authService = TestBed.inject(AuthService);
     router = TestBed.inject(Router);

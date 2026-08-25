@@ -243,6 +243,7 @@ export class NewPatientDialog {
     try {
       if (this.editingPatient) {
         const updated: Partial<Patient> = {
+          doctorId: this.editingPatient.doctorId,
           name,
           lastName,
           birthDate: f.birthDate!,

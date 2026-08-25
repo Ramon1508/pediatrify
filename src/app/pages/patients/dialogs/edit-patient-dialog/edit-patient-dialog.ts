@@ -446,6 +446,7 @@ export class EditPatientDialog {
       const bd = v.birthDate;
       const birthDate = typeof bd === 'string' ? bd : (bd as unknown as Date)?.toISOString?.().split('T')[0] ?? p.birthDate;
       await this.patientRepo.updatePatient(p.id, {
+        doctorId: p.doctorId,
         name,
         lastName,
         birthDate,

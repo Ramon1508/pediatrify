@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatIconModule } from '@angular/material/icon';
 import { PatientRepository } from '../../core/repositories/patient.repository';
 import { ClinicalRecordRepository } from '../../core/repositories/clinical-record.repository';
 import { AuthService } from '../../core/services/auth.service';
@@ -16,7 +18,7 @@ import { calcAge } from '../../core/utils/calc-age';
   styleUrl: './patient-history-view.scss',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, MatProgressBarModule],
+  imports: [CommonModule, RouterLink, MatProgressBarModule, MatTabsModule, MatIconModule],
 })
 export class PatientHistoryView implements OnInit {
   private route = inject(ActivatedRoute);
@@ -110,5 +112,54 @@ export class PatientHistoryView implements OnInit {
     );
     this.record.set(consultable ?? null);
     this.loading.set(false);
+  }
+
+  /** Imprime Recomendaciones o Receta (si existen) en carta vertical, márgenes 2.5cm, sin logos. */
+  protected print(type: 'recommendations' | 'prescription') {
+    const r = this.record();
+    if (!r) return;
+    const content = type === 'recommendations' ? r.recommendations : r.prescription;
+    if (!content) return;
+    const title = type === 'recommendations' ? 'Recomendaciones' : 'Receta';
+
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${title}</title>
+<style>
+@page {
+  size: 21.59cm 27.94cm;
+  margin: 0;
+}
+html, body { margin: 0; padding: 0; font-family: Roboto, Arial, sans-serif; color: #000; }
+.page { padding: 2.5cm; }
+.rich-content { color: #000; font-size: 11pt; font-weight: 400; line-height: 1.45; overflow-wrap: anywhere; }
+.rich-content p, .rich-content ul, .rich-content ol, .rich-content blockquote, .rich-content pre, .rich-content h1, .rich-content h2, .rich-content h3 { margin-top: 0; margin-bottom: 0.18cm; }
+.rich-content ul, .rich-content ol { padding-left: 1.2em; }
+.rich-content ul { list-style: disc; }
+.rich-content ol { list-style: decimal; }
+.rich-content li { list-style: inherit; }
+.rich-content li[data-list="bullet"] { list-style-type: disc; }
+.rich-content li[data-list="ordered"] { list-style-type: decimal; }
+.rich-content li::before { display: none !important; }
+.rich-content .ql-ui { display: none; }
+.rich-content img, .rich-content table { max-width: 100%; }
+.rich-content img { display: block; height: auto; }
+.rich-content table { border-collapse: collapse; }
+.rich-content a { color: #000; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="rich-content">${content}</div>
+</div>
+</body>
+</html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
   }
 }

@@ -15,7 +15,7 @@ export const routes: Routes = [
   },
   {
     path: 'patient-login',
-    loadComponent: () => import('./pages/otp-login/otp-login').then((m) => m.OtpLogin),
+    loadComponent: () => import('./pages/patient-login/patient-login').then((m) => m.PatientLogin),
   },
   {
     path: 'auth-handler',

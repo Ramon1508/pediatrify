@@ -128,13 +128,33 @@
   word-break: break-word;
 }
 
+.tab-content {
+  padding: 16px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.entry-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+:host ::ng-deep mat-tab-group,
+:host ::ng-deep mat-tab-group .mat-mdc-tab-body,
+:host ::ng-deep mat-tab-group .mat-mdc-tab-body-wrapper,
+:host ::ng-deep mat-tab-group .mat-mdc-tab-body-content {
+  width: 100%;
+  min-width: 100%;
+}
+
 .visible-until {
   font-family: Roboto, sans-serif;
   font-weight: 400;
   font-size: 14px;
   line-height: 20px;
   color: #49454F;
-  margin-top: 12px;
+  margin-bottom: 12px;
 }
 
 .empty-message {

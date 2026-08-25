@@ -69,13 +69,6 @@ export class AuthService {
   }
 
   private setSession(session: SessionUser): void {
-    // eslint-disable-next-line no-console
-    console.log('[auth] setSession', session?.type, session?.type === 'patient' ? {
-      patientId: session.patient.id,
-      patientEmail: session.patient.email,
-      doctorId: session.patient.doctorId,
-      loginEmail: (session as any).loginEmail,
-    } : session?.type === 'doctor' ? { uid: session.user.uid } : null);
     this.sessionSubject.next(session);
     this.saveSessionToCache(session);
     if (session?.type === 'doctor') {
