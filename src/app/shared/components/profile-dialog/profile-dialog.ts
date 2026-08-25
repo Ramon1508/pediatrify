@@ -16,7 +16,7 @@ import { UserRepository } from '../../../core/repositories/user.repository';
 import { Sexo, SexoLabel } from '../../../core/models/sexo';
 import { AppUser } from '../../../core/models/user';
 import { FirebaseService } from '../../../core/firebase/firebase.service';
-import { ref, getDownloadURL } from 'firebase/storage';
+import { resolveLogoUrl } from '../../../core/utils/logo-utils';
 import { FileUpload, UploadResult } from '../file-upload/file-upload';
 
 @Component({
@@ -113,10 +113,8 @@ export class ProfileDialog {
   }
 
   private async resolveLogoUrl(pathOrUrl: string): Promise<string> {
-    if (/^https?:\/\//.test(pathOrUrl)) return pathOrUrl;
     try {
-      const storageRef = ref(this.firebase.storage, pathOrUrl);
-      return await getDownloadURL(storageRef);
+      return await resolveLogoUrl(this.firebase.storage, pathOrUrl);
     } catch {
       return '';
     }
@@ -185,7 +183,7 @@ export class ProfileDialog {
     try {
       let logoPath = this.doctor.logoPath ?? '';
       if (this.logoUpload !== undefined) {
-        logoPath = this.logoUpload ? this.logoUpload.url : '';
+        logoPath = this.logoUpload ? this.logoUpload.path : '';
       }
 
       const v = this.form.value;

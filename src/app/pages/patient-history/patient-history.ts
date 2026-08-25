@@ -28,6 +28,8 @@ import { ConfirmDialog, ConfirmDialogData } from '../../shared/components/confir
 import { ClinicalEntryDialog } from './dialogs/clinical-entry-dialog/clinical-entry-dialog';
 import { PatientHistoryCard } from './components/patient-history-card/patient-history-card';
 import { GrowthCharts } from './components/growth-charts/growth-charts';
+import { FirebaseService } from '../../core/firebase/firebase.service';
+import { resolveLogoUrl } from '../../core/utils/logo-utils';
 
 function calcAge(birthDate: unknown): string {
   let d: Date | null = null;
@@ -100,6 +102,7 @@ export class PatientHistory implements OnInit, OnDestroy {
   private printRepo = inject(PrintSettingsRepository);
   private cascade = inject(CascadeService);
   private userRepo = inject(UserRepository);
+  private firebase = inject(FirebaseService);
 
   private patientId = '';
   protected patient = computed<(Patient & { ageDisplay: string }) | null>(() => {
@@ -214,9 +217,10 @@ export class PatientHistory implements OnInit, OnDestroy {
 
     const settings = await this.printRepo.getSettings(doctor.uid);
     const dim = getPaperDimensions(settings.paperSize, settings.customWidth, settings.customHeight, settings.orientation);
-    const logoUrl = settings.usePreloadedLogo
+    const logoSource = settings.usePreloadedLogo
       ? (doctor.logoPath || '/images/Logo.jpg')
       : (settings.logoUrl || doctor.logoPath || '/images/Logo.jpg');
+    const logoUrl = await resolveLogoUrl(this.firebase.storage, logoSource);
     const prefix = doctor.sexo === Sexo.Femenino ? 'DRA.' : 'DR.';
 
     const patientAge = calcAge(p.birthDate);

@@ -48,6 +48,7 @@ export class SetupProfile implements OnInit {
   protected pendingRole: UserRole = 'assistant';
   protected displayName = signal('');
   protected displayEmail = signal('');
+  protected userUid = signal('');
   protected isNonDoctor = signal(false);
 
   protected readonly sexoOptions: { value: Sexo; label: string }[] = [
@@ -88,6 +89,7 @@ export class SetupProfile implements OnInit {
         if (pending) {
           this.mode.set('invitation');
           this.pendingUid = pending.uid;
+          this.userUid.set(pending.uid);
           this.pendingRole = pending.role;
           this.displayName.set(pending.name);
           this.displayEmail.set(pending.email);
@@ -111,6 +113,7 @@ export class SetupProfile implements OnInit {
         this.mode.set('existing');
         this.displayName.set(doctor.name);
         this.displayEmail.set(doctor.email);
+        this.userUid.set(doctor.uid);
         if (doctor.role === 'admin' || doctor.role === 'assistant') {
           this.isNonDoctor.set(true);
           this.form.get('sexo')?.clearValidators();

@@ -131,7 +131,7 @@
         <p class="hint">Para una experiencia personalizada, puedes subir tu logotipo y éste sustituirá el logo de Lilcare en tu cuenta y la de los asistentes y pacientes que agregues. Sólo se aceptan archivos .png y .jpg, éste no debe superar los 200 KB.</p>
 
         <app-file-upload
-          [id]="displayEmail()"
+          [id]="userUid()"
           [label]="'Seleccionar archivo'"
           (uploaded)="onLogoUploaded($event)"
         />

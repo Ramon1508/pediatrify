@@ -24,7 +24,9 @@ import { Patient, AppUser } from '../../core/models/user';
 import { PrintSettings, getDefaultSettings, PAPER_SIZES, getPaperDimensions } from '../../core/models/print-settings';
 import { Sexo } from '../../core/models/sexo';
 import { DEFAULT_LOGO_URL } from '../../core/config/brand';
+import { FirebaseService } from '../../core/firebase/firebase.service';
 import { normalizeEmail } from '../../core/utils/normalize-email';
+import { resolveLogoUrl } from '../../core/utils/logo-utils';
 
 const PX_PER_CM = 96 / 2.54;
 
@@ -75,6 +77,7 @@ export class PrintPreview implements OnInit {
   private auth = inject(AuthService);
   private sanitizer = inject(DomSanitizer);
   private defaultLogo = inject(DEFAULT_LOGO_URL);
+  private firebase = inject(FirebaseService);
   private cdr = inject(ChangeDetectorRef);
   private appRef = inject(ApplicationRef);
 
@@ -98,13 +101,21 @@ export class PrintPreview implements OnInit {
     return found ? found.label : value === 'custom' ? 'Personalizado' : value;
   }
 
-  protected logoUrl = computed(() => {
+  protected logoUrl = signal(this.defaultLogo);
+
+  private logoSource(): string {
     const s = this.settings();
     if (s.usePreloadedLogo) {
       return this.doctor?.logoPath || this.defaultLogo;
     }
     return s.logoUrl || this.doctor?.logoPath || this.defaultLogo;
-  });
+  }
+
+  private async refreshLogoUrl() {
+    const source = this.logoSource();
+    this.logoUrl.set(await resolveLogoUrl(this.firebase.storage, source || this.defaultLogo));
+    this.cdr.markForCheck();
+  }
 
   protected paperSizeCss = computed(() => {
     const s = this.settings();
@@ -187,6 +198,7 @@ export class PrintPreview implements OnInit {
       const s = await this.printRepo.getSettings(this.doctor.uid);
       this.settings.set(s);
     }
+    await this.refreshLogoUrl();
 
     if (this.record.recommendations) {
       this.sanitizedRecommendations = this.sanitizer.bypassSecurityTrustHtml(this.record.recommendations);

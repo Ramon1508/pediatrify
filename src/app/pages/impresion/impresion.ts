@@ -15,6 +15,8 @@ import { AppUser } from '../../core/models/user';
 import { PrintSettings, PAPER_SIZES, PaperOrientation, getDefaultSettings, getPaperDimensions } from '../../core/models/print-settings';
 import { DEFAULT_LOGO_URL } from '../../core/config/brand';
 import { Sexo } from '../../core/models/sexo';
+import { FirebaseService } from '../../core/firebase/firebase.service';
+import { resolveLogoUrl } from '../../core/utils/logo-utils';
 
 @Component({
   selector: 'app-impresion',
@@ -39,6 +41,7 @@ export class Impresion implements OnInit {
   private repo = inject(PrintSettingsRepository);
   private auth = inject(AuthService);
   private snackBar = inject(MatSnackBar);
+  private firebase = inject(FirebaseService);
   private defaultLogo = inject(DEFAULT_LOGO_URL);
 
   protected doctor: AppUser | null = null;
@@ -79,6 +82,7 @@ export class Impresion implements OnInit {
       this.savedSettings.set(structuredClone(s));
     }
 
+    await this.refreshLogoUrl();
     this.loading.set(false);
   }
 
@@ -88,6 +92,9 @@ export class Impresion implements OnInit {
 
   updateSetting(key: keyof PrintSettings, value: any) {
     this.settings.update((s) => ({ ...s, [key]: value }));
+    if (key === 'logoUrl' || key === 'usePreloadedLogo') {
+      this.refreshLogoUrl();
+    }
   }
 
   async save() {
@@ -140,6 +147,7 @@ export class Impresion implements OnInit {
     const reader = new FileReader();
     reader.onload = () => {
       this.settings.update((s) => ({ ...s, logoUrl: reader.result as string }));
+      this.refreshLogoUrl();
     };
     reader.readAsDataURL(file);
     input.value = '';
@@ -147,15 +155,23 @@ export class Impresion implements OnInit {
 
   removeLogo() {
     this.settings.update((s) => ({ ...s, logoUrl: undefined, usePreloadedLogo: false }));
+    this.refreshLogoUrl();
   }
 
-  protected logoUrl = computed(() => {
+  protected logoUrl = signal(this.defaultLogo);
+
+  private logoSource(): string {
     const s = this.settings();
     if (s.usePreloadedLogo) {
       return this.doctor?.logoPath || this.defaultLogo;
     }
     return s.logoUrl || this.doctor?.logoPath || this.defaultLogo;
-  });
+  }
+
+  private async refreshLogoUrl() {
+    const source = this.logoSource();
+    this.logoUrl.set(await resolveLogoUrl(this.firebase.storage, source || this.defaultLogo));
+  }
 
   protected showLogo = computed(() => true);
 

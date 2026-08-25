@@ -76,10 +76,10 @@ export class FileUpload {
 
   private async uploadFile(file: File) {
     try {
-      const now = new Date();
-      const ts = `${now.getHours()}${now.getMinutes()}${now.getDate()}${now.getMonth()}${now.getFullYear()}`;
       const idPrefix = this.id() ? `${this.id()}/` : '';
-      const bucket = `logos/${idPrefix}${ts}/${file.name}`;
+      // Ruta determinista: re-subir el logo lo guarda en el MISMO archivo (sin timestamp),
+      // de modo que perfil y configuración de impresión apunten al mismo objeto.
+      const bucket = `logos/${idPrefix}${file.name}`;
       const storageRef = ref(this.firebase.storage, bucket);
 
       const snap = await uploadBytes(storageRef, file, { contentType: file.type });
