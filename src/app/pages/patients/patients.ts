@@ -275,6 +275,7 @@ export class Patients implements OnInit, OnDestroy {
         otpPassword: newOtp,
         patientName: `${patient.name} ${patient.lastName}`.trim(),
         doctorName: this.authService.currentDoctor?.name ?? '',
+        isRegenerate: true,
       });
       this.alert.success({ message: `Nueva contraseña de acceso: ${newOtp}`, duration: 5000 });
     } catch {
@@ -294,12 +295,12 @@ export class Patients implements OnInit, OnDestroy {
 
   async deletePatient(patient: Patient) {
     const dialogRef = this.dialog.open(ConfirmDialog, {
-      panelClass: 'cancel-dialog',
+      panelClass: 'context-card-panel',
       data: {
         title: 'Eliminar paciente',
-        message: `¿Eliminar a ${patient.name} ${patient.lastName}?`,
-        confirmLabel: 'Eliminar',
-        cancelLabel: 'Cancelar',
+        message: 'Al eliminar un paciente, su historial también será eliminado, además, los padres o tutores asociados a él, perderán acceso a la plataforma a menos que otro paciente esté asociado a ellos.',
+        confirmLabel: 'Eliminar paciente',
+        cancelLabel: 'Cerrar',
         confirmButtonClass: 'btn-danger dialog-btn',
       } as ConfirmDialogData,
     });

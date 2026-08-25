@@ -38,7 +38,7 @@ export class GrowthCharts {
   readonly patientSex = input<Sexo | undefined>(undefined);
   readonly birthDate = input<string>('');
 
-  protected zoomedIn = signal(false);
+  protected zoomedIn = signal(true);
   protected activeTab: ChartTab = 'weightHeight';
   protected hasData = false;
   protected calibrationEnabled = environment.calibration_enabled;

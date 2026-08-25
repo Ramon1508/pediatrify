@@ -34,7 +34,7 @@ describe('AlertDialog', () => {
 
   it('shows default button labels', () => {
     const el = fixture.nativeElement;
-    expect(el.textContent).toContain('Cancelar');
+    expect(el.textContent).toContain('Cerrar');
     expect(el.textContent).toContain('Aceptar');
   });
 

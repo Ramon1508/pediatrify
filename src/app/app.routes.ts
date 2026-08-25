@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { patientGuard } from './core/guards/patient.guard';
 
 export const routes: Routes = [
   {
@@ -13,7 +14,7 @@ export const routes: Routes = [
       import('./pages/reset-password/reset-password').then((m) => m.ResetPassword),
   },
   {
-    path: 'pacientes',
+    path: 'patient-login',
     loadComponent: () => import('./pages/otp-login/otp-login').then((m) => m.OtpLogin),
   },
   {
@@ -35,7 +36,7 @@ export const routes: Routes = [
   {
     path: 'app',
     loadComponent: () => import('./pages/doctor-layout/doctor-layout').then((m) => m.DoctorLayout),
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard(['admin', 'doctor', 'assistant'])],
     children: [
       { path: '', redirectTo: 'calendar', pathMatch: 'full' },
       {
@@ -67,9 +68,29 @@ export const routes: Routes = [
     ],
   },
   {
-    path: 'otp-dashboard',
-    loadComponent: () => import('./pages/otp-dashboard/otp-dashboard').then((m) => m.OtpDashboard),
-    canActivate: [authGuard],
+    path: 'paciente',
+    loadComponent: () =>
+      import('./pages/patient-layout/patient-layout').then((m) => m.PatientLayout),
+    canActivate: [authGuard, patientGuard],
+    children: [
+      { path: '', redirectTo: 'calendario', pathMatch: 'full' },
+      {
+        path: 'calendario',
+        loadComponent: () => import('./pages/calendar/calendar').then((m) => m.Calendar),
+      },
+      {
+        path: 'pacientes',
+        loadComponent: () =>
+          import('./pages/patient-patients/patient-patients').then((m) => m.PatientPatients),
+      },
+      {
+        path: 'pacientes/history/:patientId',
+        loadComponent: () =>
+          import('./pages/patient-history-view/patient-history-view').then(
+            (m) => m.PatientHistoryView,
+          ),
+      },
+    ],
   },
   {
     path: 'print/:recordId',

@@ -31,9 +31,11 @@
         <mat-error>Selecciona un paciente</mat-error>
       }
 
-      <button type="button" class="btn-add-patient" (click)="openNewPatient()">
-        + Añadir nuevo paciente
-      </button>
+      @if (!patientLocked && !hideAddPatient) {
+        <button type="button" class="btn-add-patient" (click)="openNewPatient()">
+          + Añadir nuevo paciente
+        </button>
+      }
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Día</mat-label>
@@ -42,6 +44,7 @@
           [matDatepicker]="dp"
           formControlName="date"
           placeholder="DD/MM/AAAA"
+          [matDatepickerFilter]="dateFilter"
           (click)="dp.open()"
         />
         <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
@@ -55,7 +58,7 @@
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Hora</mat-label>
         <mat-select formControlName="time">
-          @for (slot of timeSlots; track slot) {
+          @for (slot of availableTimes; track slot) {
             <mat-option [value]="slot">{{ slot }}</mat-option>
           }
         </mat-select>

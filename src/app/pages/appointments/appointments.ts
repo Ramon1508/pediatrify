@@ -200,9 +200,11 @@ export class Appointments implements OnInit {
 
   async cancelAppointment(appointment: Appointment) {
     const dialogRef = this.alert.confirm({
-      title: 'Cancelar cita',
-      message: `¿Cancelar la cita de ${appointment.patientName} para el ${appointment.date} a las ${appointment.time}?`,
-      confirmText: 'Cancelar cita',
+      title: 'Cancelar consulta',
+      message: 'Al cancelar una consulta el padre o tutor del paciente recibirá una notificación de la cancelación y podrá seleccionar un nuevo día y horario para la consulta si así lo desea.',
+      confirmText: 'Cancelar consulta',
+      cancelText: 'Cerrar',
+      confirmClass: 'btn-danger dialog-btn',
     });
     const result = await dialogRef.afterClosed().toPromise();
     if (!result) return;

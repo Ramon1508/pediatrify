@@ -116,5 +116,5 @@ export interface Appointment {
 
 export type SessionUser =
   | { type: 'doctor'; user: AppUser }
-  | { type: 'patient'; patient: Patient }
+  | { type: 'patient'; patient: Patient; loginEmail?: string }
   | null;

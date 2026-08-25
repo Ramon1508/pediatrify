@@ -1,0 +1,172 @@
+.page-shell {
+  width: auto;
+  margin: 2rem 40px;
+  padding: 0 1rem;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-family: Roboto, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+}
+
+.breadcrumb-link {
+  color: #0D6E8F;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.breadcrumb-separator {
+  color: #0D6E8F;
+}
+
+.breadcrumb-current {
+  color: black;
+  font-weight: 400;
+}
+
+.patient-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 24px;
+  border: 2px solid #0D6E8F;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0px 1px 2px 0px #0000004D;
+}
+
+.card-title {
+  color: #1b1b1b;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+.card-meta {
+  color: #1b1b1b;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.parents-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.parents-title {
+  color: #49454F;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.parents-list {
+  color: #1b1b1b;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+
+.consultas-section {
+  margin-top: 24px;
+}
+
+.consultas-header {
+  margin-bottom: 24px;
+}
+
+.consultas-title {
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 28px;
+  color: #000000;
+  margin: 0;
+}
+
+.entry {
+  border-bottom: 1px solid #CAC4D0;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+}
+
+.entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.entry-title {
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 24px;
+  color: #1D1B20;
+  margin: 0;
+}
+
+.rich-content {
+  width: 100%;
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #1B1B1B;
+  word-break: break-word;
+}
+
+.visible-until {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  color: #49454F;
+  margin-top: 12px;
+}
+
+.empty-message {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  color: #49454F;
+  padding: 48px 16px;
+}
+
+@media (max-width: 1024px) {
+  .page-shell {
+    margin: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-shell {
+    margin: 16px;
+    padding: 0;
+  }
+
+  .entry-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 320px) {
+  .page-shell {
+    margin: 12px;
+  }
+}

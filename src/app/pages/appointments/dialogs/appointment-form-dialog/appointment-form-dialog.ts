@@ -94,6 +94,12 @@ export class AppointmentFormDialog {
     this.form.patchValue({ patientId });
   }
 
+  /** Preselecciona un paciente y lo deja read-only (desde el perfil de un paciente). */
+  lockPatient(patientId: string) {
+    this.form.patchValue({ patientId });
+    this.form.get('patientId')?.disable();
+  }
+
   setEditData(appointment: Appointment) {
     this.editingAppointment = appointment;
     this.form.setValue({

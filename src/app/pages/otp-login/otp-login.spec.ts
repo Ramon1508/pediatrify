@@ -39,12 +39,7 @@ describe('OtpLogin', () => {
     expect(el.textContent).toContain('Lilcare');
     expect(el.textContent).toContain('Acceso paciente');
     expect(el.textContent).toContain('Correo electrónico');
-    expect(el.textContent).toContain('Contraseña OTP');
-  });
-
-  it('has a link to /login', () => {
-    const el = fixture.nativeElement;
-    expect(el.textContent).toContain('Volver al inicio de sesión');
+    expect(el.textContent).toContain('Contraseña');
   });
 
   it('does not call loginPatient when email or password is empty', async () => {
@@ -61,13 +56,13 @@ describe('OtpLogin', () => {
     expect(authService.loginPatient).toHaveBeenCalledWith('patient@test.com', 'ABC123');
   });
 
-  it('navigates to /otp-dashboard on success', async () => {
+  it('navigates to /paciente/calendario on success', async () => {
     (component as any).form.setValue({ email: 'patient@test.com', password: 'ABC123' });
     (authService.loginPatient as any).mockResolvedValue({} as any);
 
     await (component as any).onSubmit();
 
-    expect(router.navigate).toHaveBeenCalledWith(['/otp-dashboard']);
+    expect(router.navigate).toHaveBeenCalledWith(['/paciente/calendario']);
   });
 
   it('shows error message on failure', async () => {

@@ -1,58 +1,97 @@
-.otp-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.login-background {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1rem;
+  min-height: 100dvh;
+  background: url('/images/Fondo.svg') repeat;
+  background-size: auto;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.otp-card {
-  max-width: 400px;
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
-  padding: 2rem;
+  max-width: 428px;
+  padding: 0 16px;
+}
 
-  mat-card-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding-bottom: 1.5rem;
+.login-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+}
 
-    mat-card-title {
-      font-size: 2rem;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-    }
+.login-title {
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.15px;
+  text-align: center;
+  color: #0D6E8F;
+}
+
+.login-subtitle {
+  margin-bottom: 24px;
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  text-align: center;
+  color: #49454F;
+}
+
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.login-hint {
+  margin: 0 0 0.75rem;
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 0.85rem;
+  line-height: 1.25rem;
+  text-align: center;
+  color: #757575;
+}
+
+.error-message {
+  display: block;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.login-submit-btn {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .login-container {
+    padding: 0 16px;
   }
 
-  .full-width {
+  .login-submit-btn {
     width: 100%;
-    margin-bottom: 1rem;
   }
+}
 
-  .hint {
-    font-size: 0.85rem;
-    color: #757575;
-    text-align: center;
-    margin-bottom: 0.5rem;
-  }
-
-  .error-message {
-    display: block;
-    margin-bottom: 1rem;
-    text-align: center;
-  }
-
-  .card-actions {
-    justify-content: center;
-  }
-
-  button[type="submit"] {
-    margin-top: 0.5rem;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+@media (max-width: 320px) {
+  .login-container {
+    padding: 0 12px;
   }
 }

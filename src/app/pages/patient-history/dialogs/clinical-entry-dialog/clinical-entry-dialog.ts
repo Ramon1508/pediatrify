@@ -106,7 +106,7 @@ export class ClinicalEntryDialog implements OnDestroy {
     headCircumference: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
     weight: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
     height: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
-    bmi: [{ value: '', disabled: true }],
+    bmi: [''],
     saturation: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
     temperature: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
     motivoConsulta: ['', Validators.required],

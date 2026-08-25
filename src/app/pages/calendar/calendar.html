@@ -24,14 +24,18 @@
     </div>
 
     <div class="toolbar-right">
-      <button mat-stroked-button class="btn-secondary" (click)="openSettingsDialog()">
-        <mat-icon>settings</mat-icon>
-        Configuración
-      </button>
-      <button mat-unelevated-button class="btn-primary" (click)="openSideAppointment()">
-        <mat-icon>add</mat-icon>
-        Agendar consulta
-      </button>
+      @if (!patientMode) {
+        <button mat-stroked-button class="btn-secondary" (click)="openSettingsDialog()">
+          <mat-icon>settings</mat-icon>
+          Configuración
+        </button>
+      }
+      @if (!patientMode || allowScheduling()) {
+        <button mat-unelevated-button class="btn-primary" (click)="openSideAppointment()">
+          <mat-icon>add</mat-icon>
+          Agendar consulta
+        </button>
+      }
     </div>
   </div>
 
@@ -61,10 +65,10 @@
               class="grid-cell data-cell"
               [class.today-cell]="cell.isToday"
               [class.current-hour]="cell.isCurrentHour"
-              [class.disabled-cell]="!cell.isAvailable"
-              (mouseenter)="cell.canInteract && onCellHover(cell.day, cell.slot)"
+              [class.disabled-cell]="!cell.isAvailable || cell.isTaken"
+              (mouseenter)="cell.canInteract && !cell.isTaken && onCellHover(cell.day, cell.slot)"
               (mouseleave)="onCellLeave()"
-              (click)="cell.canInteract && openNewAppointment(cell.day, cell.slot)"
+              (click)="cell.canInteract && !cell.isTaken && openNewAppointment(cell.day, cell.slot)"
             >
               @for (apt of cell.appointments; track apt.id) {
                 <button type="button" class="appointment-block"
@@ -77,7 +81,7 @@
                   {{ apt.patientName }}
                 </button>
               }
-              @if (cell.canInteract && !cell.appointments.length && cell.isHovered) {
+              @if (cell.canInteract && !cell.isTaken && !cell.appointments.length && cell.isHovered) {
                 <button class="add-btn" mat-icon-button>
                   <mat-icon>add</mat-icon>
                 </button>
@@ -97,6 +101,7 @@
         <div class="detail-overlay-inner" (click)="$event.stopPropagation()">
           <app-appointment-detail-card
             [appointment]="apt"
+            [allowPatientScheduling]="allowScheduling()"
             (edit)="editAppointment($event); selectedAppointment.set(null); overlayPosition.set(null)"
             (cancel)="cancelAppointment(apt)"
           />
@@ -109,12 +114,19 @@
 <div class="mobile-view">
   <div class="mobile-cards">
     @for (item of mobileDayAppointments(); track item.apt.id) {
-      <button type="button" class="mobile-card" (click)="toggleExpand(item.apt.id)">
+      <button
+        type="button"
+        class="mobile-card"
+        [attr.data-appointment-id]="item.apt.id"
+        [class.mobile-card-focused]="focusedAppointmentId() === item.apt.id"
+        (click)="focusMobileAppointment(item.apt)"
+      >
         <span>{{ item.timeLabel }} | {{ item.apt.patientName }}</span>
       </button>
       @if (expandedAppointmentId() === item.apt.id) {
         <app-appointment-detail-card
           [appointment]="item.apt"
+          [allowPatientScheduling]="allowScheduling()"
           (cancel)="cancelAppointment(item.apt)"
         />
       }

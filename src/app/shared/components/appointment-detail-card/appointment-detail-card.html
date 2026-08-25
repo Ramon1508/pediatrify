@@ -7,9 +7,11 @@
   }
 
   <div class="detail-actions">
-    <button mat-button class="btn-tertiary btn-detail" (click)="onReagendar()">Reagendar</button>
-    <button mat-stroked-button class="btn-secondary btn-detail" (click)="onCancelar()">Cancelar</button>
-    @if (!isAssistant) {
+    @if (!isPatient || allowPatientScheduling()) {
+      <button mat-button class="btn-tertiary btn-detail" (click)="onReagendar()">Reagendar</button>
+      <button mat-stroked-button class="btn-secondary btn-detail" (click)="onCancelar()">Cancelar</button>
+    }
+    @if (!isAssistant || isPatient) {
       <button mat-unelevated-button class="btn-primary btn-detail" (click)="onVerHistorial()">Ver historial</button>
     }
   </div>

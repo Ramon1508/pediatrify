@@ -65,8 +65,17 @@ export class AppointmentDialog {
   protected filteredPatients: Patient[] = [];
   protected overlapWarning = '';
   protected showNewPatient = signal(false);
+  protected patientLocked = false;
+  hideAddPatient = false;
+  protected dialogDoctorName = '';
+  protected dialogDoctorEmail = '';
   private existingAppointments: Appointment[] = [];
   private overlapSub: any = null;
+
+  readonly dayNamesShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  protected patientScheduling = false;
+  protected availableDays: string[] = [];
+  protected occupiedSlots = new Set<string>();
 
   protected form = this.fb.group({
     patientId: ['', Validators.required],
@@ -97,6 +106,11 @@ export class AppointmentDialog {
     timeSegments?: TimeSegment[];
     consultationDuration?: number;
     existingAppointments?: Appointment[];
+    doctorName?: string;
+    doctorEmail?: string;
+    patientScheduling?: boolean;
+    availableDays?: string[];
+    occupiedSlots?: string[];
   }) {
     this.allPatients = data.allPatients;
     this.filteredPatients = data.allPatients;
@@ -105,6 +119,11 @@ export class AppointmentDialog {
     this.timeSegments = data.timeSegments ?? [];
     this.consultationDuration = data.consultationDuration ?? 30;
     this.existingAppointments = data.existingAppointments ?? [];
+    this.dialogDoctorName = data.doctorName ?? '';
+    this.dialogDoctorEmail = data.doctorEmail ?? '';
+    this.patientScheduling = data.patientScheduling ?? false;
+    this.availableDays = data.availableDays ?? [];
+    this.occupiedSlots = new Set(data.occupiedSlots ?? []);
     this.computeTimeSlots();
 
     if (data.editingAppointment) {
@@ -122,6 +141,14 @@ export class AppointmentDialog {
 
     this.patientSearchControl.valueChanges.subscribe((val) => this.filterPatients(val || ''));
     this.setupOverlapDetection();
+
+    this.form.get('date')?.valueChanges.subscribe(() => {
+      const time = this.form.get('time')?.value;
+      if (time && this.patientScheduling && !this.availableTimes.includes(time)) {
+        this.form.patchValue({ time: '' });
+      }
+      this.cdr.markForCheck();
+    });
   }
 
   private setupOverlapDetection() {
@@ -152,6 +179,17 @@ export class AppointmentDialog {
     this.form.markAsDirty();
   }
 
+  /** Preselecciona al paciente y lo deja read-only (desde el perfil de un paciente). */
+  lockPatient(patientId: string) {
+    const patient = this.allPatients.find((p) => p.id === patientId);
+    this.form.patchValue({ patientId });
+    this.patientSearchControl.setValue((patient || '') as any);
+    this.patientSearchControl.disable();
+    this.form.get('patientId')?.disable();
+    this.patientLocked = true;
+    this.cdr.markForCheck();
+  }
+
   private computeTimeSlots() {
     if (!this.timeSegments.length) {
       this.timeSlots = [];
@@ -175,6 +213,28 @@ export class AppointmentDialog {
     this.timeSlots = slots;
   }
 
+  private weekdayShort(date: Date): string {
+    const idx = date.getDay();
+    return this.dayNamesShort[idx === 0 ? 6 : idx - 1];
+  }
+
+  /** Permite en el datepicker los días laborales del doctor (las horas ocupadas se filtran aparte). */
+  dateFilter = (date: Date | null): boolean => {
+    if (!this.patientScheduling) return true;
+    if (!date) return true;
+    if (!this.availableDays.includes(this.weekdayShort(date))) return false;
+    return true;
+  };
+
+  /** Horas disponibles del día seleccionado: excluye las que ya tienen cita registrada. */
+  get availableTimes(): string[] {
+    if (!this.patientScheduling) return this.timeSlots;
+    const date = this.form.get('date')?.value;
+    if (!date) return this.timeSlots;
+    const dateStr = this.toDateStr(date);
+    return this.timeSlots.filter((t) => !this.occupiedSlots.has(`${dateStr}|${t}`));
+  }
+
   close() {
     this.dialogRef.close();
   }
@@ -184,17 +244,33 @@ export class AppointmentDialog {
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
+    const chosenDateValue = this.form.get('date')?.value;
+    const chosenTime = this.form.get('time')?.value;
+    if (this.patientScheduling) {
+      if (chosenDateValue instanceof Date && !this.dateFilter(chosenDateValue)) {
+        this.error = 'El día seleccionado no está disponible para citas. Elige un día dentro del horario del doctor.';
+        this.cdr.markForCheck();
+        return;
+      }
+      if (chosenTime && this.occupiedSlots.has(`${this.toDateStr(chosenDateValue)}|${chosenTime}`)) {
+        this.error = 'Esa hora ya está ocupada. Elige otra hora disponible.';
+        this.cdr.markForCheck();
+        return;
+      }
+    }
+
     this.saving = true;
     this.error = '';
 
     try {
       const targetDoctor = this.authService.currentDoctor;
+      const doctorId = this.selectedDoctorId || targetDoctor?.uid || '';
+      const doctorName = this.dialogDoctorName || targetDoctor?.name || '';
+      const doctorEmail = this.dialogDoctorEmail || targetDoctor?.email || '';
       const { patientId, date: rawDate, time, notes } = this.form.value;
       const date = this.toDateStr(rawDate);
       const patient = this.allPatients.find((p) => p.id === patientId);
-      if (!targetDoctor || !patient) return;
-
-      const currentUser = this.authService.currentDoctor;
+      if (!doctorId || !patient) return;
 
       if (this.editingAppointment) {
         const updatedAppointment: Appointment = {
@@ -206,12 +282,12 @@ export class AppointmentDialog {
           patientMotherName: patient.motherName ?? '',
           patientBirthDate: patient.birthDate,
           patientPhone: patient.phone ?? '',
-          doctorId: targetDoctor.uid,
-          doctorName: targetDoctor.name,
+          doctorId,
+          doctorName,
           date: date!,
           time: time!,
           notes: notes || '',
-          updatedBy: currentUser?.email ?? '',
+          updatedBy: doctorEmail,
         };
         await this.appointmentRepo.updateAppointment(this.editingAppointment.id, updatedAppointment);
         if (
@@ -239,15 +315,15 @@ export class AppointmentDialog {
         patientMotherName: patient.motherName ?? '',
         patientBirthDate: patient.birthDate,
         patientPhone: patient.phone ?? '',
-        doctorId: targetDoctor.uid,
-        doctorName: targetDoctor.name,
+        doctorId,
+        doctorName,
         date: date!,
         time: time!,
         status: 'scheduled',
         type: 'scheduled',
         notes: notes || '',
         disabled: false,
-        updatedBy: currentUser?.email ?? '',
+        updatedBy: doctorEmail,
       };
       await this.appointmentRepo.createAppointment(id, newAppointment);
       await this.notifications.notifyAppointmentCreated(newAppointment);

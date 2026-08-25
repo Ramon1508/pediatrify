@@ -1,0 +1,58 @@
+<div class="page-shell">
+  <nav class="breadcrumbs">
+    <a class="breadcrumb-link" routerLink="/paciente/pacientes">Pacientes</a>
+    <span class="breadcrumb-separator">&gt;</span>
+    <span class="breadcrumb-current">Historial de {{ patient()?.name }} {{ patient()?.lastName }}</span>
+  </nav>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else {
+    @if (patient(); as p) {
+      <div class="patient-card">
+        <span class="card-title">{{ p.name }} {{ p.lastName }}</span>
+        <span class="card-meta">Edad: {{ age(p) }}</span>
+        <div class="parents-section">
+          <span class="parents-title">Padres o tutores:</span>
+          <span class="parents-list">{{ parentsDisplay(p) }}</span>
+        </div>
+      </div>
+
+      <div class="consultas-section">
+        @if (hasConsultable) {
+          <div class="consultas-header">
+            <h2 class="consultas-title">Recomendaciones y recetas</h2>
+          </div>
+
+          @if (hasRecommendations) {
+            <div class="entry">
+              <div class="entry-header">
+                <h3 class="entry-title">Recomendaciones</h3>
+              </div>
+              <div class="rich-content" [innerHTML]="recommendationsHtml()"></div>
+              @if (record()?.visibleUntil) {
+                <p class="visible-until">Visible hasta el: {{ record()?.visibleUntil }}</p>
+              }
+            </div>
+          }
+
+          @if (hasPrescription) {
+            <div class="entry">
+              <div class="entry-header">
+                <h3 class="entry-title">Receta</h3>
+              </div>
+              <div class="rich-content" [innerHTML]="prescriptionHtml()"></div>
+              @if (record()?.visibleUntilRx) {
+                <p class="visible-until">Visible hasta el: {{ record()?.visibleUntilRx }}</p>
+              }
+            </div>
+          }
+        } @else {
+          <p class="empty-message">
+            Por el momento no cuentas con recomendaciones o recetas por consultar.
+          </p>
+        }
+      </div>
+    }
+  }
+</div>

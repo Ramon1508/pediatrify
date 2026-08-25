@@ -77,14 +77,14 @@ export const sendCustomVerificationEmail = onCall(async (request) => {
     const urlParams = new URL(defaultLink).searchParams;
     const oobCode = urlParams.get("oobCode");
 
-    const customLink = `https://lilcare-afdf5.web.app/auth-handler?mode=verifyEmail&oobCode=${oobCode}`;
+    const customLink = `https://lilcare.com.mx/auth-handler?mode=verifyEmail&oobCode=${oobCode}`;
 
     const htmlTemplate = `
         <div style="font-family: Arial, sans-serif; background-color: #ffffff">
         <div style="background: #0000000d; padding: 16px 122px">
             <div style="background: white; padding: 8px 40px; border-bottom: 2px solid #0d6e8f">
             <img
-                src="https://lilcare-afdf5.web.app/images/Logo.jpg"
+                src="https://lilcare.com.mx/images/Logo.jpg"
                 alt="Lilcare"
                 style="width: 40px; height: 40px; vertical-align: middle; margin-right: 8px"
             />
@@ -103,7 +103,7 @@ export const sendCustomVerificationEmail = onCall(async (request) => {
 
             <div
             style="
-                background-image: url('https://lilcare-afdf5.web.app/images/Fondo.svg');
+                background-image: url('https://lilcare.com.mx/images/Fondo.svg');
                 background-repeat: repeat;
                 background-position: center;
                 padding: 40px;
@@ -198,7 +198,7 @@ export const sendCustomPasswordResetEmail = onCall(async (request) => {
     const lang = urlParams.get("lang") || "es";
 
     // 3. Construimos tu enlace personalizado para /reset-password
-    const customLink = `https://lilcare-afdf5.web.app/reset-password?oobCode=${oobCode}&mode=resetPassword&apiKey=${apiKey}&lang=${lang}`;
+    const customLink = `https://lilcare.com.mx/reset-password?oobCode=${oobCode}&mode=resetPassword&apiKey=${apiKey}&lang=${lang}`;
 
     // 4. Tu plantilla HTML adaptada para restablecer contraseña
     const htmlTemplate = `
@@ -206,7 +206,7 @@ export const sendCustomPasswordResetEmail = onCall(async (request) => {
         <div style="background: #0000000d; padding: 16px 122px">
             <div style="background: white; padding: 8px 40px; border-bottom: 2px solid #0d6e8f">
             <img
-                src="https://lilcare-afdf5.web.app/images/Logo.jpg"
+                src="https://lilcare.com.mx/images/Logo.jpg"
                 alt="Lilcare"
                 style="width: 40px; height: 40px; vertical-align: middle; margin-right: 8px"
             />
@@ -225,7 +225,7 @@ export const sendCustomPasswordResetEmail = onCall(async (request) => {
 
             <div
             style="
-                background-image: url('https://lilcare-afdf5.web.app/images/Fondo.svg');
+                background-image: url('https://lilcare.com.mx/images/Fondo.svg');
                 background-repeat: repeat;
                 background-position: center;
                 padding: 40px;
@@ -292,7 +292,7 @@ export const sendCustomPasswordResetEmail = onCall(async (request) => {
 // 3. FUNCIÓN: Enviar correo de acceso de paciente (correo + OTP)
 // -------------------------------------------------------------
 export const sendPatientAccessEmail = onCall(async (request) => {
-  const { email, otpPassword, patientName, doctorName } = request.data || {};
+  const { email, otpPassword, patientName, doctorName, isRegenerate } = request.data || {};
 
   if (!email || !otpPassword) {
     throw new Error("El correo y la contraseña OTP son requeridos.");
@@ -301,12 +301,18 @@ export const sendPatientAccessEmail = onCall(async (request) => {
   await checkAndIncrementCounter();
 
   try {
+    let subject = "Acceso a tu cuenta de Lilcare";
+    let intro = "Te compartimos tus datos de acceso a Lilcare para consultar las citas, recetas y recomendaciones";
+    if (isRegenerate) {
+      subject = "Tu nueva contraseña de acceso a Lilcare";
+      intro = "Esta es tu nueva contraseña de acceso a Lilcare para consultar las citas, recetas y recomendaciones";
+    }
     const htmlTemplate = `
         <div style="font-family: Arial, sans-serif; background-color: #ffffff">
         <div style="background: #0000000d; padding: 16px 122px">
             <div style="background: white; padding: 8px 40px; border-bottom: 2px solid #0d6e8f">
             <img
-                src="https://lilcare-afdf5.web.app/images/Logo.jpg"
+                src="https://lilcare.com.mx/images/Logo.jpg"
                 alt="Lilcare"
                 style="width: 40px; height: 40px; vertical-align: middle; margin-right: 8px"
             />
@@ -325,7 +331,7 @@ export const sendPatientAccessEmail = onCall(async (request) => {
 
             <div
             style="
-                background-image: url('https://lilcare-afdf5.web.app/images/Fondo.svg');
+                background-image: url('https://lilcare.com.mx/images/Fondo.svg');
                 background-repeat: repeat;
                 background-position: center;
                 padding: 40px;
@@ -334,16 +340,15 @@ export const sendPatientAccessEmail = onCall(async (request) => {
             <div style="color: #49454f; font-size: 16px; line-height: 24px">
                 Hola${patientName ? ` ${patientName}` : ""},
                 <br /><br />
-                Te compartimos tus datos de acceso a Lilcare para consultar las citas, recetas y
-                recomendaciones que${doctorName ? ` ${doctorName}` : " tu médico"} ha registrado para ti.
+                ${intro}${doctorName ? ` que ${doctorName}` : ""} ha registrado para ti.
                 <br /><br />
                 <ul style="margin-top: 0">
                 <li><b>Correo:</b> ${email}</li>
-                <li><b>Contraseña (OTP):</b> ${otpPassword}</li>
+                <li><b>Contraseña:</b> ${otpPassword}</li>
                 </ul>
                 <br />
                 Con estos datos podrás iniciar sesión desde la opción de acceso para pacientes en
-                <a href="https://lilcare-afdf5.web.app/otp-login" style="color: #0d6e8f">lilcare-afdf5.web.app</a>.
+                <a href="https://lilcare.com.mx/patient-login" style="color: #0d6e8f">lilcare.com.mx</a>.
                 <br /><br />
                 Si tienes alguna duda, no dudes en contactar a tu médico o al equipo de Lilcare.
                 <br /><br />
@@ -359,7 +364,7 @@ export const sendPatientAccessEmail = onCall(async (request) => {
     await transporter.sendMail({
       from: "\"Lilcare\" <noreply@lilcare.com.mx>",
       to: email,
-      subject: "Acceso a tu cuenta de Lilcare",
+      subject,
       html: htmlTemplate,
     });
 
@@ -389,7 +394,7 @@ export const sendInvitationEmail = onCall(async (request) => {
         <div style="background: #0000000d; padding: 16px 122px">
             <div style="background: white; padding: 8px 40px; border-bottom: 2px solid #0d6e8f">
             <img
-                src="https://lilcare-afdf5.web.app/images/Logo.jpg"
+                src="https://lilcare.com.mx/images/Logo.jpg"
                 alt="Lilcare"
                 style="width: 40px; height: 40px; vertical-align: middle; margin-right: 8px"
             />
@@ -401,7 +406,7 @@ export const sendInvitationEmail = onCall(async (request) => {
             </div>
 
             <div
-            style="background-image: url('https://lilcare-afdf5.web.app/images/Fondo.svg'); background-repeat: repeat; background-position: center; padding: 40px"
+            style="background-image: url('https://lilcare.com.mx/images/Fondo.svg'); background-repeat: repeat; background-position: center; padding: 40px"
             >
             <div style="color: #49454f; font-size: 16px; line-height: 24px">
                 Hola${inviteeName ? ` ${inviteeName}` : ""},

@@ -7,6 +7,7 @@ export interface PatientAccessEmailData {
   otpPassword: string;
   patientName: string;
   doctorName: string;
+  isRegenerate?: boolean;
 }
 
 export interface InvitationEmailData {

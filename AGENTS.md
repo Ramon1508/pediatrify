@@ -44,12 +44,12 @@
 - Alert dialog button changed from dynamic `[color]` to static `class="btn-primary"`
 - `$primary` reverted from `#01687D` back to `#0D6E8F`
 - Environment files removed from git history via `git filter-branch --index-filter` and force-pushed to GitHub
-- Fixed `matPrefix` position: moved before `matInput` in login, setup-profile, and otp-login fields
+- Fixed `matPrefix` position: moved before `matInput` in login, setup-profile, and patient-login fields
 - Created `Sexo` enum in `core/models/sexo.ts` and migrated setup-profile to numeric DB values
 - Fixed accessibility: added missing `alt` to file-upload preview image
 - Removed `color="warn"` from icon buttons (doctors, patients); `mat-button color="warn"` → `mat-unelevated-button class="btn-danger"` (appointments)
 - Added `btn-secondary` class to toggle button in appointments; removed `color="primary"` from calendar add-btn
-- Fixed otp-login validation: removed `[disabled]="otpForm.invalid"`, uses `submitted` flag pattern
+- Fixed patient-login validation: removed `[disabled]="otpForm.invalid"`, uses `submitted` flag pattern
 - Updated AGENTS.md with Angular 17+ control flow, semantic HTML, alt attributes rules
 
 ### Done (continued)
@@ -75,7 +75,7 @@
 - **Fix de zona horaria en fechas `YYYY-MM-DD`**: `NativeDateAdapter.parse` usa `new Date(Date.parse(value))`, que interpreta el string como medianoche UTC → en zonas negativas (GMT-7) muestra el día ANTERIOR (bug al reagendar cita: el picker resaltaba el 17 cuando la fecha guardada era el 18). `SpanishDateAdapter.parse` (override) ahora interpreta `YYYY-MM-DD` a medianoche LOCAL (`new Date(y, m-1, d)`). Esto arregla TODOS los datepickers que prefijan con string, no solo citas
 - **Además, el `mat-datepicker` NO llama a `parse` al prefijar un string** (usa su propio `Date.parse`), así que el `SpanishDateAdapter.parse` solo cubre el caso de input manual. Por eso los prefills de formulario ahora mandan un **`Date` local** vía `dateStringToLocalDate()` (`core/utils/date-utils.ts`) en los diálogos de cita, editar/completar perfil de paciente; y al guardar se vuelve a string con `dateToString()`/`toDateString()`. `Appointment.date` sigue guardándose como string `YYYY-MM-DD` en Firestore.
 - Changed `getMonday` → `getWeekStart` in calendar so grid starts on Sunday (`d.setDate(d.getDate() - d.getDay())`), matching the Material datepicker mini calendar
-- Migrated **otp-login**, **doctors**, **patients**, **calendar** (dialog), and **appointments** (walk-in + dialog) from template-driven (`ngModel`/`FormsModule`) to reactive forms (`FormBuilder`/`ReactiveFormsModule`)
+- Migrated **patient-login**, **doctors**, **patients**, **calendar** (dialog), and **appointments** (walk-in + dialog) from template-driven (`ngModel`/`FormsModule`) to reactive forms (`FormBuilder`/`ReactiveFormsModule`)
 - Removed `FormsModule` imports from all 5 migrated pages
 - Replaced `mat-select` with `mat-autocomplete` for patient search in calendar appointment panel and dialog — search filters patients by name/lastname
 - Added `+ Añadir nuevo paciente` button below patient search in both new appointment panel and dialog

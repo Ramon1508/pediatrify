@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
 import { Patient } from '../models/user';
+import { normalizeEmail } from '../utils/normalize-email';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -89,6 +90,40 @@ export class PatientRepository {
       }
     }
     return [...map.values()];
+  }
+
+  /**
+   * Todos los hijos que un tutor (padre) puede ver tras iniciar sesión con su correo + el OTP
+   * de cualquiera de sus hijos: el correo del padre aparece como email PRIMARIO o SECUNDARIO
+   * del hijo Y el hijo está registrado por el MISMO doctor al que entró.
+   * La comparación se hace en cliente (normalizada) sobre los pacientes del doctor para ser
+   * robusta a emails con mayúsculas/espacios en la BD.
+   * El `otpPassword` es POR NIÑO y solo sirve para autenticar el login; NO filtra la familia
+   * (el padre puede entrar con el OTP de cualquiera de sus hijos y ver a todos).
+   */
+  async getChildrenGroup(email: string, doctorId: string): Promise<Patient[]> {
+    const normalizedEmail = normalizeEmail(email);
+    const byDoc = await this.getPatientsByDoctor(doctorId);
+    const group = byDoc.filter((p) => {
+      const primary = normalizeEmail(p.email || '');
+      const secondary = p.secondaryEmail ? normalizeEmail(p.secondaryEmail) : '';
+      return (primary && primary === normalizedEmail) || (secondary && secondary === normalizedEmail);
+    });
+    // eslint-disable-next-line no-console
+    console.log('[getChildrenGroup]', {
+      email,
+      normalizedEmail,
+      doctorId,
+      totalByDoctor: byDoc.length,
+      groupMembers: group.map((g) => ({
+        id: g.id,
+        name: `${g.name} ${g.lastName}`,
+        email: g.email,
+        secondaryEmail: g.secondaryEmail ?? '',
+        docId: g.doctorId ?? '',
+      })),
+    });
+    return group;
   }
 
   watchPatient(id: string): Observable<Patient | null> {

@@ -1,0 +1,31 @@
+<app-header />
+
+<div class="patient-body">
+  <nav class="patient-sidebar">
+    <a
+      class="nav-item"
+      routerLink="/paciente/calendario"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+    >
+      <div class="icon-wrapper">
+        <mat-icon>access_time</mat-icon>
+      </div>
+      <span class="nav-label">Calendario</span>
+    </a>
+    <a
+      class="nav-item"
+      routerLink="/paciente/pacientes"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: false }"
+    >
+      <div class="icon-wrapper">
+        <mat-icon>groups</mat-icon>
+      </div>
+      <span class="nav-label">Pacientes</span>
+    </a>
+  </nav>
+  <main class="main-content">
+    <router-outlet />
+  </main>
+</div>

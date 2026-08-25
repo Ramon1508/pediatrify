@@ -59,9 +59,9 @@ export class AuthService {
     const auth = this.firebase.auth;
     onAuthStateChanged(auth, (firebaseUser) => {
       this.ngZone.run(() => {
-        if (firebaseUser) {
+        if (firebaseUser && !this.isPatientSession) {
           this.loadDoctorSession(firebaseUser.email ?? firebaseUser.uid);
-        } else if (!this.isPatientSession) {
+        } else if (!firebaseUser && !this.isPatientSession) {
           this.setSession(null);
         }
       });
@@ -69,6 +69,13 @@ export class AuthService {
   }
 
   private setSession(session: SessionUser): void {
+    // eslint-disable-next-line no-console
+    console.log('[auth] setSession', session?.type, session?.type === 'patient' ? {
+      patientId: session.patient.id,
+      patientEmail: session.patient.email,
+      doctorId: session.patient.doctorId,
+      loginEmail: (session as any).loginEmail,
+    } : session?.type === 'doctor' ? { uid: session.user.uid } : null);
     this.sessionSubject.next(session);
     this.saveSessionToCache(session);
     if (session?.type === 'doctor') {
@@ -186,10 +193,22 @@ export class AuthService {
     const candidates = await this.patientRepo.findPatientsByLoginEmail(normalizedEmail);
     const patient = candidates.find((p) => p.otpPassword === password);
     if (!patient) {
-      throw new Error('Credenciales inválidas. Verifica tu correo y contraseña OTP.');
+      throw new Error('Credenciales inválidas. Verifica tu correo y contraseña.');
     }
-    this.setSession({ type: 'patient', patient });
+    // Evita que una sesión de doctor residual (Firebase Auth) se imponga sobre la del paciente
+    // y que el paciente pueda acceder a rutas del doctor (/app/*).
+    if (this.firebase.auth.currentUser) {
+      await signOut(this.firebase.auth);
+    }
+    this.setSession({ type: 'patient', patient, loginEmail: normalizedEmail });
     return patient;
+  }
+
+  /** El correo con el que el padre inició sesión (puede diferir del email del hijo). */
+  get currentPatientLoginEmail(): string | null {
+    return this.sessionSubject.value?.type === 'patient'
+      ? (this.sessionSubject.value as any).loginEmail ?? null
+      : null;
   }
 
   async logout(): Promise<void> {

@@ -1,0 +1,33 @@
+<div class="page-shell">
+  <div class="page-header">
+    <span class="page-title">Pacientes</span>
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (children().length === 0) {
+    <div class="empty-state">
+      <span class="empty-text">No tienes pacientes asociados.</span>
+    </div>
+  } @else {
+    <div class="children-grid">
+      @for (child of children(); track child.id) {
+        <div class="child-card">
+          <div class="child-name">{{ child.name }} {{ child.lastName }}</div>
+          <div class="child-age">Edad: {{ age(child) }}</div>
+          <div class="parents-section">
+            <div class="parents-title">Padres o tutores:</div>
+            <div class="parents-list">
+              {{ child.fatherName }}{{ child.fatherName && child.motherName ? ' · ' : '' }}{{ child.motherName }}
+            </div>
+          </div>
+          <div class="actions">
+            <button mat-stroked-button class="btn-secondary" (click)="openHistory(child)">
+              Ver historial
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

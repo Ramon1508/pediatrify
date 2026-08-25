@@ -255,6 +255,10 @@
   display: none;
 }
 
+.mobile-view {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .desktop-only {
     display: none;
@@ -273,6 +277,7 @@
   }
 
   .calendar-page {
+    height: auto;
     padding: 0.75rem;
   }
 
@@ -311,9 +316,6 @@
   }
 }
 
-.mobile-view {
-  display: none;
-}
 
 .mobile-cards {
   display: flex;
@@ -340,6 +342,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
+}
+
+.mobile-card.mobile-card-focused {
+  background: #0D6E8F;
+  color: #ffffff;
 }
 
 .no-days-message {

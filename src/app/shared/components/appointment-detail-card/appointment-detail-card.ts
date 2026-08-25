@@ -14,6 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class AppointmentDetailCard {
   readonly appointment = input.required<Appointment>();
+  readonly allowPatientScheduling = input(false);
   readonly edit = output<Appointment>();
   readonly cancel = output<void>();
 
@@ -22,6 +23,10 @@ export class AppointmentDetailCard {
 
   protected get isAssistant(): boolean {
     return this.authService.currentDoctor?.role === 'assistant';
+  }
+
+  protected get isPatient(): boolean {
+    return this.authService.isPatient;
   }
 
   onReagendar() {
@@ -33,6 +38,11 @@ export class AppointmentDetailCard {
   }
 
   onVerHistorial() {
-    this.router.navigate(['/app/patients/history', this.appointment().patientId]);
+    const patientId = this.appointment().patientId;
+    if (this.isPatient) {
+      this.router.navigate(['/paciente/pacientes/history', patientId]);
+    } else {
+      this.router.navigate(['/app/patients/history', patientId]);
+    }
   }
 }

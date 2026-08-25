@@ -99,6 +99,13 @@ export class Calendar implements OnInit, OnDestroy {
   protected allDoctors: AppUser[] = [];
   protected selectedDoctorId = signal<string>('');
   protected isAdmin = false;
+  protected patientMode = false;
+  protected allowScheduling = signal(false);
+  protected patientChildren = signal<Patient[]>([]);
+  protected occupiedDays = signal<Set<string>>(new Set());
+  protected occupiedSlots = signal<Set<string>>(new Set());
+  protected doctorName = '';
+  protected doctorEmail = '';
 
   protected settingsForm = this.fb.group({
     consultationDuration: [30, Validators.required],
@@ -201,6 +208,24 @@ export class Calendar implements OnInit, OnDestroy {
     );
   }
 
+  /** Al tocar un chip en mobile: foca/azul, ajusta la fecha y hace auto-scroll. */
+  protected focusMobileAppointment(apt: Appointment) {
+    this.focusedAppointmentId.set(apt.id);
+    const d = new Date(apt.date + 'T12:00:00');
+    if (!isNaN(d.getTime())) {
+      this.selectedDay.set(d);
+      this.weekStart.set(this.getWeekStart(d));
+    }
+    this.toggleExpand(apt.id);
+    setTimeout(() => {
+      const el = document.querySelector(`[data-appointment-id="${apt.id}"]`);
+      if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+        (el as HTMLElement).scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+      this.cdr.markForCheck();
+    }, 50);
+  }
+
   protected clearExpand() {
     this.expandedAppointmentId.set(null);
   }
@@ -237,6 +262,7 @@ export class Calendar implements OnInit, OnDestroy {
           isCurrentHour: this.isToday(day) && this.isCurrentHour(slot),
           isAvailable: this.isDayAvailable(day),
           canInteract: this.canInteractWithCell(day),
+          isTaken: this.isCellTaken(day, slot),
           appointments,
           isHovered: this.isHovered(day, slot),
         };
@@ -330,8 +356,16 @@ export class Calendar implements OnInit, OnDestroy {
     return this.availableDaysSignal().includes(this.getDayShort(date));
   }
 
-  protected canInteractWithCell(_date: Date): boolean {
+  protected canInteractWithCell(date: Date): boolean {
+    if (this.patientMode) {
+      return this.allowScheduling() && this.isDayAvailable(date);
+    }
     return true;
+  }
+
+  protected isCellTaken(day: Date, slot: TimeSlot): boolean {
+    if (!this.patientMode) return false;
+    return this.occupiedSlots().has(`${this.formatDate(day)}|${slot.key}`);
   }
 
   protected onDoctorSelected(doctorId: string) {
@@ -343,7 +377,7 @@ export class Calendar implements OnInit, OnDestroy {
     return this.settingsForm.get('timeSegments') as FormArray;
   }
 
-  private async loadDoctorData(doctorId: string) {
+  private async loadDoctorData(doctorId: string, patientIds?: string[]) {
     const user = await this.userRepo.getUser(doctorId);
     const email = user?.email ?? '';
 
@@ -352,23 +386,44 @@ export class Calendar implements OnInit, OnDestroy {
       this.appointmentSub = null;
     }
 
-    const byDoctor = this.appointmentRepo.watchAppointmentsByDoctor(doctorId);
-    const byEmail = email
-      ? this.appointmentRepo.watchAppointmentsByUpdatedBy(email)
-      : byDoctor;
+    if (this.patientMode) {
+      // Modo paciente: realtime del doctor; solo sus hijos (chips) y deshabilita SOLO las horas
+      // con citas registradas (sin mostrar info ajena).
+      const patientSet = new Set(patientIds ?? []);
+      this.appointmentSub = this.appointmentRepo
+        .watchAppointmentsByDoctor(doctorId)
+        .subscribe((appts) => {
+          const valid = appts.filter((a) => a.disabled !== true);
+          this.occupiedSlots.set(new Set(valid.map((a) => `${a.date}|${a.time}`)));
+          const mine = valid.filter((a) => patientSet.has(a.patientId));
+          this.occupiedDays.set(new Set(valid.map((a) => a.date)));
+          this.allAppointments.set(mine);
+          this.applyPendingFocus();
+          this.cdr.markForCheck();
+        });
+    } else {
+      const byDoctor = this.appointmentRepo.watchAppointmentsByDoctor(doctorId);
+      const byEmail = email
+        ? this.appointmentRepo.watchAppointmentsByUpdatedBy(email)
+        : byDoctor;
 
-    this.appointmentSub = combineLatest([byDoctor, byEmail]).subscribe(([fromDoctor, fromEmail]) => {
-      const seen = new Set<string>();
-      const merged = [...fromDoctor, ...fromEmail].filter((a) => {
-        if (a.disabled) return false;
-        if (seen.has(a.id)) return false;
-        seen.add(a.id);
-        return true;
+      this.appointmentSub = combineLatest([byDoctor, byEmail]).subscribe(([fromDoctor, fromEmail]) => {
+        const seen = new Set<string>();
+        const merged = [...fromDoctor, ...fromEmail].filter((a) => {
+          if (a.disabled) return false;
+          if (seen.has(a.id)) return false;
+          seen.add(a.id);
+          return true;
+        });
+        this.allAppointments.set(merged);
+        this.applyPendingFocus();
+        this.cdr.markForCheck();
       });
-      this.allAppointments.set(merged);
-      this.applyPendingFocus();
-      this.cdr.markForCheck();
-    });
+    }
+
+    this.allowScheduling.set(user?.allowPatientScheduling ?? false);
+    this.doctorName = user?.name ?? '';
+    this.doctorEmail = user?.email ?? '';
 
     if (user) {
       this.settingsForm.patchValue({
@@ -392,6 +447,37 @@ export class Calendar implements OnInit, OnDestroy {
 
   async ngOnInit() {
     const doctor = this.authService.currentDoctor;
+    const patient = this.authService.currentPatient;
+    // eslint-disable-next-line no-console
+    console.log('[calendar ngOnInit]', {
+      sessionType: this.authService.isPatient ? 'patient' : 'doctor',
+      hasPatient: !!patient,
+      patientId: patient?.id,
+      patientDoctorId: patient?.doctorId,
+      hasDoctor: !!doctor,
+      doctorId: doctor?.uid,
+    });
+
+    // Modo paciente: calendario de US citas con el doctor con el que se logueó.
+    if (patient) {
+      this.patientMode = true;
+      this.isAdmin = false;
+      const doctorId = patient.doctorId ?? '';
+      this.selectedDoctorId.set(doctorId);
+      const loginEmail = this.authService.currentPatientLoginEmail ?? patient.email;
+      console.log('[calendar patient]', { loginEmail, patientId: patient.id, doctorId: patient.doctorId });
+      const group = await this.patientRepo.getChildrenGroup(loginEmail, patient.doctorId ?? '');
+      this.patientChildren.set(group);
+      this.allPatients = group;
+      await this.loadDoctorData(doctorId, group.map((c) => c.id));
+
+      this.focusSub = this.focusService.target$.subscribe((focus) => {
+        if (!focus) return;
+        this.focusService.clear();
+        this.applyFocus(focus);
+      });
+      return;
+    }
 
     if (!doctor) return;
 
@@ -554,13 +640,20 @@ export class Calendar implements OnInit, OnDestroy {
     });
     const instance = dialogRef.componentInstance;
     const segments = this.timeSegmentsSignal();
+    const patient = this.patientMode ? this.authService.currentPatient : null;
+    const patients = this.patientMode ? this.patientChildren() : this.allPatients;
 
     const baseData = {
-      allPatients: this.allPatients,
-      selectedDoctorId: this.selectedDoctorId(),
+      allPatients: patients,
+      selectedDoctorId: this.patientMode ? (patient?.doctorId ?? this.selectedDoctorId()) : this.selectedDoctorId(),
       timeSegments: segments,
       consultationDuration: this.consultationDurationSignal(),
       existingAppointments: this.allAppointments(),
+      doctorName: this.doctorName,
+      doctorEmail: this.doctorEmail,
+      patientScheduling: this.patientMode ? this.allowScheduling() : false,
+      availableDays: this.patientMode ? this.availableDaysSignal() : [],
+      occupiedSlots: this.patientMode ? [...this.occupiedSlots()] : [],
     };
     if (prefill) {
       const dateStr = this.formatDate(prefill.date);
@@ -571,6 +664,13 @@ export class Calendar implements OnInit, OnDestroy {
       instance.setData({ ...baseData, editingAppointment });
     } else {
       instance.setData({ ...baseData, editingAppointment: null });
+    }
+    if (this.patientMode) {
+      instance.hideAddPatient = true;
+      const kids = this.patientChildren();
+      if (kids.length === 1) {
+        instance.lockPatient(kids[0].id);
+      }
     }
 
     dialogRef.afterClosed().subscribe((result) => {
@@ -608,9 +708,11 @@ export class Calendar implements OnInit, OnDestroy {
     this.selectedAppointment.set(null);
     this.overlayPosition.set(null);
     const dialogRef = this.alert.confirm({
-      title: 'Cancelar cita',
-      message: `¿Cancelar la cita de ${apt.patientName} para el ${apt.date} a las ${apt.time}?`,
-      confirmText: 'Cancelar cita',
+      title: 'Cancelar consulta',
+      message: 'Al cancelar una consulta el padre o tutor del paciente recibirá una notificación de la cancelación y podrá seleccionar un nuevo día y horario para la consulta si así lo desea.',
+      confirmText: 'Cancelar consulta',
+      cancelText: 'Cerrar',
+      confirmClass: 'btn-danger dialog-btn',
     });
     const result = await dialogRef.afterClosed().toPromise();
     if (!result) return;

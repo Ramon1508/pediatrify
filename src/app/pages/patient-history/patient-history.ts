@@ -20,7 +20,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
 import { PatientStore } from '../../core/store/patient.store';
 import { CascadeService } from '../../core/services/cascade.service';
-import { AppointmentFormDialog } from '../appointments/dialogs/appointment-form-dialog/appointment-form-dialog';
+import { UserRepository } from '../../core/repositories/user.repository';
+import { AppointmentDialog } from '../calendar/dialogs/appointment-dialog/appointment-dialog';
 import { EditPatientDialog } from '../patients/dialogs/edit-patient-dialog/edit-patient-dialog';
 import { CompleteProfileDialog } from '../patients/dialogs/complete-profile-dialog/complete-profile-dialog';
 import { ConfirmDialog, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog';
@@ -98,6 +99,7 @@ export class PatientHistory implements OnInit, OnDestroy {
   private patientStore = inject(PatientStore);
   private printRepo = inject(PrintSettingsRepository);
   private cascade = inject(CascadeService);
+  private userRepo = inject(UserRepository);
 
   private patientId = '';
   protected patient = computed<(Patient & { ageDisplay: string }) | null>(() => {
@@ -337,12 +339,29 @@ export class PatientHistory implements OnInit, OnDestroy {
   protected async openNewAppointment() {
     const allPatients = await this.patientRepo.getAllPatients();
     const patientId = this.route.snapshot.paramMap.get('patientId')!;
-    const dialogRef = this.dialog.open(AppointmentFormDialog, {
+    const doctor = this.authService.currentDoctor;
+    if (!doctor) return;
+
+    const doctorUser = await this.userRepo.getUser(doctor.uid);
+    const timeSegments = doctorUser?.timeSegments?.length
+      ? doctorUser.timeSegments
+      : [{ startTime: '06:00', endTime: '00:00' }];
+    const consultationDuration = doctorUser?.consultationDuration ?? 30;
+
+    const dialogRef = this.dialog.open(AppointmentDialog, {
+      width: '400px',
       disableClose: false,
       panelClass: 'right-panel',
     });
-    dialogRef.componentInstance.setPatients(allPatients);
-    dialogRef.componentInstance.selectPatient(patientId);
+    dialogRef.componentInstance.setData({
+      allPatients,
+      selectedDoctorId: doctor.uid,
+      editingAppointment: null,
+      timeSegments,
+      consultationDuration,
+      existingAppointments: [],
+    });
+    dialogRef.componentInstance.lockPatient(patientId);
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
         this.alert.success({ message: 'Cita agendada', duration: 3000 });
@@ -424,9 +443,9 @@ export class PatientHistory implements OnInit, OnDestroy {
       panelClass: 'context-card-panel',
       data: {
         title: 'Eliminar paciente',
-        message: `¿Eliminar a ${patient.name} ${patient.lastName}?`,
-        confirmLabel: 'Eliminar',
-        cancelLabel: 'Cancelar',
+        message: 'Al eliminar un paciente, su historial también será eliminado, además, los padres o tutores asociados a él, perderán acceso a la plataforma a menos que otro paciente esté asociado a ellos.',
+        confirmLabel: 'Eliminar paciente',
+        cancelLabel: 'Cerrar',
         confirmButtonClass: 'btn-danger dialog-btn',
       } as ConfirmDialogData,
     });

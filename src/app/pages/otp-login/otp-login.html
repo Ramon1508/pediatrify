@@ -1,66 +1,60 @@
-<div class="otp-container">
-  <mat-card class="otp-card">
-    <mat-card-header>
-      <mat-card-title>Lilcare</mat-card-title>
-      <mat-card-subtitle>Acceso paciente</mat-card-subtitle>
-    </mat-card-header>
+<div class="login-background">
+  <div class="login-container">
+    <img ngSrc="images/Logo.jpg" alt="Logo Lilcare" class="login-logo" width="80" height="80" priority />
 
-    <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Correo electrónico</mat-label>
-          <mat-icon matPrefix>email</mat-icon>
-          <input
-            matInput
-            type="email"
-            formControlName="email"
-          />
-          @if (emailControl.invalid && (emailControl.touched || submitted())) {
-            <mat-error>Ingresa un correo electrónico válido</mat-error>
-          }
-        </mat-form-field>
+    <span class="login-title">Lilcare</span>
+    <span class="login-subtitle">Acceso paciente</span>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Contraseña OTP</mat-label>
-          <mat-icon matPrefix>lock</mat-icon>
-          <input
-            matInput
-            [type]="hidePassword() ? 'password' : 'text'"
-            formControlName="password"
-          />
-          <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword.set(!hidePassword())" [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'">
-            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-          @if (passwordControl.invalid && (passwordControl.touched || submitted())) {
-            <mat-error>Ingresa tu contraseña OTP</mat-error>
-          }
-        </mat-form-field>
-
-        <p class="hint">
-          Usa la contraseña que te proporcionó tu doctor.
-        </p>
-
-        @if (error()) {
-          <mat-error class="error-message">{{ error() }}</mat-error>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Correo electrónico</mat-label>
+        <mat-icon matPrefix>email</mat-icon>
+        <input
+          matInput
+          type="email"
+          formControlName="email"
+        />
+        @if (emailControl.invalid && (emailControl.touched || submitted())) {
+          <mat-error>Ingresa un correo electrónico válido</mat-error>
         }
+      </mat-form-field>
 
-        <button
-          mat-unelevated-button
-          class="btn-primary full-width"
-          type="submit"
-          [disabled]="loading()"
-        >
-          @if (loading()) {
-            <mat-spinner diameter="20" />
-          } @else {
-            Entrar
-          }
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Contraseña</mat-label>
+        <mat-icon matPrefix>lock</mat-icon>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          formControlName="password"
+        />
+        <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="hidePassword.set(!hidePassword())" [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'">
+          <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
         </button>
-      </form>
-    </mat-card-content>
+        @if (passwordControl.invalid && (passwordControl.touched || submitted())) {
+          <mat-error>Ingresa tu contraseña de acceso</mat-error>
+        }
+      </mat-form-field>
 
-    <mat-card-actions class="card-actions">
-      <a mat-button routerLink="/login">Volver al inicio de sesión</a>
-    </mat-card-actions>
-  </mat-card>
+      <p class="login-hint">
+        Usa la contraseña que te proporcionó tu doctor.
+      </p>
+
+      @if (error()) {
+        <mat-error class="error-message">{{ error() }}</mat-error>
+      }
+
+      <button
+        mat-unelevated-button
+        class="btn-primary login-submit-btn"
+        type="submit"
+        [disabled]="loading()"
+      >
+        @if (loading()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Entrar
+        }
+      </button>
+    </form>
+  </div>
 </div>

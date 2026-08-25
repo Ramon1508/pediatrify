@@ -19,6 +19,7 @@ export interface ConfirmOptions {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  confirmClass?: string;
   type?: AlertType;
 }
 

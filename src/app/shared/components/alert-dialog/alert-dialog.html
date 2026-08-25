@@ -6,9 +6,9 @@
 
 <div class="dialog-actions">
   <button mat-button class="btn-tertiary dialog-btn" [mat-dialog-close]="false">
-    {{ data.cancelText || 'Cancelar' }}
+    {{ data.cancelText || 'Cerrar' }}
   </button>
-  <button mat-unelevated-button class="btn-primary" [mat-dialog-close]="true">
+  <button mat-unelevated-button [class]="data.confirmClass || 'btn-primary dialog-btn'" [mat-dialog-close]="true">
     {{ data.confirmText || 'Aceptar' }}
   </button>
 </div>

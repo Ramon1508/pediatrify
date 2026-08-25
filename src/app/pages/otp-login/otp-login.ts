@@ -1,7 +1,7 @@
 import { Component, inject, signal, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,7 +18,7 @@ import { AuthService } from '../../core/services/auth.service';
   imports: [
     ReactiveFormsModule,
     RouterLink,
-    MatCardModule,
+    NgOptimizedImage,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
@@ -55,7 +55,7 @@ export class OtpLogin {
 
     try {
       await this.authService.loginPatient(this.form.value.email!, this.form.value.password!);
-      this.router.navigate(['/otp-dashboard']);
+      this.router.navigate(['/paciente/calendario']);
     } catch (e: any) {
       this.error.set(e.message || 'Error al verificar credenciales');
     } finally {
