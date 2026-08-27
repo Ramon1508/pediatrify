@@ -227,6 +227,8 @@ export class Patients implements OnInit, OnDestroy {
   async cancelAppointment(appt: Appointment) {
     const dialogRef = this.dialog.open(ConfirmDialog, {
       panelClass: 'context-card-panel',
+      width: '100%',
+      maxWidth: '552px',
       data: {
         title: 'Cancelar consulta',
         message: 'Al cancelar una consulta el padre o tutor del paciente recibirá una notificación de la cancelación y podrá seleccionar un nuevo día y horario para la consulta si así lo desea.',
@@ -296,6 +298,8 @@ export class Patients implements OnInit, OnDestroy {
   async deletePatient(patient: Patient) {
     const dialogRef = this.dialog.open(ConfirmDialog, {
       panelClass: 'context-card-panel',
+      width: '552px',
+      maxWidth: '552px',
       data: {
         title: 'Eliminar paciente',
         message: 'Al eliminar un paciente, su historial también será eliminado, además, los padres o tutores asociados a él, perderán acceso a la plataforma a menos que otro paciente esté asociado a ellos.',

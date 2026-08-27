@@ -366,6 +366,8 @@ export class PatientHistory implements OnInit, OnDestroy {
       timeSegmentsByDay: availability.timeSegmentsByDay,
       consultationDuration,
       existingAppointments: [],
+      doctorName: doctor.name,
+      doctorEmail: doctor.email,
     });
     dialogRef.componentInstance.lockPatient(patientId);
     dialogRef.afterClosed().subscribe((result) => {
@@ -447,6 +449,8 @@ export class PatientHistory implements OnInit, OnDestroy {
   protected async deletePatient(patient: Patient) {
     const dialogRef = this.dialog.open(ConfirmDialog, {
       panelClass: 'context-card-panel',
+      width: '552px',
+      maxWidth: '552px',
       data: {
         title: 'Eliminar paciente',
         message: 'Al eliminar un paciente, su historial también será eliminado, además, los padres o tutores asociados a él, perderán acceso a la plataforma a menos que otro paciente esté asociado a ellos.',

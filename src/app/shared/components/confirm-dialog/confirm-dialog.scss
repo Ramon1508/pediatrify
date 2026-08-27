@@ -4,6 +4,7 @@
   border: 2px solid #0D6E8F;
   padding: 24px;
   border-radius: 12px;
+  box-sizing: border-box;
 }
 
 ::ng-deep .mat-mdc-dialog-surface {
@@ -41,6 +42,16 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+
+  .btn-tertiary {
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+  }
+
+  button {
+    padding: 10px 16px !important;
+    border-radius: 12px;
+  }
 }
 
 @media (max-width: 320px) {

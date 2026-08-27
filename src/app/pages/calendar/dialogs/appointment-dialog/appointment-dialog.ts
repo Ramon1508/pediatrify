@@ -286,7 +286,9 @@ export class AppointmentDialog {
       const doctorId = this.selectedDoctorId || targetDoctor?.uid || '';
       const doctorName = this.dialogDoctorName || targetDoctor?.name || '';
       const doctorEmail = this.dialogDoctorEmail || targetDoctor?.email || '';
-      const { patientId, date: rawDate, time, notes } = this.form.value;
+      // getRawValue() incluye controles deshabilitados: al usar lockPatient (paciente read-only)
+      // el `patientId` está deshabilitado y `form.value` lo omitiría (rompería el guardado).
+      const { patientId, date: rawDate, time, notes } = this.form.getRawValue();
       const date = this.toDateStr(rawDate);
       const patient = this.allPatients.find((p) => p.id === patientId);
       if (!doctorId || !patient) return;
