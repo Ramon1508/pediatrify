@@ -18,7 +18,10 @@ describe('SettingsDialog', () => {
   const defaultData: SettingsData = {
     consultationDuration: 30,
     allowPatientScheduling: false,
-    timeSegments: [{ startTime: '08:00', endTime: '14:00' }],
+    timeSegmentsByDay: {
+      Lun: [{ startTime: '08:00', endTime: '14:00' }],
+      Mar: [{ startTime: '09:00', endTime: '13:00' }],
+    },
     availableDays: ['Lun', 'Mar'],
     doctorId: 'd1',
     doctorEmail: 'test@mail.com',
@@ -72,12 +75,14 @@ describe('SettingsDialog', () => {
     expect(el.textContent).toContain('Mar');
   });
 
-  it('toggles day on chip click', () => {
+  it('selects a day on chip click (single-select)', () => {
     const { component } = createFixture();
-    component.toggleDay('Lun');
-    expect(component.availableDays).not.toContain('Lun');
-    component.toggleDay('Lun');
-    expect(component.availableDays).toContain('Lun');
+    expect(component.selectedDay).toBe('Lun');
+    component.toggleDay('Mar');
+    expect(component.selectedDay).toBe('Mar');
+    component.toggleDay('Vie');
+    expect(component.selectedDay).toBe('Vie');
+    expect(component.isConfigured('Vie')).toBe(true);
   });
 
   it('adds a time segment', () => {

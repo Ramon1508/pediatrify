@@ -12,6 +12,7 @@ import { Header } from '../../shared/components/header/header';
 import { FileUpload, UploadResult } from '../../shared/components/file-upload/file-upload';
 import { AuthService } from '../../core/services/auth.service';
 import { InvitationRepository } from '../../core/repositories/invitation.repository';
+import { PrintSettingsRepository } from '../../core/repositories/print-settings.repository';
 import { AlertService } from '../../core/services/alert.service';
 import { UserRole } from '../../core/models/user';
 import { Sexo } from '../../core/models/sexo';
@@ -38,6 +39,7 @@ import { Sexo } from '../../core/models/sexo';
 export class SetupProfile implements OnInit {
   private authService = inject(AuthService);
   private invitationRepo = inject(InvitationRepository);
+  private printSettingsRepo = inject(PrintSettingsRepository);
   private alert = inject(AlertService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -198,6 +200,13 @@ export class SetupProfile implements OnInit {
           },
           password
         );
+      }
+
+      // Logo por defecto = "precargado". Si se subió foto, usamos la propia (false); si no, default (true).
+      const targetUid = this.mode() === 'invitation' ? this.pendingUid : this.authService.currentDoctor?.uid;
+      if (targetUid) {
+        const ps = await this.printSettingsRepo.getSettings(targetUid);
+        await this.printSettingsRepo.updateSettings(targetUid, { ...ps, usePreloadedLogo: !this.logoPath() });
       }
 
       this.router.navigate(['/login'], { queryParams: { registered: 'true' } });

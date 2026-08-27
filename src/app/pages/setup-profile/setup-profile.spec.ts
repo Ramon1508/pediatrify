@@ -4,6 +4,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SetupProfile } from './setup-profile';
 import { AuthService } from '../../core/services/auth.service';
 import { InvitationRepository } from '../../core/repositories/invitation.repository';
+import { PrintSettingsRepository } from '../../core/repositories/print-settings.repository';
 import { AlertService } from '../../core/services/alert.service';
 import { MatDialog } from '@angular/material/dialog';
 import { Sexo } from '../../core/models/sexo';
@@ -33,6 +34,7 @@ describe('SetupProfile', () => {
         { provide: AlertService, useValue: alertSpy },
         { provide: Router, useValue: routerSpy },
         { provide: InvitationRepository, useValue: invitationSpy },
+        { provide: PrintSettingsRepository, useValue: { getSettings: vi.fn().mockResolvedValue({ usePreloadedLogo: true }), updateSettings: vi.fn().mockResolvedValue(undefined) } },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         {
           provide: ActivatedRoute,
@@ -212,6 +214,7 @@ describe('SetupProfile invitation by role', () => {
         { provide: AlertService, useValue: alertSpy },
         { provide: Router, useValue: routerSpy },
         { provide: InvitationRepository, useValue: invitationSpy },
+        { provide: PrintSettingsRepository, useValue: { getSettings: vi.fn().mockResolvedValue({ usePreloadedLogo: true }), updateSettings: vi.fn().mockResolvedValue(undefined) } },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         {
           provide: ActivatedRoute,

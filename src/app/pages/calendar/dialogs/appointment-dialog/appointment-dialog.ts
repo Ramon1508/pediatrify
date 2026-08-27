@@ -55,7 +55,7 @@ export class AppointmentDialog {
   protected allPatients: Patient[] = [];
   protected selectedDoctorId = '';
   protected editingAppointment: Appointment | null = null;
-  protected timeSegments: TimeSegment[] = [];
+  protected timeSegmentsByDay: Record<string, TimeSegment[]> = {};
   protected consultationDuration = 30;
   protected timeSlots: string[] = [];
   protected error = '';
@@ -103,7 +103,7 @@ export class AppointmentDialog {
     allPatients: Patient[];
     selectedDoctorId: string;
     editingAppointment?: Appointment | null;
-    timeSegments?: TimeSegment[];
+    timeSegmentsByDay?: Record<string, TimeSegment[]>;
     consultationDuration?: number;
     existingAppointments?: Appointment[];
     doctorName?: string;
@@ -116,7 +116,7 @@ export class AppointmentDialog {
     this.filteredPatients = data.allPatients;
     this.selectedDoctorId = data.selectedDoctorId;
     this.editingAppointment = data.editingAppointment ?? null;
-    this.timeSegments = data.timeSegments ?? [];
+    this.timeSegmentsByDay = data.timeSegmentsByDay ?? {};
     this.consultationDuration = data.consultationDuration ?? 30;
     this.existingAppointments = data.existingAppointments ?? [];
     this.dialogDoctorName = data.doctorName ?? '';
@@ -139,10 +139,12 @@ export class AppointmentDialog {
       this.patientSearchControl.setValue((patient || '') as any);
     }
 
+    this.computeTimeSlots();
     this.patientSearchControl.valueChanges.subscribe((val) => this.filterPatients(val || ''));
     this.setupOverlapDetection();
 
     this.form.get('date')?.valueChanges.subscribe(() => {
+      this.computeTimeSlots();
       const time = this.form.get('time')?.value;
       if (time && this.patientScheduling && !this.availableTimes.includes(time)) {
         this.form.patchValue({ time: '' });
@@ -177,6 +179,8 @@ export class AppointmentDialog {
   setPrefill(date: string, time: string) {
     this.form.patchValue({ date: dateStringToLocalDate(date), time });
     this.form.markAsDirty();
+    this.computeTimeSlots();
+    this.cdr.markForCheck();
   }
 
   /** Preselecciona al paciente y lo deja read-only (desde el perfil de un paciente). */
@@ -190,14 +194,29 @@ export class AppointmentDialog {
     this.cdr.markForCheck();
   }
 
+  /** Segmentos del día de la semana de la fecha elegida. */
+  private segmentsForSelectedDate(): TimeSegment[] {
+    const dateVal = this.form.get('date')?.value;
+    if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
+      const day = this.weekdayShort(dateVal);
+      if (this.timeSegmentsByDay[day]?.length) return this.timeSegmentsByDay[day];
+    } else if (typeof dateVal === 'string' && dateVal) {
+      const day = this.weekdayShort(dateStringToLocalDate(dateVal));
+      if (this.timeSegmentsByDay[day]?.length) return this.timeSegmentsByDay[day];
+    }
+    const first = Object.keys(this.timeSegmentsByDay)[0];
+    return first ? this.timeSegmentsByDay[first] : [];
+  }
+
   private computeTimeSlots() {
-    if (!this.timeSegments.length) {
+    const segs = this.segmentsForSelectedDate();
+    if (!segs.length) {
       this.timeSlots = [];
       return;
     }
     const duration = this.consultationDuration;
     const slots: string[] = [];
-    for (const seg of this.timeSegments) {
+    for (const seg of segs) {
       const [sh, sm] = seg.startTime.split(':').map(Number);
       let [eh, em] = seg.endTime.split(':').map(Number);
       if (eh === 0 && em === 0) eh = 24;

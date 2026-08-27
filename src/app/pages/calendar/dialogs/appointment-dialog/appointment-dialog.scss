@@ -2,6 +2,16 @@
   width: 100%;
 }
 
+.patient-search {
+  display: block;
+  margin-bottom: 0;
+}
+
+.search-suffix {
+  color: #49454f;
+  cursor: pointer;
+}
+
 .btn-add-patient {
   background: none;
   border: none;
@@ -14,7 +24,7 @@
   padding: 10px 12px;
   cursor: pointer;
   display: block;
-  margin: 0 0 16px auto;
+  margin: 4px 0 16px auto;
 
   &:hover {
     text-decoration: underline;

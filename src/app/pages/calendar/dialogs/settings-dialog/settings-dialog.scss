@@ -48,10 +48,25 @@
   line-height: 20px;
   letter-spacing: 0.1px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 
   &.active {
     background: #0d6e8f;
     color: #ffffff;
+  }
+
+  &.configured {
+    background: #e7f2f7;
+  }
+
+  .day-check {
+    color: #ffffff;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
   }
 }
 

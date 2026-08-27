@@ -30,6 +30,7 @@ import { PatientHistoryCard } from './components/patient-history-card/patient-hi
 import { GrowthCharts } from './components/growth-charts/growth-charts';
 import { FirebaseService } from '../../core/firebase/firebase.service';
 import { resolveLogoUrl } from '../../core/utils/logo-utils';
+import { buildAvailabilityFromUser } from '../../core/utils/availability';
 
 function calcAge(birthDate: unknown): string {
   let d: Date | null = null;
@@ -152,18 +153,21 @@ export class PatientHistory implements OnInit, OnDestroy {
     if (!this.patientId) return;
 
     this.subs.push(
-      this.clinicalRepo.watchByPatient(this.patientId).subscribe((items) => {
-        const prevCount = this.records().length;
-        const sorted = [...items].sort((a, b) => b.date.localeCompare(a.date));
-        this.records.set(sorted);
-        if (sorted.length > 0) {
-          const current = this.selectedRecordId();
-          if (items.length > prevCount && prevCount > 0) {
-            this.selectedRecordId.set(sorted[0].id);
-          } else if (!current || !sorted.find((r) => r.id === current)) {
-            this.selectedRecordId.set(sorted[0].id);
+      this.clinicalRepo.watchByPatient(this.patientId).subscribe({
+        next: (items) => {
+          const prevCount = this.records().length;
+          const sorted = [...items].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+          this.records.set(sorted);
+          if (sorted.length > 0) {
+            const current = this.selectedRecordId();
+            if (items.length > prevCount && prevCount > 0) {
+              this.selectedRecordId.set(sorted[0].id);
+            } else if (!current || !sorted.find((r) => r.id === current)) {
+              this.selectedRecordId.set(sorted[0].id);
+            }
           }
-        }
+        },
+        error: (e) => console.error('watchByPatient error:', e),
       })
     );
 
@@ -218,8 +222,8 @@ export class PatientHistory implements OnInit, OnDestroy {
     const settings = await this.printRepo.getSettings(doctor.uid);
     const dim = getPaperDimensions(settings.paperSize, settings.customWidth, settings.customHeight, settings.orientation);
     const logoSource = settings.usePreloadedLogo
-      ? (doctor.logoPath || '/images/Logo.jpg')
-      : (settings.logoUrl || doctor.logoPath || '/images/Logo.jpg');
+      ? '/images/Logo.jpg'
+      : (doctor.logoPath || '/images/Logo.jpg');
     const logoUrl = await resolveLogoUrl(this.firebase.storage, logoSource);
     const prefix = doctor.sexo === Sexo.Femenino ? 'DRA.' : 'DR.';
 
@@ -346,10 +350,8 @@ export class PatientHistory implements OnInit, OnDestroy {
     const doctor = this.authService.currentDoctor;
     if (!doctor) return;
 
-    const doctorUser = await this.userRepo.getUser(doctor.uid);
-    const timeSegments = doctorUser?.timeSegments?.length
-      ? doctorUser.timeSegments
-      : [{ startTime: '06:00', endTime: '00:00' }];
+    const doctorUser = (await this.userRepo.getUser(doctor.uid)) as any;
+    const availability = buildAvailabilityFromUser(doctorUser);
     const consultationDuration = doctorUser?.consultationDuration ?? 30;
 
     const dialogRef = this.dialog.open(AppointmentDialog, {
@@ -361,7 +363,7 @@ export class PatientHistory implements OnInit, OnDestroy {
       allPatients,
       selectedDoctorId: doctor.uid,
       editingAppointment: null,
-      timeSegments,
+      timeSegmentsByDay: availability.timeSegmentsByDay,
       consultationDuration,
       existingAppointments: [],
     });

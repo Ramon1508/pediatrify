@@ -131,8 +131,8 @@
             @if (isEditing()) {
               @if (!settings().usePreloadedLogo) {
                 <div class="logo-upload-area" (click)="logoInput.click()" (keydown.enter)="logoInput.click()" tabindex="0" role="button" aria-label="Subir logo">
-                  @if (settings().logoUrl) {
-                    <img [src]="settings().logoUrl" class="logo-preview" alt="Logo preview" />
+                  @if (pendingLogoUrl()) {
+                    <img [src]="pendingLogoUrl()" class="logo-preview" alt="Logo preview" />
                     <br />
                     <button mat-button color="warn" (click)="$event.stopPropagation(); removeLogo()" type="button">Eliminar</button>
                   } @else {
@@ -144,9 +144,9 @@
                 </div>
               }
             } @else {
-              @if (!settings().usePreloadedLogo && settings().logoUrl) {
+              @if (settings().usePreloadedLogo) {
                 <div class="form-row">
-                  <img [src]="settings().logoUrl" class="view-logo-preview" alt="Logo actual" />
+                  <img [src]="logoUrl()" class="view-logo-preview" alt="Logo actual" />
                 </div>
               }
             }

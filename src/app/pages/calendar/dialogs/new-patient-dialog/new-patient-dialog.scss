@@ -1,3 +1,24 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+:host mat-dialog-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+:host mat-dialog-actions {
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
 .panel-subtitle {
   font-family: Roboto, sans-serif;
   font-weight: 400;

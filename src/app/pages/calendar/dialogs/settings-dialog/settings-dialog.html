@@ -26,14 +26,19 @@
 
     <div class="availability-section">
       <div class="availability-title">Horarios disponibles</div>
-      <div class="availability-subtitle">Agrega los segmentos en los que tus pacientes podrán agendar sus consultas.</div>
+      <div class="availability-subtitle">Selecciona un día y configura los horarios en los que tus pacientes podrán agendar sus consultas. Cada día puede tener horarios diferentes.</div>
       <div class="day-chips">
         @for (day of dayNamesShort; track day) {
-          <button type="button" class="chip-day" [class.active]="availableDays.includes(day)" (click)="toggleDay(day)">{{ day }}</button>
+          <button type="button" class="chip-day" [class.active]="selectedDay === day" [class.configured]="isConfigured(day) && selectedDay !== day" (click)="toggleDay(day)">
+            @if (isConfigured(day) || selectedDay === day) {
+              <mat-icon class="day-check">check</mat-icon>
+            }
+            {{ day }}
+          </button>
         }
       </div>
       <div class="segments-header">
-        <span class="segments-title">Segmentos de horario</span>
+        <span class="segments-title">Segmentos de horario — {{ selectedDay }}</span>
       </div>
       <div formArrayName="timeSegments" class="segments-list">
         @for (seg of timeSegments.controls; track $index) {

@@ -27,6 +27,7 @@ export interface AppUser {
   startTime?: string;
   endTime?: string;
   timeSegments?: TimeSegment[];
+  timeSegmentsByDay?: Record<string, TimeSegment[]>;
   printSettings?: PrintSettings;
   createdBy?: string;
   createdAt?: Timestamp;

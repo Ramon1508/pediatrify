@@ -17,6 +17,8 @@ import { DEFAULT_LOGO_URL } from '../../core/config/brand';
 import { Sexo } from '../../core/models/sexo';
 import { FirebaseService } from '../../core/firebase/firebase.service';
 import { resolveLogoUrl } from '../../core/utils/logo-utils';
+import { UserRepository } from '../../core/repositories/user.repository';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 @Component({
   selector: 'app-impresion',
@@ -40,6 +42,7 @@ import { resolveLogoUrl } from '../../core/utils/logo-utils';
 export class Impresion implements OnInit {
   private repo = inject(PrintSettingsRepository);
   private auth = inject(AuthService);
+  private userRepo = inject(UserRepository);
   private snackBar = inject(MatSnackBar);
   private firebase = inject(FirebaseService);
   private defaultLogo = inject(DEFAULT_LOGO_URL);
@@ -48,6 +51,8 @@ export class Impresion implements OnInit {
   protected settings = signal<PrintSettings>(getDefaultSettings());
   protected savedSettings = signal<PrintSettings>(getDefaultSettings());
   protected isEditing = signal(false);
+  protected pendingLogoPath = '';
+  protected pendingLogoUrl = signal('');
   protected saving = signal(false);
   protected loading = signal(true);
 
@@ -92,7 +97,7 @@ export class Impresion implements OnInit {
 
   updateSetting(key: keyof PrintSettings, value: any) {
     this.settings.update((s) => ({ ...s, [key]: value }));
-    if (key === 'logoUrl' || key === 'usePreloadedLogo') {
+    if (key === 'usePreloadedLogo') {
       this.refreshLogoUrl();
     }
   }
@@ -104,14 +109,27 @@ export class Impresion implements OnInit {
     this.saving.set(true);
     try {
       const current = this.settings();
+      const logoPath = this.pendingLogoPath || this.doctor?.logoPath || '';
+      // Logo por defecto = "precargado". Sin logo → default (true); con logo → respeta el checkbox.
+      const usePreloadedLogo = logoPath ? current.usePreloadedLogo : true;
+
+      if (logoPath) {
+        await this.userRepo.updateUser(doctor.uid, { logoPath });
+      }
+
       const { customWidth, customHeight, logoUrl, ...rest } = current;
       const cleaned: PrintSettings = {
         ...rest,
+        usePreloadedLogo,
         ...(current.paperSize === 'custom' ? { customWidth, customHeight } : {}),
-        ...(current.logoUrl ? { logoUrl } : {}),
       };
       await this.repo.updateSettings(doctor.uid, cleaned);
-      this.savedSettings.set(structuredClone(current));
+      if (doctor) {
+        this.doctor = { ...doctor, logoPath: logoPath || undefined };
+      }
+      this.pendingLogoPath = '';
+      this.pendingLogoUrl.set('');
+      this.savedSettings.set(structuredClone(cleaned));
       this.isEditing.set(false);
       this.snackBar.open('Configuración guardada correctamente', 'Cerrar', { duration: 5000 });
     } catch {
@@ -126,7 +144,7 @@ export class Impresion implements OnInit {
     this.isEditing.set(false);
   }
 
-  onLogoSelected(event: Event) {
+  async onLogoSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
 
@@ -144,17 +162,27 @@ export class Impresion implements OnInit {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.settings.update((s) => ({ ...s, logoUrl: reader.result as string }));
-      this.refreshLogoUrl();
-    };
-    reader.readAsDataURL(file);
+    const doctor = this.auth.currentDoctor;
+    if (!doctor) return;
+
+    const bucket = `logos/${doctor.uid}/${file.name}`;
+    try {
+      const storageRef = ref(this.firebase.storage, bucket);
+      const snap = await uploadBytes(storageRef, file, { contentType: file.type });
+      const url = await getDownloadURL(snap.ref);
+      this.pendingLogoPath = bucket;
+      this.pendingLogoUrl.set(url);
+      await this.refreshLogoUrl();
+    } catch {
+      this.snackBar.open('Error al subir el logo', 'Cerrar', { duration: 5000 });
+    }
     input.value = '';
   }
 
   removeLogo() {
-    this.settings.update((s) => ({ ...s, logoUrl: undefined, usePreloadedLogo: false }));
+    this.pendingLogoPath = '';
+    this.pendingLogoUrl.set('');
+    this.settings.update((s) => ({ ...s, usePreloadedLogo: true }));
     this.refreshLogoUrl();
   }
 
@@ -162,10 +190,7 @@ export class Impresion implements OnInit {
 
   private logoSource(): string {
     const s = this.settings();
-    if (s.usePreloadedLogo) {
-      return this.doctor?.logoPath || this.defaultLogo;
-    }
-    return s.logoUrl || this.doctor?.logoPath || this.defaultLogo;
+    return s.usePreloadedLogo ? this.defaultLogo : (this.doctor?.logoPath || this.defaultLogo);
   }
 
   private async refreshLogoUrl() {

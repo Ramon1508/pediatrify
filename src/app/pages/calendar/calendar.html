@@ -40,7 +40,29 @@
   </div>
 
   <div class="calendar-scroll">
-    @if (availableDaysSignal().length) {
+    @if (configLoading()) {
+      <div class="calendar-skeleton" aria-busy="true" aria-label="Cargando horario">
+        <div class="skeleton-header">
+          <div class="skeleton-corner"></div>
+          @for (d of [1, 2, 3, 4, 5, 6, 7]; track d) {
+            <div class="skeleton-day">
+              <div class="skeleton-bar w-24"></div>
+              <div class="skeleton-bar w-16"></div>
+            </div>
+          }
+        </div>
+        <div class="skeleton-body">
+          @for (r of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; track r) {
+            <div class="skeleton-row">
+              <div class="skeleton-time"><div class="skeleton-bar w-40"></div></div>
+              @for (c of [1, 2, 3, 4, 5, 6, 7]; track c) {
+                <div class="skeleton-cell"></div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    } @else if (availableDaysSignal().length) {
       <div class="calendar-grid-header" [style.grid-template-columns]="gridTemplateColumns">
         <div class="grid-cell corner-cell"></div>
 
@@ -66,9 +88,9 @@
               [class.today-cell]="cell.isToday"
               [class.current-hour]="cell.isCurrentHour"
               [class.disabled-cell]="!cell.isAvailable || cell.isTaken"
-              (mouseenter)="cell.canInteract && !cell.isTaken && onCellHover(cell.day, cell.slot)"
+              (mouseenter)="cell.canInteract && cell.isAvailable && !cell.isTaken && onCellHover(cell.day, cell.slot)"
               (mouseleave)="onCellLeave()"
-              (click)="cell.canInteract && !cell.isTaken && openNewAppointment(cell.day, cell.slot)"
+              (click)="cell.canInteract && cell.isAvailable && !cell.isTaken && openNewAppointment(cell.day, cell.slot)"
             >
               @for (apt of cell.appointments; track apt.id) {
                 <button type="button" class="appointment-block"
@@ -81,7 +103,7 @@
                   {{ apt.patientName }}
                 </button>
               }
-              @if (cell.canInteract && !cell.isTaken && !cell.appointments.length && cell.isHovered) {
+              @if (cell.canInteract && cell.isAvailable && !cell.isTaken && !cell.appointments.length && cell.isHovered) {
                 <button class="add-btn" mat-icon-button>
                   <mat-icon>add</mat-icon>
                 </button>

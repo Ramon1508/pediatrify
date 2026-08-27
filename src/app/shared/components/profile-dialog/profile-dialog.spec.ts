@@ -4,6 +4,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { ProfileDialog } from './profile-dialog';
 import { UserRepository } from '../../../core/repositories/user.repository';
+import { PrintSettingsRepository } from '../../../core/repositories/print-settings.repository';
 import { AuthService } from '../../../core/services/auth.service';
 import { AlertService } from '../../../core/services/alert.service';
 import { FirebaseService } from '../../../core/firebase/firebase.service';
@@ -33,6 +34,7 @@ describe('ProfileDialog', () => {
 
   function createFixture(doctor: AppUser = mockDoctor) {
     const userRepo = { updateUser: vi.fn().mockResolvedValue(undefined) };
+    const printSettingsRepo = { getSettings: vi.fn().mockResolvedValue({ usePreloadedLogo: true }), updateSettings: vi.fn().mockResolvedValue(undefined) };
     const alertService = { success: vi.fn(), error: vi.fn() };
     const authService = { currentDoctor: doctor, logout: vi.fn() };
     const dialogRef = { close: vi.fn() };
@@ -43,6 +45,7 @@ describe('ProfileDialog', () => {
       imports: [ProfileDialog, NoopAnimationsModule],
       providers: [
         { provide: UserRepository, useValue: userRepo },
+        { provide: PrintSettingsRepository, useValue: printSettingsRepo },
         { provide: AuthService, useValue: authService },
         { provide: AlertService, useValue: alertService },
         { provide: MatDialogRef, useValue: dialogRef },

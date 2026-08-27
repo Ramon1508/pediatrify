@@ -51,7 +51,7 @@ describe('AppointmentDialog', () => {
   });
 
   it('renders title when creating', () => {
-    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegments: [{ startTime: '09:00', endTime: '17:00' }], consultationDuration: 30 });
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: { Lun: [{ startTime: '09:00', endTime: '17:00' }] }, consultationDuration: 30 });
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Agendar una consulta');
@@ -62,7 +62,7 @@ describe('AppointmentDialog', () => {
       allPatients: mockPatients,
       selectedDoctorId: 'd1',
       editingAppointment: { id: 'a1', patientId: 'p1', patientName: 'Juan Pérez', date: '2026-07-01', time: '10:00', doctorId: 'd1', notes: 'Test' } as any,
-      timeSegments: [{ startTime: '09:00', endTime: '17:00' }],
+      timeSegmentsByDay: { Lun: [{ startTime: '09:00', endTime: '17:00' }] },
       consultationDuration: 30,
     });
     fixture.detectChanges();
@@ -81,7 +81,7 @@ describe('AppointmentDialog', () => {
     const aptRepo = TestBed.inject(AppointmentRepository);
     (aptRepo.createAppointment as any).mockResolvedValue(undefined);
 
-    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegments: [{ startTime: '09:00', endTime: '17:00' }], consultationDuration: 30 });
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: { Lun: [{ startTime: '09:00', endTime: '17:00' }] }, consultationDuration: 30 });
     (component as any).form.patchValue({ patientId: 'p1', date: '2026-07-15', time: '10:00', notes: '' });
     (component as any).form.markAsDirty();
     fixture.detectChanges();
@@ -94,7 +94,7 @@ describe('AppointmentDialog', () => {
   });
 
   it('shows the embedded new patient form instead of a stacked dialog', () => {
-    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegments: [{ startTime: '09:00', endTime: '17:00' }], consultationDuration: 30 });
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: { Lun: [{ startTime: '09:00', endTime: '17:00' }] }, consultationDuration: 30 });
     fixture.detectChanges();
 
     const addBtn = Array.from(fixture.nativeElement.querySelectorAll('button')).find(
@@ -113,7 +113,7 @@ describe('AppointmentDialog', () => {
   });
 
   it('returns to the appointment form from the embedded new patient view', async () => {
-    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegments: [{ startTime: '09:00', endTime: '17:00' }], consultationDuration: 30 });
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: { Lun: [{ startTime: '09:00', endTime: '17:00' }] }, consultationDuration: 30 });
     fixture.detectChanges();
 
     (component as any).showNewPatient.set(true);
@@ -131,7 +131,7 @@ describe('AppointmentDialog', () => {
     const patientRepo = TestBed.inject(PatientRepository);
     (patientRepo.getAllPatients as any).mockResolvedValue([...mockPatients, { id: 'p2', name: 'Ana', lastName: 'López', email: 'ana@test.com', phone: '5599999999', fatherName: 'Luis', motherName: 'Lucía', birthDate: '2021-05-10', otpPassword: 'XYZ789' }]);
 
-    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegments: [{ startTime: '09:00', endTime: '17:00' }], consultationDuration: 30 });
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: { Lun: [{ startTime: '09:00', endTime: '17:00' }] }, consultationDuration: 30 });
     fixture.detectChanges();
 
     const newPatient = { id: 'p2', name: 'Ana', lastName: 'López' };

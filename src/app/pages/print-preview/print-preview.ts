@@ -105,10 +105,7 @@ export class PrintPreview implements OnInit {
 
   private logoSource(): string {
     const s = this.settings();
-    if (s.usePreloadedLogo) {
-      return this.doctor?.logoPath || this.defaultLogo;
-    }
-    return s.logoUrl || this.doctor?.logoPath || this.defaultLogo;
+    return s.usePreloadedLogo ? this.defaultLogo : (this.doctor?.logoPath || this.defaultLogo);
   }
 
   private async refreshLogoUrl() {

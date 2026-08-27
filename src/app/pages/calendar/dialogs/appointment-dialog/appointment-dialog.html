@@ -8,14 +8,16 @@
 
   <mat-dialog-content>
     <form [formGroup]="form">
-      <mat-form-field appearance="outline" class="full-width">
+      <mat-form-field appearance="outline" class="full-width patient-search">
         <mat-label>Buscar paciente</mat-label>
         <input
           matInput
+          #patientInput
           [matAutocomplete]="auto"
           [formControl]="patientSearchControl"
           (focus)="onPatientSearchFocus()"
         />
+        <mat-icon matSuffix class="search-suffix" (mousedown)="$event.preventDefault(); patientInput.focus()">arrow_drop_down</mat-icon>
         <mat-autocomplete
           #auto="matAutocomplete"
           [displayWith]="displayPatientFn"
@@ -49,7 +51,6 @@
         />
         <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
         <mat-datepicker #dp></mat-datepicker>
-        <mat-hint>DD/MM/AAAA</mat-hint>
         @if (form.get('date')?.invalid && (form.get('date')?.touched || submitted)) {
           <mat-error>Selecciona un día</mat-error>
         }

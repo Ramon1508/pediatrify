@@ -16,6 +16,7 @@ import { UserRepository } from '../../../core/repositories/user.repository';
 import { Sexo, SexoLabel } from '../../../core/models/sexo';
 import { AppUser } from '../../../core/models/user';
 import { FirebaseService } from '../../../core/firebase/firebase.service';
+import { PrintSettingsRepository } from '../../../core/repositories/print-settings.repository';
 import { resolveLogoUrl } from '../../../core/utils/logo-utils';
 import { FileUpload, UploadResult } from '../file-upload/file-upload';
 
@@ -46,6 +47,7 @@ export class ProfileDialog {
   private authService = inject(AuthService);
   private alert = inject(AlertService);
   private userRepo = inject(UserRepository);
+  private printSettingsRepo = inject(PrintSettingsRepository);
   private firebase = inject(FirebaseService);
   private router = inject(Router);
 
@@ -182,8 +184,13 @@ export class ProfileDialog {
 
     try {
       let logoPath = this.doctor.logoPath ?? '';
+      let usePreloadedLogo: boolean | null = null;
       if (this.logoUpload !== undefined) {
+        // subir/reemplazar logo → usar el propio (false); eliminarlo → volver al default (true)
         logoPath = this.logoUpload ? this.logoUpload.path : '';
+        usePreloadedLogo = this.logoUpload ? false : true;
+      } else if (!logoPath) {
+        usePreloadedLogo = true;
       }
 
       const v = this.form.value;
@@ -198,6 +205,11 @@ export class ProfileDialog {
       };
       if (v.sexo != null) payload.sexo = v.sexo;
       await this.userRepo.updateUser(this.doctor.uid, payload);
+
+      if (usePreloadedLogo !== null) {
+        const ps = await this.printSettingsRepo.getSettings(this.doctor.uid);
+        await this.printSettingsRepo.updateSettings(this.doctor.uid, { ...ps, usePreloadedLogo });
+      }
 
       this.doctor = { ...this.doctor, ...this.form.value, logoPath } as AppUser;
       this.logoFileName = logoPath ? this.extractFileName(logoPath) : '';

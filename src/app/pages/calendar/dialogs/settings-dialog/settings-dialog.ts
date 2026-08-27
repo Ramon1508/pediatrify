@@ -20,11 +20,13 @@ import { normalizeEmail } from '../../../../core/utils/normalize-email';
 export interface SettingsData {
   consultationDuration: number;
   allowPatientScheduling: boolean;
-  timeSegments: { startTime: string; endTime: string }[];
+  timeSegmentsByDay: Record<string, TimeSegment[]>;
   availableDays: string[];
   doctorId: string;
   doctorEmail?: string;
 }
+
+const DEFAULT_EMPTY: TimeSegment[] = [{ startTime: '06:00', endTime: '00:00' }];
 
 @Component({
   selector: 'app-settings-dialog',
@@ -56,7 +58,8 @@ export class SettingsDialog {
 
   readonly dayNamesShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-  protected availableDays: string[] = [];
+  protected timeSegmentsByDay: Record<string, TimeSegment[]> = {};
+  protected selectedDay = '';
   protected saving = false;
 
   protected form = this.fb.group({
@@ -71,29 +74,61 @@ export class SettingsDialog {
   setData(data: SettingsData) {
     this.doctorId = data.doctorId;
     this.doctorEmail = data.doctorEmail ?? '';
-    this.availableDays = [...data.availableDays];
+    this.timeSegmentsByDay = { ...(data.timeSegmentsByDay ?? {}) };
+    // Compatibilidad: si el doc no tiene segmentos por día pero sí globales, los reparte a sus días.
+    if (Object.keys(this.timeSegmentsByDay).length === 0 && data.availableDays.length) {
+      const legacy = (data as any).legacyTimeSegments as TimeSegment[] | undefined;
+      const segs = legacy?.length ? legacy : DEFAULT_EMPTY;
+      for (const day of data.availableDays) {
+        this.timeSegmentsByDay[day] = segs.map((s) => ({ ...s }));
+      }
+    }
     this.form.patchValue({
       consultationDuration: data.consultationDuration,
       allowPatientScheduling: data.allowPatientScheduling,
     });
-    this.timeSegments.clear();
-    for (const seg of data.timeSegments) {
-      this.timeSegments.push(this.fb.group({ startTime: seg.startTime, endTime: seg.endTime }));
+    this.selectedDay = this.availableDaysList()[0] ?? this.dayNamesShort[0];
+    if (!this.timeSegmentsByDay[this.selectedDay]) {
+      this.timeSegmentsByDay[this.selectedDay] = DEFAULT_EMPTY.map((s) => ({ ...s }));
     }
+    this.applyDayToForm(this.selectedDay);
   }
 
   get timeSegments(): FormArray {
     return this.form.get('timeSegments') as FormArray;
   }
 
+  protected availableDaysList(): string[] {
+    return Object.keys(this.timeSegmentsByDay).filter((d) => this.timeSegmentsByDay[d]?.length);
+  }
+
+  protected isConfigured(day: string): boolean {
+    return !!this.timeSegmentsByDay[day]?.length;
+  }
+
   toggleDay(day: string) {
-    const idx = this.availableDays.indexOf(day);
-    if (idx >= 0) {
-      this.availableDays.splice(idx, 1);
-    } else {
-      this.availableDays.push(day);
+    this.syncSelectedDaySegments();
+    this.selectedDay = day;
+    if (!this.timeSegmentsByDay[day]?.length) {
+      this.timeSegmentsByDay[day] = DEFAULT_EMPTY.map((s) => ({ ...s }));
     }
+    this.applyDayToForm(day);
     this.cdr.markForCheck();
+  }
+
+  private syncSelectedDaySegments() {
+    if (!this.selectedDay) return;
+    this.timeSegmentsByDay[this.selectedDay] = this.timeSegments.controls.map((c) => ({
+      startTime: c.get('startTime')?.value ?? '06:00',
+      endTime: c.get('endTime')?.value ?? '00:00',
+    }));
+  }
+
+  private applyDayToForm(day: string) {
+    this.timeSegments.clear();
+    for (const seg of this.timeSegmentsByDay[day] ?? []) {
+      this.timeSegments.push(this.fb.group({ startTime: seg.startTime, endTime: seg.endTime }));
+    }
   }
 
   addSegment() {
@@ -109,10 +144,11 @@ export class SettingsDialog {
   }
 
   async save() {
+    this.syncSelectedDaySegments();
     this.saving = true;
     try {
       const raw = this.form.value;
-      const segments = (raw.timeSegments ?? []) as TimeSegment[];
+      const availableDays = this.availableDaysList();
       const currentUser = this.authService.currentDoctor;
 
       let targetUid = this.doctorId;
@@ -127,8 +163,9 @@ export class SettingsDialog {
       const updateData = {
         consultationDuration: raw.consultationDuration ?? 30,
         allowPatientScheduling: raw.allowPatientScheduling ?? false,
-        availableDays: this.availableDays,
-        timeSegments: segments,
+        availableDays,
+        timeSegmentsByDay: this.timeSegmentsByDay,
+        timeSegments: [],
         updatedAt: new Date(),
       };
       await setDoc(doc(this.firebase.firestore, 'users', targetUid), updateData, { merge: true });
@@ -144,13 +181,13 @@ export class SettingsDialog {
           consultationDuration: oldUser?.consultationDuration,
           allowPatientScheduling: oldUser?.allowPatientScheduling,
           availableDays: oldUser?.availableDays,
-          timeSegments: oldUser?.timeSegments,
+          timeSegmentsByDay: (oldUser as any)?.timeSegmentsByDay,
         },
         newValues: {
           consultationDuration: raw.consultationDuration,
           allowPatientScheduling: raw.allowPatientScheduling,
-          availableDays: this.availableDays,
-          timeSegments: segments,
+          availableDays,
+          timeSegmentsByDay: this.timeSegmentsByDay,
         },
       });
       this.alert.success({ message: 'Configuración guardada', duration: 5000 });

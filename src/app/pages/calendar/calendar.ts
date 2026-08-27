@@ -24,6 +24,7 @@ import { CalendarFocusService } from '../../core/services/calendar-focus.service
 import { AppointmentDetailCard } from '../../shared/components/appointment-detail-card/appointment-detail-card';
 import { AppointmentDialog } from './dialogs/appointment-dialog/appointment-dialog';
 import { SettingsDialog, SettingsData } from './dialogs/settings-dialog/settings-dialog';
+import { buildAvailabilityFromUser } from '../../core/utils/availability';
 
 import { Subscription, combineLatest } from 'rxjs';
 
@@ -33,6 +34,8 @@ export interface TimeSlot {
   label: string;
   key: string;
 }
+
+const DEFAULT_AVAILABILITY = buildAvailabilityFromUser({});
 
 @Component({
   selector: 'app-calendar',
@@ -113,10 +116,11 @@ export class Calendar implements OnInit, OnDestroy {
     timeSegments: this.fb.array<{ startTime: string; endTime: string }>([]),
   });
 
-  protected availableDaysSignal = signal<string[]>(['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']);
+  protected availableDaysSignal = signal<string[]>(DEFAULT_AVAILABILITY.availableDays);
 
-  protected timeSegmentsSignal = signal<TimeSegment[]>([{ startTime: '06:00', endTime: '00:00' }]);
+  protected timeSegmentsByDaySignal = signal<Record<string, TimeSegment[]>>(DEFAULT_AVAILABILITY.timeSegmentsByDay);
   protected consultationDurationSignal = signal(30);
+  protected configLoading = signal(true);
 
   protected selectedDay = signal<Date>(new Date());
   protected expandedAppointmentId = signal<string | null>(null);
@@ -151,7 +155,7 @@ export class Calendar implements OnInit, OnDestroy {
     const data: SettingsData = {
       consultationDuration: this.settingsForm.value.consultationDuration ?? 30,
       allowPatientScheduling: this.settingsForm.value.allowPatientScheduling ?? false,
-      timeSegments: (this.settingsForm.value.timeSegments ?? []) as TimeSegment[],
+      timeSegmentsByDay: this.timeSegmentsByDaySignal(),
       availableDays: this.availableDaysSignal(),
       doctorId: this.selectedDoctorId(),
       doctorEmail: selectedDoctor?.email ?? (isAssistant ? undefined : doctor?.email),
@@ -260,7 +264,7 @@ export class Calendar implements OnInit, OnDestroy {
           slot,
           isToday: this.isToday(day),
           isCurrentHour: this.isToday(day) && this.isCurrentHour(slot),
-          isAvailable: this.isDayAvailable(day),
+          isAvailable: this.isCellAvailable(day, slot),
           canInteract: this.canInteractWithCell(day),
           isTaken: this.isCellTaken(day, slot),
           appointments,
@@ -306,18 +310,20 @@ export class Calendar implements OnInit, OnDestroy {
   protected hoveredCell = signal<{ date: Date; slot: TimeSlot } | null>(null);
 
   protected timeSlots = computed(() => {
-    const segments = this.timeSegmentsSignal();
+    const byDay = this.timeSegmentsByDaySignal();
     const duration = this.consultationDurationSignal();
     const allAppts = this.allAppointments();
 
     let overallStart = 1440;
     let overallEnd = 0;
-    for (const seg of segments) {
-      const [sh, sm] = seg.startTime.split(':').map(Number);
-      let [eh, em] = seg.endTime.split(':').map(Number);
-      if (eh === 0 && em === 0) eh = 24;
-      overallStart = Math.min(overallStart, sh * 60 + sm);
-      overallEnd = Math.max(overallEnd, eh * 60 + em);
+    for (const day of Object.keys(byDay)) {
+      for (const seg of byDay[day] ?? []) {
+        const [sh, sm] = seg.startTime.split(':').map(Number);
+        let [eh, em] = seg.endTime.split(':').map(Number);
+        if (eh === 0 && em === 0) eh = 24;
+        overallStart = Math.min(overallStart, sh * 60 + sm);
+        overallEnd = Math.max(overallEnd, eh * 60 + em);
+      }
     }
     for (const apt of allAppts) {
       const [h, m] = apt.time.split(':').map(Number);
@@ -352,8 +358,29 @@ export class Calendar implements OnInit, OnDestroy {
     return this.dayNamesShort[idx === 0 ? 6 : idx - 1];
   }
 
+  private segmentsForDay(dayShort: string): TimeSegment[] {
+    return this.timeSegmentsByDaySignal()[dayShort] ?? [];
+  }
+
   protected isDayAvailable(date: Date): boolean {
-    return this.availableDaysSignal().includes(this.getDayShort(date));
+    return this.segmentsForDay(this.getDayShort(date)).length > 0;
+  }
+
+  private isSlotInSegments(dayShort: string, slotKey: string): boolean {
+    const [shh, smm] = slotKey.split(':').map(Number);
+    const t = shh * 60 + smm;
+    for (const seg of this.segmentsForDay(dayShort)) {
+      const [sh, sm] = seg.startTime.split(':').map(Number);
+      let [eh, em] = seg.endTime.split(':').map(Number);
+      if (eh === 0 && em === 0) eh = 24;
+      if (t >= sh * 60 + sm && t < eh * 60 + em) return true;
+    }
+    return false;
+  }
+
+  protected isCellAvailable(day: Date, slot: TimeSlot): boolean {
+    if (!this.isDayAvailable(day)) return false;
+    return this.isSlotInSegments(this.getDayShort(day), slot.key);
   }
 
   protected canInteractWithCell(date: Date): boolean {
@@ -425,23 +452,26 @@ export class Calendar implements OnInit, OnDestroy {
     this.doctorName = user?.name ?? '';
     this.doctorEmail = user?.email ?? '';
 
+    this.configLoading.set(true);
     if (user) {
       this.settingsForm.patchValue({
         consultationDuration: user.consultationDuration ?? 30,
         allowPatientScheduling: user.allowPatientScheduling ?? false,
       });
       this.consultationDurationSignal.set(user.consultationDuration ?? 30);
+
+      const availability = buildAvailabilityFromUser(user);
+      this.timeSegmentsByDaySignal.set(availability.timeSegmentsByDay);
+      this.availableDaysSignal.set(availability.availableDays);
+
       this.timeSegmentsFormArray.clear();
-      const oldDefault = user.timeSegments?.length === 1 && user.timeSegments[0].startTime === '08:00' && user.timeSegments[0].endTime === '17:00';
-      const segments = oldDefault ? [{ startTime: '06:00', endTime: '00:00' }] : (user.timeSegments?.length ? user.timeSegments : [{ startTime: '06:00', endTime: '00:00' }]);
-      for (const seg of segments) {
+      const firstDay = this.getDayShort(new Date());
+      const firstSegs = availability.timeSegmentsByDay[firstDay] ?? availability.timeSegmentsByDay[Object.keys(availability.timeSegmentsByDay)[0]] ?? [];
+      for (const seg of firstSegs) {
         this.timeSegmentsFormArray.push(this.fb.group({ startTime: seg.startTime, endTime: seg.endTime }));
       }
-      this.timeSegmentsSignal.set(segments);
-      if (user.availableDays?.length) {
-        this.availableDaysSignal.set(user.availableDays);
-      }
     }
+    this.configLoading.set(false);
     this.cdr.markForCheck();
   }
 
@@ -629,14 +659,13 @@ export class Calendar implements OnInit, OnDestroy {
       panelClass: 'right-panel',
     });
     const instance = dialogRef.componentInstance;
-    const segments = this.timeSegmentsSignal();
     const patient = this.patientMode ? this.authService.currentPatient : null;
     const patients = this.patientMode ? this.patientChildren() : this.allPatients;
 
     const baseData = {
       allPatients: patients,
       selectedDoctorId: this.patientMode ? (patient?.doctorId ?? this.selectedDoctorId()) : this.selectedDoctorId(),
-      timeSegments: segments,
+      timeSegmentsByDay: this.timeSegmentsByDaySignal(),
       consultationDuration: this.consultationDurationSignal(),
       existingAppointments: this.allAppointments(),
       doctorName: this.doctorName,
