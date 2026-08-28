@@ -1,5 +1,4 @@
 import { Component, inject, signal, computed, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,7 +15,7 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Patient, VaccineDose } from '../../../../core/models/user';
 import { Sexo, SexoLabel } from '../../../../core/models/sexo';
-import { dateStringToLocalDate } from '../../../../core/utils/date-utils';
+import { dateStringToLocalDate, dateToString, formatLocalDate } from '../../../../core/utils/date-utils';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
 
@@ -78,15 +77,6 @@ function hasDoseAt(vaccine: string, age: string): boolean {
   return (VACCINE_AGES[vaccine] ?? []).includes(age);
 }
 
-function toDateString(birthDate: unknown): string {
-  if (typeof birthDate === 'string') return birthDate.split('T')[0];
-  if (birthDate && typeof (birthDate as any).toDate === 'function') {
-    const d = (birthDate as any).toDate() as Date;
-    return d.toISOString().split('T')[0];
-  }
-  return '';
-}
-
 @Component({
   selector: 'app-edit-patient-dialog',
   templateUrl: './edit-patient-dialog.html',
@@ -95,7 +85,6 @@ function toDateString(birthDate: unknown): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
-    DatePipe,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,
@@ -198,6 +187,10 @@ export class EditPatientDialog {
     return this.patient?.sex ? SexoLabel[this.patient.sex] : '';
   }
 
+  protected formatCivilDate(value: unknown): string {
+    return formatLocalDate(value);
+  }
+
   setMode(mode: 'view' | 'edit') {
     if (!this.initialModeSet) {
       this.initialModeSet = true;
@@ -246,7 +239,7 @@ export class EditPatientDialog {
   setPatient(patient: Patient): void {
     this.patient = patient;
     const p = patient;
-    const dateStr = toDateString(p.birthDate);
+    const dateStr = dateToString(p.birthDate);
     this.form.patchValue({
       fullName: `${p.name} ${p.lastName}`.trim(),
       birthDate: dateStringToLocalDate(dateStr),
@@ -443,8 +436,7 @@ export class EditPatientDialog {
     const { name, lastName } = this.splitFullName(v.fullName!);
 
     try {
-      const bd = v.birthDate;
-      const birthDate = typeof bd === 'string' ? bd : (bd as unknown as Date)?.toISOString?.().split('T')[0] ?? p.birthDate;
+      const birthDate = dateToString(v.birthDate) || p.birthDate;
       await this.patientRepo.updatePatient(p.id, {
         doctorId: p.doctorId,
         name,

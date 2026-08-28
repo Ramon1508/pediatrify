@@ -42,7 +42,7 @@
             <span>NOMBRE DEL PACIENTE: {{ patient.name }} {{ patient.lastName }}</span>
           }
           @if (settings().showConsultDate) {
-            <span>FECHA: {{ record.date | date:'dd/MM/yyyy' }}</span>
+            <span>FECHA: {{ formatCivilDate(record.date) }}</span>
           }
         </div>
 

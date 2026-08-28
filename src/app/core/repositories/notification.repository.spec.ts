@@ -96,6 +96,7 @@ const { store, firestoreModule } = vi.hoisted(() => {
       };
     },
     Timestamp: { now: () => new Date() },
+    serverTimestamp: () => new Date(),
     onSnapshot: (q: any, onNext: any) => {
       fs.getDocs(q).then(({ docs }: any) => onNext({ size: docs.length, docs }));
       return () => undefined;

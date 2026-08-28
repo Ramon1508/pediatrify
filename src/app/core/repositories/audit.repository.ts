@@ -8,6 +8,7 @@ import {
   query,
   orderBy,
   limit,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
 import { AuditEntry } from '../models/user';
@@ -28,7 +29,10 @@ export class AuditRepository {
   }
 
   async log(entry: AuditEntry): Promise<void> {
-    await setDoc(doc(this.db, 'auditLog', entry.id), entry);
+    await setDoc(doc(this.db, 'auditLog', entry.id), {
+      ...entry,
+      timestamp: serverTimestamp(),
+    });
   }
 
   watchAll(limitCount = 200): Observable<AuditEntry[]> {

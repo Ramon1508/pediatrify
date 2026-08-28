@@ -59,7 +59,7 @@
               >
                 @for (rec of sortedRecords(); track rec.id) {
                   <mat-radio-button [value]="rec.id" class="date-radio">
-                    {{ rec.date | date:'dd/MM/yyyy' }}
+                    {{ formatCivilDate(rec.date) }}
                   </mat-radio-button>
                 }
               </mat-radio-group>
@@ -136,7 +136,7 @@
                   </div>
                   @if (record.visibleUntil) {
                     <div class="visible-until">
-                      Visible para el paciente hasta el: <span>{{ record.visibleUntil | date:'dd/MM/yyyy' }}</span>
+                      Visible para el paciente hasta el: <span>{{ formatCivilDate(record.visibleUntil) }}</span>
                     </div>
                   }
                   <div class="rich-content" [innerHTML]="sanitize(record.recommendations)"></div>
@@ -155,7 +155,7 @@
                   </div>
                   @if (record.visibleUntilRx) {
                     <div class="visible-until">
-                      Visible para el paciente hasta el: <span>{{ record.visibleUntilRx | date:'dd/MM/yyyy' }}</span>
+                      Visible para el paciente hasta el: <span>{{ formatCivilDate(record.visibleUntilRx) }}</span>
                     </div>
                   }
                   <div class="rich-content" [innerHTML]="sanitize(record.prescription)"></div>

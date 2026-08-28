@@ -9,12 +9,13 @@ import {
   collection,
   query,
   where,
-  orderBy,
   getDocs,
   onSnapshot,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
 import { ClinicalRecord } from '../models/clinical-record';
+import { dateStringToLocalDate, dateToString } from '../utils/date-utils';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -35,16 +36,37 @@ export class ClinicalRecordRepository {
     return doc(this.db, 'clinicalRecords', id);
   }
 
+  private mapRecord(data: any): ClinicalRecord {
+    return {
+      ...data,
+      date: dateToString(data.date),
+      visibleUntil: data.visibleUntil ? dateToString(data.visibleUntil) : undefined,
+      visibleUntilRx: data.visibleUntilRx ? dateToString(data.visibleUntilRx) : undefined,
+    } as ClinicalRecord;
+  }
+
+  private normalizeRecordDates<T extends Partial<ClinicalRecord>>(data: T): T {
+    const normalized: any = { ...data };
+    if ('date' in normalized) normalized.date = dateToString(normalized.date);
+    if ('visibleUntil' in normalized && normalized.visibleUntil) {
+      normalized.visibleUntil = dateToString(normalized.visibleUntil);
+    }
+    if ('visibleUntilRx' in normalized && normalized.visibleUntilRx) {
+      normalized.visibleUntilRx = dateToString(normalized.visibleUntilRx);
+    }
+    return normalized as T;
+  }
+
   async get(id: string): Promise<ClinicalRecord | null> {
     const snapshot = await getDoc(this.docRef(id));
-    return snapshot.exists() ? (snapshot.data() as ClinicalRecord) : null;
+    return snapshot.exists() ? this.mapRecord(snapshot.data()) : null;
   }
 
   async create(id: string, data: ClinicalRecord): Promise<void> {
     await setDoc(this.docRef(id), {
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      ...this.normalizeRecordDates(data),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
   }
 
@@ -70,12 +92,12 @@ export class ClinicalRecordRepository {
       { ageMo: 36, weight: 15.0, height: 97 },
     ];
 
-    const birth = new Date(birthDate);
+    const birth = dateStringToLocalDate(birthDate);
 
     for (const d of data) {
       const visitDate = new Date(birth);
       visitDate.setMonth(visitDate.getMonth() + d.ageMo);
-      const dateStr = visitDate.toISOString().split('T')[0];
+      const dateStr = dateToString(visitDate);
       const bmi = d.weight / ((d.height / 100) * (d.height / 100));
 
       const id = `${patientId}_test_${String(d.ageMo).padStart(2, '0')}`;
@@ -95,8 +117,8 @@ export class ClinicalRecordRepository {
 
   async update(id: string, data: Partial<ClinicalRecord>): Promise<void> {
     await updateDoc(this.docRef(id), {
-      ...data,
-      updatedAt: new Date(),
+      ...this.normalizeRecordDates(data),
+      updatedAt: serverTimestamp(),
     });
   }
 
@@ -111,18 +133,14 @@ export class ClinicalRecordRepository {
   async getByPatient(patientId: string): Promise<ClinicalRecord[]> {
     const q = query(this.ref, where('patientId', '==', patientId));
     const docsSnap = await getDocs(q);
-    return docsSnap.docs.map((d) => d.data() as ClinicalRecord);
+    return docsSnap.docs.map((d) => this.mapRecord(d.data()));
   }
 
   watchByPatient(patientId: string): Observable<ClinicalRecord[]> {
     return new Observable((subscriber) => {
-      const q = query(
-        this.ref,
-        where('patientId', '==', patientId),
-        orderBy('date', 'desc'),
-      );
+      const q = query(this.ref, where('patientId', '==', patientId));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const items = snapshot.docs.map((d) => d.data() as ClinicalRecord);
+        const items = snapshot.docs.map((d) => this.mapRecord(d.data()));
         subscriber.next(items);
       });
       return { unsubscribe };

@@ -12,6 +12,7 @@ import {
   where,
   onSnapshot,
   Unsubscribe,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
 import { AppUser } from '../models/user';
@@ -67,15 +68,15 @@ private mapDoc(doc: any): AppUser {
   async createUser(uid: string, data: Partial<AppUser>): Promise<void> {
     await setDoc(this.docRef(uid), {
       ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
   }
 
   async updateUser(uid: string, data: Partial<AppUser>): Promise<void> {
     await updateDoc(this.docRef(uid), {
       ...data,
-      updatedAt: new Date(),
+      updatedAt: serverTimestamp(),
     });
   }
 

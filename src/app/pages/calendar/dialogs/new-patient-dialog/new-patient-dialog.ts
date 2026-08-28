@@ -14,6 +14,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { EmailService } from '../../../../core/services/email.service';
 import { Patient } from '../../../../core/models/user';
 import { normalizeEmail } from '../../../../core/utils/normalize-email';
+import { dateStringToLocalDate, dateToString } from '../../../../core/utils/date-utils';
 
 interface ParentInfo {
   email: string;
@@ -74,7 +75,7 @@ export class NewPatientDialog {
 
   protected form = this.fb.group({
     fullName: ['', Validators.required],
-    birthDate: ['', Validators.required],
+    birthDate: [null as unknown as string | Date, Validators.required],
     email: ['', [Validators.required, Validators.email]],
     secondaryEmail: ['', Validators.email],
     fatherName: ['', Validators.required],
@@ -174,7 +175,7 @@ export class NewPatientDialog {
     this.allPatients = this.allPatients.filter((p) => p.id !== patient.id);
     this.form.patchValue({
       fullName: `${patient.name} ${patient.lastName}`.trim(),
-      birthDate: patient.birthDate,
+      birthDate: dateStringToLocalDate(dateToString(patient.birthDate)) as any,
       email: patient.email,
       secondaryEmail: patient.secondaryEmail || '',
       fatherName: patient.fatherName,
@@ -246,7 +247,7 @@ export class NewPatientDialog {
           doctorId: this.editingPatient.doctorId,
           name,
           lastName,
-          birthDate: f.birthDate!,
+          birthDate: dateToString(f.birthDate),
           email,
           secondaryEmail,
           fatherName: f.fatherName!,
@@ -268,7 +269,7 @@ export class NewPatientDialog {
           doctorId,
           name,
           lastName,
-          birthDate: f.birthDate!,
+          birthDate: dateToString(f.birthDate),
           email,
           secondaryEmail,
           fatherName: f.fatherName!,

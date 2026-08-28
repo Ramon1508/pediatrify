@@ -35,7 +35,7 @@
                   </div>
                   @if (record()?.visibleUntil) {
                     <div class="visible-until">
-                      Visible para el paciente hasta el: <span>{{ record()?.visibleUntil | date: 'dd/MM/yyyy' }}</span>
+                      Visible para el paciente hasta el: <span>{{ formatCivilDate(record()?.visibleUntil) }}</span>
                     </div>
                   }
                   <div class="rich-content" [innerHTML]="recommendationsHtml()"></div>
@@ -52,7 +52,7 @@
                   </div>
                   @if (record()?.visibleUntilRx) {
                     <div class="visible-until">
-                      Visible para el paciente hasta el: <span>{{ record()?.visibleUntilRx | date: 'dd/MM/yyyy' }}</span>
+                      Visible para el paciente hasta el: <span>{{ formatCivilDate(record()?.visibleUntilRx) }}</span>
                     </div>
                   }
                   <div class="rich-content" [innerHTML]="prescriptionHtml()"></div>

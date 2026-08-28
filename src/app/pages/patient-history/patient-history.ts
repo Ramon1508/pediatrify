@@ -1,6 +1,5 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy, ChangeDetectionStrategy, afterNextRender, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
@@ -31,6 +30,7 @@ import { GrowthCharts } from './components/growth-charts/growth-charts';
 import { FirebaseService } from '../../core/firebase/firebase.service';
 import { resolveLogoUrl } from '../../core/utils/logo-utils';
 import { buildAvailabilityFromUser } from '../../core/utils/availability';
+import { formatLocalDate } from '../../core/utils/date-utils';
 
 function calcAge(birthDate: unknown): string {
   let d: Date | null = null;
@@ -81,7 +81,6 @@ function formatAge(birth: Date, target: Date): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink,
-    DatePipe,
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
@@ -229,9 +228,7 @@ export class PatientHistory implements OnInit, OnDestroy {
 
     const patientAge = calcAge(p.birthDate);
 
-    const dateStr = record.date
-      ? new Date(record.date + 'T12:00:00').toLocaleDateString('es-MX')
-      : '';
+    const dateStr = formatLocalDate(record.date);
 
     const marginTop = settings.marginTop;
     const marginRight = settings.marginRight;
@@ -338,6 +335,10 @@ export class PatientHistory implements OnInit, OnDestroy {
 
   protected sanitize(html: string | undefined): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(html ?? '');
+  }
+
+  protected formatCivilDate(value: unknown): string {
+    return formatLocalDate(value);
   }
 
   protected selectRecord(id: string) {

@@ -13,7 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Patient, VaccineDose } from '../../../../core/models/user';
 import { Sexo } from '../../../../core/models/sexo';
-import { dateStringToLocalDate } from '../../../../core/utils/date-utils';
+import { dateStringToLocalDate, dateToString } from '../../../../core/utils/date-utils';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
 
@@ -67,15 +67,6 @@ const VACCINE_AGES: Record<string, string[]> = {
 
 function hasDoseAt(vaccine: string, age: string): boolean {
   return (VACCINE_AGES[vaccine] ?? []).includes(age);
-}
-
-function toDateString(birthDate: unknown): string {
-  if (typeof birthDate === 'string') return birthDate.split('T')[0];
-  if (birthDate && typeof (birthDate as any).toDate === 'function') {
-    const d = (birthDate as any).toDate() as Date;
-    return d.toISOString().split('T')[0];
-  }
-  return '';
 }
 
 @Component({
@@ -166,7 +157,7 @@ export class CompleteProfileDialog {
   setPatient(patient: Patient): void {
     this.patient = patient;
     const p = patient;
-    const dateStr = toDateString(p.birthDate);
+    const dateStr = dateToString(p.birthDate);
     this.form.patchValue({
       fullName: `${p.name} ${p.lastName}`.trim(),
       birthDate: dateStringToLocalDate(dateStr),
@@ -381,8 +372,7 @@ export class CompleteProfileDialog {
     const { name, lastName } = this.splitFullName(v.fullName!);
 
     try {
-      const bd = v.birthDate;
-      const birthDate = typeof bd === 'string' ? bd : (bd as unknown as Date)?.toISOString?.().split('T')[0] ?? p.birthDate;
+      const birthDate = dateToString(v.birthDate) || p.birthDate;
       await this.patientRepo.updatePatient(p.id, {
         doctorId: p.doctorId,
         name,

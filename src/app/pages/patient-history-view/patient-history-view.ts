@@ -11,6 +11,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { Patient } from '../../core/models/user';
 import { ClinicalRecord } from '../../core/models/clinical-record';
 import { calcAge } from '../../core/utils/calc-age';
+import { formatLocalDate, todayLocalDateString } from '../../core/utils/date-utils';
 
 @Component({
   selector: 'app-patient-history-view',
@@ -33,10 +34,7 @@ export class PatientHistoryView implements OnInit {
   protected record = signal<ClinicalRecord | null>(null);
 
   private today(): string {
-    const d = new Date();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${d.getFullYear()}-${m}-${day}`;
+    return todayLocalDateString();
   }
 
   private isVisible(value?: string): boolean {
@@ -79,6 +77,10 @@ export class PatientHistoryView implements OnInit {
     const father = p?.fatherName || '';
     const mother = p?.motherName || '';
     return [father, mother].filter((n) => n.trim()).join(' · ');
+  }
+
+  protected formatCivilDate(value: unknown): string {
+    return formatLocalDate(value);
   }
 
   async ngOnInit() {

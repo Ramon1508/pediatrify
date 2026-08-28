@@ -17,7 +17,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Appointment, Patient, TimeSegment } from '../../../../core/models/user';
-import { dateStringToLocalDate } from '../../../../core/utils/date-utils';
+import { dateStringToLocalDate, dateToString } from '../../../../core/utils/date-utils';
 import { NewPatientDialog } from '../new-patient-dialog/new-patient-dialog';
 
 @Component({
@@ -85,18 +85,7 @@ export class AppointmentDialog {
   });
 
   private toDateStr(value: unknown): string {
-    if (!value) return '';
-    if (typeof value === 'string') return value;
-    if (value instanceof Date && !isNaN(value.getTime())) {
-      const y = value.getFullYear();
-      const m = String(value.getMonth() + 1).padStart(2, '0');
-      const d = String(value.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-    if (typeof (value as any).toDate === 'function') {
-      return this.toDateStr((value as any).toDate());
-    }
-    return String(value);
+    return dateToString(value);
   }
 
   setData(data: {

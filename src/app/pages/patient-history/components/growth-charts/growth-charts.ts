@@ -10,6 +10,7 @@ import { Sexo } from '../../../../core/models/sexo';
 import { AuthService } from '../../../../core/services/auth.service';
 import { PrintSettingsRepository } from '../../../../core/repositories/print-settings.repository';
 import { getPaperDimensions, getDefaultSettings } from '../../../../core/models/print-settings';
+import { dateStringToLocalDate, dateToString, localDateStringToTime } from '../../../../core/utils/date-utils';
 import {
   cx, cyLength, cyWeight, getCdcImageSrc, getCdcViewBox,
   hcCx, hcCy, hcLx, hcLy, getHcImageSrc, getHcViewBox,
@@ -353,8 +354,8 @@ export class GrowthCharts {
   private getFilteredRecords(): ClinicalRecord[] {
     const sel = this.selectedRecord();
     if (!sel) return [];
-    const t = new Date(sel.date).getTime();
-    return this.records().filter(r => new Date(r.date).getTime() <= t)
+    const t = localDateStringToTime(sel.date);
+    return this.records().filter(r => localDateStringToTime(r.date) <= t)
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
@@ -382,7 +383,7 @@ export class GrowthCharts {
     const target = new Date(bd);
     target.setFullYear(bd.getFullYear() + Math.floor(minYears));
     target.setMonth(bd.getMonth() + Math.round((minYears % 1) * 12));
-    return [{ ...closest, date: target.toISOString().split('T')[0] }, ...post];
+    return [{ ...closest, date: dateToString(target) }, ...post];
   }
 
   private getAgeInMonths(recordDate: string): number {
@@ -398,7 +399,7 @@ export class GrowthCharts {
     } else {
       return NaN;
     }
-    const visit = new Date(recordDate);
+    const visit = dateStringToLocalDate(recordDate);
     const days = (visit.getTime() - birth.getTime()) / 86400000;
     return days / 30.4375;
   }

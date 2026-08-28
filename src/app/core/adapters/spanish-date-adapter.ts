@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { NativeDateAdapter } from '@angular/material/core';
+import { dateStringToLocalDate } from '../utils/date-utils';
 
 @Injectable()
 export class SpanishDateAdapter extends NativeDateAdapter {
@@ -16,10 +17,15 @@ export class SpanishDateAdapter extends NativeDateAdapter {
    */
   override parse(value: any): Date | null {
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      const [y, m, d] = value.split('-').map(Number);
-      return new Date(y, m - 1, d);
+      return dateStringToLocalDate(value);
     }
     return super.parse(value);
   }
-}
 
+  override deserialize(value: any): Date | null {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return dateStringToLocalDate(value);
+    }
+    return super.deserialize(value);
+  }
+}

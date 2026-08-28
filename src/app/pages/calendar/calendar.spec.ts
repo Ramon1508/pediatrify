@@ -45,10 +45,12 @@ describe('Calendar', () => {
   beforeEach(async () => {
     const aptSpy = {
       watchAppointmentsByDoctor: vi.fn().mockReturnValue(of(mockAppointments)),
+      watchAppointmentsByUpdatedBy: vi.fn().mockReturnValue(of(mockAppointments)),
       createAppointment: vi.fn(),
     } as any;
     const patientSpy = { getAllPatients: vi.fn().mockResolvedValue(mockPatients) } as any;
-    const authSpy = { currentDoctor: { uid: 'd1', name: 'Dr. Y' } as any };
+    const userSpy = { getUser: vi.fn().mockResolvedValue(undefined), watchAllUsers: vi.fn().mockReturnValue(of([])) } as any;
+    const authSpy = { currentDoctor: { uid: 'd1', name: 'Dr. Y', role: 'doctor' } as any };
     const alertSpy = { success: vi.fn() } as any;
     const dialogSpy = { open: vi.fn().mockReturnValue({ afterClosed: () => of(true) }) } as any;
 
@@ -59,6 +61,7 @@ describe('Calendar', () => {
         { provide: MAT_DATE_LOCALE, useValue: 'es-MX' },
         { provide: DateAdapter, useClass: SpanishDateAdapter },
         { provide: AppointmentRepository, useValue: aptSpy },
+        { provide: UserRepository, useValue: userSpy },
         { provide: PatientRepository, useValue: patientSpy },
         { provide: AuthService, useValue: authSpy },
         { provide: AlertService, useValue: alertSpy },

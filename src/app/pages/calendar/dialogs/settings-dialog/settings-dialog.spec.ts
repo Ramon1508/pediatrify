@@ -11,6 +11,7 @@ import { FirebaseService } from '../../../../core/firebase/firebase.service';
 vi.mock('firebase/firestore', () => ({
   setDoc: vi.fn().mockResolvedValue(undefined),
   doc: vi.fn().mockReturnValue({ id: 'd1', path: 'users/d1' }),
+  serverTimestamp: vi.fn(() => new Date()),
 }));
 
 describe('SettingsDialog', () => {

@@ -20,7 +20,7 @@
             </div>
             <div class="view-field">
               <span class="view-label">Fecha de nacimiento</span>
-              <span class="view-value">{{ patient?.birthDate | date:'dd/MM/yyyy' }}</span>
+              <span class="view-value">{{ formatCivilDate(patient?.birthDate) }}</span>
             </div>
           </div>
 

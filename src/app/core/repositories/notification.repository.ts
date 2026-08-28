@@ -14,6 +14,7 @@ import {
   where,
   startAfter,
   QueryDocumentSnapshot,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import { FirebaseService } from '../firebase/firebase.service';
@@ -72,7 +73,7 @@ export class NotificationRepository {
       const notification: AppNotification = {
         id: ref.id,
         ...payload,
-        createdAt: new Date(),
+        createdAt: serverTimestamp() as any,
         recipientId: recipient.recipientId,
         recipientType: recipient.recipientType,
         read: false,

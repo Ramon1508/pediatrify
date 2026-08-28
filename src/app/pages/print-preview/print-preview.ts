@@ -11,7 +11,7 @@ import {
   ElementRef,
   ViewEncapsulation,
 } from '@angular/core';
-import { DatePipe, NgTemplateOutlet, UpperCasePipe } from '@angular/common';
+import { NgTemplateOutlet, UpperCasePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { ClinicalRecordRepository } from '../../core/repositories/clinical-record.repository';
@@ -27,6 +27,7 @@ import { DEFAULT_LOGO_URL } from '../../core/config/brand';
 import { FirebaseService } from '../../core/firebase/firebase.service';
 import { normalizeEmail } from '../../core/utils/normalize-email';
 import { resolveLogoUrl } from '../../core/utils/logo-utils';
+import { formatLocalDate } from '../../core/utils/date-utils';
 
 const PX_PER_CM = 96 / 2.54;
 
@@ -63,7 +64,7 @@ function calcAge(birthDate: unknown): string {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  imports: [DatePipe, NgTemplateOutlet, UpperCasePipe],
+  imports: [NgTemplateOutlet, UpperCasePipe],
 })
 export class PrintPreview implements OnInit {
   @ViewChild('measurePage') private measurePage?: ElementRef<HTMLElement>;
@@ -99,6 +100,10 @@ export class PrintPreview implements OnInit {
   protected paperSizeLabel(value: string): string {
     const found = PAPER_SIZES.find((s) => s.value === value);
     return found ? found.label : value === 'custom' ? 'Personalizado' : value;
+  }
+
+  protected formatCivilDate(value: unknown): string {
+    return formatLocalDate(value);
   }
 
   protected logoUrl = signal(this.defaultLogo);

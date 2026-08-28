@@ -4,6 +4,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { AppointmentFormDialog } from './appointment-form-dialog';
 import { AppointmentRepository } from '../../../../core/repositories/appointment.repository';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
+import { UserRepository } from '../../../../core/repositories/user.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -22,6 +23,7 @@ describe('AppointmentFormDialog', () => {
 
   function createFixture(editData?: any) {
     const appointmentRepo = { createAppointment: vi.fn().mockResolvedValue(undefined), updateAppointment: vi.fn().mockResolvedValue(undefined) };
+    const userRepo = { getUser: vi.fn().mockResolvedValue({ timeSegments: [{ startTime: '06:00', endTime: '00:00' }], consultationDuration: 30 }) };
     const alertService = { success: vi.fn(), error: vi.fn() };
     const dialogRef = { close: vi.fn() };
 
@@ -30,6 +32,7 @@ describe('AppointmentFormDialog', () => {
       providers: [
         { provide: AppointmentRepository, useValue: appointmentRepo },
         { provide: PatientRepository, useValue: {} },
+        { provide: UserRepository, useValue: userRepo },
         { provide: AuthService, useValue: { currentDoctor: mockDoctor } },
         { provide: AlertService, useValue: alertService },
         { provide: MatDialogRef, useValue: dialogRef },

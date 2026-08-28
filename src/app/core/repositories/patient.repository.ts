@@ -11,10 +11,12 @@ import {
   query,
   where,
   onSnapshot,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
-import { Patient } from '../models/user';
+import { Patient, VaccineDose } from '../models/user';
 import { normalizeEmail } from '../utils/normalize-email';
+import { dateToString } from '../utils/date-utils';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -35,9 +37,43 @@ export class PatientRepository {
     return doc(this.db, 'patients', id);
   }
 
+  private normalizeVaccinationRecord(record: Patient['vaccinationRecord']): Patient['vaccinationRecord'] {
+    if (!record) return record;
+    const normalized: Record<string, Record<string, VaccineDose>> = {};
+    for (const [vaccine, doses] of Object.entries(record)) {
+      normalized[vaccine] = {};
+      for (const [age, dose] of Object.entries(doses ?? {})) {
+        const applicationDate = dose.applicationDate ? dateToString(dose.applicationDate) : '';
+        normalized[vaccine][age] = {
+          ...dose,
+        };
+        if (applicationDate) normalized[vaccine][age].applicationDate = applicationDate;
+        else delete normalized[vaccine][age].applicationDate;
+      }
+    }
+    return normalized;
+  }
+
+  private mapPatient(data: any): Patient {
+    return {
+      ...data,
+      birthDate: dateToString(data.birthDate),
+      vaccinationRecord: this.normalizeVaccinationRecord(data.vaccinationRecord),
+    } as Patient;
+  }
+
+  private normalizePatientDates<T extends Partial<Patient>>(data: T): T {
+    const normalized: any = { ...data };
+    if ('birthDate' in normalized) normalized.birthDate = dateToString(normalized.birthDate);
+    if ('vaccinationRecord' in normalized) {
+      normalized.vaccinationRecord = this.normalizeVaccinationRecord(normalized.vaccinationRecord);
+    }
+    return normalized as T;
+  }
+
   async getPatient(id: string): Promise<Patient | null> {
     const snapshot = await getDoc(this.docRef(id));
-    return snapshot.exists() ? (snapshot.data() as Patient) : null;
+    return snapshot.exists() ? this.mapPatient(snapshot.data()) : null;
   }
 
   async getPatientByEmail(email: string): Promise<Patient | null> {
@@ -50,9 +86,9 @@ export class PatientRepository {
       throw new Error('createPatient: doctorId es obligatorio para crear un paciente');
     }
     await setDoc(this.docRef(id), {
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      ...this.normalizePatientDates(data),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
   }
 
@@ -63,8 +99,8 @@ export class PatientRepository {
       delete clean.doctorId;
     }
     await updateDoc(this.docRef(id), {
-      ...clean,
-      updatedAt: new Date(),
+      ...this.normalizePatientDates(clean),
+      updatedAt: serverTimestamp(),
     });
   }
 
@@ -78,13 +114,13 @@ export class PatientRepository {
 
   async getAllPatients(): Promise<Patient[]> {
     const docsSnap = await getDocs(this.patientRef);
-    return docsSnap.docs.map((d) => d.data() as Patient);
+    return docsSnap.docs.map((d) => this.mapPatient(d.data()));
   }
 
   async getPatientsByDoctor(doctorId: string): Promise<Patient[]> {
     const q = query(this.patientRef, where('doctorId', '==', doctorId));
     const docsSnap = await getDocs(q);
-    return docsSnap.docs.map((d) => d.data() as Patient);
+    return docsSnap.docs.map((d) => this.mapPatient(d.data()));
   }
 
   async findPatientsByLoginEmail(email: string): Promise<Patient[]> {
@@ -94,7 +130,7 @@ export class PatientRepository {
     const map = new Map<string, Patient>();
     for (const snap of [s1, s2]) {
       for (const d of snap.docs) {
-        map.set(d.id, d.data() as Patient);
+        map.set(d.id, this.mapPatient(d.data()));
       }
     }
     return [...map.values()];
@@ -123,7 +159,7 @@ export class PatientRepository {
   watchPatient(id: string): Observable<Patient | null> {
     return new Observable((subscriber) => {
       const unsubscribe = onSnapshot(this.docRef(id), (snapshot) => {
-        subscriber.next(snapshot.exists() ? (snapshot.data() as Patient) : null);
+        subscriber.next(snapshot.exists() ? this.mapPatient(snapshot.data()) : null);
       });
       return { unsubscribe };
     });
@@ -132,7 +168,7 @@ export class PatientRepository {
   watchAllPatients(): Observable<Patient[]> {
     return new Observable((subscriber) => {
       const unsubscribe = onSnapshot(this.patientRef, (snapshot) => {
-        const patients = snapshot.docs.map((doc) => doc.data() as Patient);
+        const patients = snapshot.docs.map((doc) => this.mapPatient(doc.data()));
         subscriber.next(patients);
       });
       return { unsubscribe };

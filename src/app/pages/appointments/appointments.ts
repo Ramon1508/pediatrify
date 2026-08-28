@@ -17,6 +17,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { AlertService } from '../../core/services/alert.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { AppointmentFormDialog } from './dialogs/appointment-form-dialog/appointment-form-dialog';
+import { dateToString, todayLocalDateString } from '../../core/utils/date-utils';
 
 @Component({
   selector: 'app-appointments',
@@ -161,7 +162,7 @@ export class Appointments implements OnInit {
       if (!doctor || !patient) return;
 
       const id = crypto.randomUUID();
-      const finalDate = date || new Date().toISOString().split('T')[0];
+      const finalDate = dateToString(date) || todayLocalDateString();
       const finalTime = time || new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 
       await this.appointmentRepo.createAppointment(id, {

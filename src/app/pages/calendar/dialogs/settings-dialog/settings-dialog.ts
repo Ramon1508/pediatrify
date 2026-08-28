@@ -8,7 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { setDoc, doc } from 'firebase/firestore';
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { UserRepository } from '../../../../core/repositories/user.repository';
 import { FirebaseService } from '../../../../core/firebase/firebase.service';
 import { AuditRepository } from '../../../../core/repositories/audit.repository';
@@ -166,7 +166,7 @@ export class SettingsDialog {
         availableDays,
         timeSegmentsByDay: this.timeSegmentsByDay,
         timeSegments: [],
-        updatedAt: new Date(),
+        updatedAt: serverTimestamp(),
       };
       await setDoc(doc(this.firebase.firestore, 'users', targetUid), updateData, { merge: true });
       await this.auditRepo.log({

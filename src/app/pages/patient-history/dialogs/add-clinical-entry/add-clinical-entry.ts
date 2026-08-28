@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ClinicalRecordRepository } from '../../../../core/repositories/clinical-record.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
+import { dateToString } from '../../../../core/utils/date-utils';
 
 @Component({
   selector: 'app-add-clinical-entry',
@@ -39,7 +40,7 @@ export class AddClinicalEntry {
   protected saving = false;
 
   protected form = this.fb.group({
-    date: [''],
+    date: [null as unknown as string | Date],
     motivoConsulta: [''],
     diagnosis: [''],
     notas: [''],
@@ -64,7 +65,7 @@ export class AddClinicalEntry {
       await this.repo.create(id, {
         id,
         patientId: this.patientId,
-        date: f.date!,
+        date: dateToString(f.date),
         motivoConsulta: f.motivoConsulta ?? '',
         diagnosis: f.diagnosis ?? '',
         notas: f.notas ?? '',

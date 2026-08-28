@@ -1,5 +1,4 @@
 import { Component, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +15,7 @@ import { ClinicalRecordRepository } from '../../../../core/repositories/clinical
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { ClinicalRecord } from '../../../../core/models/clinical-record';
+import { dateStringToLocalDate, dateToString, formatLocalDate, todayLocalDateString } from '../../../../core/utils/date-utils';
 import { RichTextEditor } from '../../../../shared/components/rich-text-editor/rich-text-editor';
 
 @Component({
@@ -25,7 +25,6 @@ import { RichTextEditor } from '../../../../shared/components/rich-text-editor/r
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    DatePipe,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
@@ -102,6 +101,10 @@ export class ClinicalEntryDialog implements OnDestroy {
     return date ? date >= new Date(new Date().toDateString()) : true;
   };
 
+  protected formatCivilDate(value: unknown): string {
+    return formatLocalDate(value);
+  }
+
   protected step1Form = this.fb.group({
     headCircumference: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
     weight: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
@@ -115,12 +118,12 @@ export class ClinicalEntryDialog implements OnDestroy {
   });
 
   protected step2Form = this.fb.group({
-    visibleUntil: ['', Validators.required],
+    visibleUntil: [null as unknown as string | Date, Validators.required],
     recommendations: [''],
   });
 
   protected step3Form = this.fb.group({
-    visibleUntilRx: ['', Validators.required],
+    visibleUntilRx: [null as unknown as string | Date, Validators.required],
     prescription: [''],
   });
 
@@ -202,17 +205,10 @@ export class ClinicalEntryDialog implements OnDestroy {
     if (this.step > 1) this.step--;
   }
 
-  private parseDate(value: string | undefined): string {
+  private parseDate(value: unknown): Date | string {
     if (!value) return '';
-    const d = new Date(value);
-    return isNaN(d.getTime()) ? '' : value;
-  }
-
-  private toDateString(value: unknown): string | undefined {
-    if (!value) return undefined;
-    if (typeof value === 'string') return value;
-    if (value instanceof Date) return value.toISOString().split('T')[0];
-    return undefined;
+    const date = dateToString(value);
+    return date ? dateStringToLocalDate(date) : '';
   }
 
   async save() {
@@ -268,9 +264,9 @@ export class ClinicalEntryDialog implements OnDestroy {
         diagnosis: s1.diagnosis ?? '',
         notas: s1.notas ?? '',
         recommendations: s2.recommendations ?? '',
-        visibleUntil: this.toDateString(s2.visibleUntil),
+        visibleUntil: dateToString(s2.visibleUntil),
         prescription: s3.prescription ?? '',
-        visibleUntilRx: this.toDateString(s3.visibleUntilRx),
+        visibleUntilRx: dateToString(s3.visibleUntilRx),
       };
 
       if (this.isEdit) {
@@ -284,7 +280,7 @@ export class ClinicalEntryDialog implements OnDestroy {
           id,
           ...data,
           patientId: this.patientId,
-          date: this.today.toISOString().split('T')[0],
+          date: todayLocalDateString(),
           createdBy: doctor.email,
         });
       }
@@ -359,9 +355,9 @@ export class ClinicalEntryDialog implements OnDestroy {
         diagnosis: s1.diagnosis ?? '',
         notas: s1.notas ?? '',
         recommendations: s2.recommendations ?? '',
-        visibleUntil: this.toDateString(s2.visibleUntil),
+        visibleUntil: dateToString(s2.visibleUntil),
         prescription: s3.prescription ?? '',
-        visibleUntilRx: this.toDateString(s3.visibleUntilRx),
+        visibleUntilRx: dateToString(s3.visibleUntilRx),
       };
 
       let recordId: string;
@@ -378,7 +374,7 @@ export class ClinicalEntryDialog implements OnDestroy {
           id: recordId,
           ...data,
           patientId: this.patientId,
-          date: this.today.toISOString().split('T')[0],
+          date: todayLocalDateString(),
           createdBy: doctor.email,
         });
       }
