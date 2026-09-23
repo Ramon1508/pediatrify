@@ -9,6 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatRadioModule } from '@angular/material/radio';
 import { PatientRepository } from '../../core/repositories/patient.repository';
+import { AppointmentRepository } from '../../core/repositories/appointment.repository';
 import { ClinicalRecordRepository } from '../../core/repositories/clinical-record.repository';
 import { Patient } from '../../core/models/user';
 import { ClinicalRecord } from '../../core/models/clinical-record';
@@ -94,6 +95,7 @@ export class PatientHistory implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private dialog = inject(MatDialog);
   private patientRepo = inject(PatientRepository);
+  private appointmentRepo = inject(AppointmentRepository);
   private clinicalRepo = inject(ClinicalRecordRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
@@ -220,9 +222,7 @@ export class PatientHistory implements OnInit, OnDestroy {
 
     const settings = await this.printRepo.getSettings(doctor.uid);
     const dim = getPaperDimensions(settings.paperSize, settings.customWidth, settings.customHeight, settings.orientation);
-    const logoSource = settings.usePreloadedLogo
-      ? '/images/Logo.jpg'
-      : (doctor.logoPath || '/images/Logo.jpg');
+    const logoSource = doctor.logoPath || '/images/Logo.jpg';
     const logoUrl = await resolveLogoUrl(this.firebase.storage, logoSource);
     const prefix = doctor.sexo === Sexo.Femenino ? 'DRA.' : 'DR.';
 
@@ -354,6 +354,9 @@ export class PatientHistory implements OnInit, OnDestroy {
     const doctorUser = (await this.userRepo.getUser(doctor.uid)) as any;
     const availability = buildAvailabilityFromUser(doctorUser);
     const consultationDuration = doctorUser?.consultationDuration ?? 30;
+    const existingAppointments = (await this.appointmentRepo.getAllByDoctor(doctor.uid)).filter(
+      (appointment) => appointment.status !== 'cancelled' && !appointment.disabled
+    );
 
     const dialogRef = this.dialog.open(AppointmentDialog, {
       width: '400px',
@@ -366,7 +369,7 @@ export class PatientHistory implements OnInit, OnDestroy {
       editingAppointment: null,
       timeSegmentsByDay: availability.timeSegmentsByDay,
       consultationDuration,
-      existingAppointments: [],
+      existingAppointments,
       doctorName: doctor.name,
       doctorEmail: doctor.email,
     });

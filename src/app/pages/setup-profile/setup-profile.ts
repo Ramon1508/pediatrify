@@ -202,11 +202,10 @@ export class SetupProfile implements OnInit {
         );
       }
 
-      // Logo por defecto = "precargado". Si se subió foto, usamos la propia (false); si no, default (true).
       const targetUid = this.mode() === 'invitation' ? this.pendingUid : this.authService.currentDoctor?.uid;
       if (targetUid) {
         const ps = await this.printSettingsRepo.getSettings(targetUid);
-        await this.printSettingsRepo.updateSettings(targetUid, { ...ps, usePreloadedLogo: !this.logoPath() });
+        await this.printSettingsRepo.updateSettings(targetUid, { ...ps, usePreloadedLogo: true });
       }
 
       this.router.navigate(['/login'], { queryParams: { registered: 'true' } });

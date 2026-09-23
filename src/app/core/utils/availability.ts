@@ -3,6 +3,17 @@ import { AppUser, TimeSegment } from '../models/user';
 const DEFAULT_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const DEFAULT_SEGMENT: TimeSegment = { startTime: '06:00', endTime: '00:00' };
 
+export function cloneTimeSegmentsByDay(
+  source: Record<string, TimeSegment[]> | null | undefined
+): Record<string, TimeSegment[]> {
+  return Object.fromEntries(
+    Object.entries(source ?? {}).map(([day, segments]) => [
+      day,
+      segments.map((segment) => ({ ...segment })),
+    ])
+  );
+}
+
 /**
  * Normaliza el horario de un doctor a segmentos POR DÍA.
  * - Si el doc ya tiene `timeSegmentsByDay`, lo usa tal cual.
@@ -16,7 +27,7 @@ export function buildAvailabilityFromUser(
   let byDay: Record<string, TimeSegment[]> = {};
 
   if (user?.timeSegmentsByDay && Object.keys(user.timeSegmentsByDay).length) {
-    byDay = { ...user.timeSegmentsByDay };
+    byDay = cloneTimeSegmentsByDay(user.timeSegmentsByDay);
   } else {
     const glob = user?.timeSegments?.length ? user.timeSegments : [DEFAULT_SEGMENT];
     for (const d of days) byDay[d] = glob.map((s) => ({ ...s }));

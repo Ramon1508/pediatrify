@@ -30,7 +30,7 @@
       <div class="day-chips">
         @for (day of dayNamesShort; track day) {
           <button type="button" class="chip-day" [class.active]="selectedDay === day" [class.configured]="isConfigured(day) && selectedDay !== day" (click)="toggleDay(day)">
-            @if (isConfigured(day) || selectedDay === day) {
+            @if (isConfigured(day)) {
               <mat-icon class="day-check">check</mat-icon>
             }
             {{ day }}
@@ -41,7 +41,7 @@
         <span class="segments-title">Segmentos de horario — {{ selectedDay }}</span>
       </div>
       <div formArrayName="timeSegments" class="segments-list">
-        @for (seg of timeSegments.controls; track $index) {
+        @for (seg of timeSegments.controls; track seg) {
           @if (timeSegments.length > 1) {
             @if ($index > 0) {
               <hr class="segment-divider" />

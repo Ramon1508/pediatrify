@@ -1,4 +1,4 @@
-import { Component, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -66,11 +66,14 @@ export class AppointmentDialog {
   protected overlapWarning = '';
   protected showNewPatient = signal(false);
   protected patientLocked = false;
+  protected lockedPatientName = '';
   hideAddPatient = false;
   protected dialogDoctorName = '';
   protected dialogDoctorEmail = '';
   private existingAppointments: Appointment[] = [];
   private overlapSub: any = null;
+
+  @ViewChild('patientInput') private patientInput?: ElementRef<HTMLInputElement>;
 
   readonly dayNamesShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   protected patientScheduling = false;
@@ -177,8 +180,7 @@ export class AppointmentDialog {
     const patient = this.allPatients.find((p) => p.id === patientId);
     this.form.patchValue({ patientId });
     this.patientSearchControl.setValue((patient || '') as any);
-    this.patientSearchControl.disable();
-    this.form.get('patientId')?.disable();
+    this.lockedPatientName = patient ? `${patient.name} ${patient.lastName}` : '';
     this.patientLocked = true;
     this.cdr.markForCheck();
   }
@@ -275,8 +277,6 @@ export class AppointmentDialog {
       const doctorId = this.selectedDoctorId || targetDoctor?.uid || '';
       const doctorName = this.dialogDoctorName || targetDoctor?.name || '';
       const doctorEmail = this.dialogDoctorEmail || targetDoctor?.email || '';
-      // getRawValue() incluye controles deshabilitados: al usar lockPatient (paciente read-only)
-      // el `patientId` está deshabilitado y `form.value` lo omitiría (rompería el guardado).
       const { patientId, date: rawDate, time, notes } = this.form.getRawValue();
       const date = this.toDateStr(rawDate);
       const patient = this.allPatients.find((p) => p.id === patientId);
@@ -375,8 +375,14 @@ export class AppointmentDialog {
   }
 
   onPatientSearchFocus() {
+    if (this.patientLocked) return;
     const val = this.patientSearchControl.value;
     this.filterPatients(typeof val === 'string' ? val : '');
+  }
+
+  focusPatientSearch(event: MouseEvent) {
+    event.preventDefault();
+    this.patientInput?.nativeElement.focus();
   }
 
   openNewPatient() {

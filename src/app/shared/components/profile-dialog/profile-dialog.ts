@@ -163,6 +163,7 @@ export class ProfileDialog {
   }
 
   onLogoUploaded(result: UploadResult | null) {
+    if (this.doctor?.role !== 'doctor') return;
     this.logoUpload = result;
     if (result) {
       this.logoFileName = this.extractFileName(result.url);
@@ -183,12 +184,12 @@ export class ProfileDialog {
     this.cdr.markForCheck();
 
     try {
+      const uploadedLogoUrl = this.logoUpload?.url ?? '';
       let logoPath = this.doctor.logoPath ?? '';
       let usePreloadedLogo: boolean | null = null;
       if (this.logoUpload !== undefined) {
-        // subir/reemplazar logo → usar el propio (false); eliminarlo → volver al default (true)
         logoPath = this.logoUpload ? this.logoUpload.path : '';
-        usePreloadedLogo = this.logoUpload ? false : true;
+        usePreloadedLogo = true;
       } else if (!logoPath) {
         usePreloadedLogo = true;
       }
@@ -212,9 +213,10 @@ export class ProfileDialog {
       }
 
       this.doctor = { ...this.doctor, ...this.form.value, logoPath } as AppUser;
+      this.authService.updateCurrentDoctor(payload);
       this.logoFileName = logoPath ? this.extractFileName(logoPath) : '';
-      this.logoUrl = '';
-      if (logoPath) {
+      this.logoUrl = uploadedLogoUrl;
+      if (logoPath && !uploadedLogoUrl) {
         this.resolveLogoUrl(logoPath).then((url) => {
           this.logoUrl = url;
           this.cdr.markForCheck();

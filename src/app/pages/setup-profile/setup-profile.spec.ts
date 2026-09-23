@@ -8,6 +8,7 @@ import { PrintSettingsRepository } from '../../core/repositories/print-settings.
 import { AlertService } from '../../core/services/alert.service';
 import { MatDialog } from '@angular/material/dialog';
 import { Sexo } from '../../core/models/sexo';
+import { of } from 'rxjs';
 
 describe('SetupProfile', () => {
   let fixture: ComponentFixture<SetupProfile>;
@@ -20,8 +21,9 @@ describe('SetupProfile', () => {
     const authSpy = {
       registerFromInvitation: vi.fn(),
       completeProfile: vi.fn(),
+      session$: of(null),
     } as any;
-    Object.defineProperty(authSpy, 'currentDoctor', { get: () => null });
+    Object.defineProperty(authSpy, 'currentDoctor', { get: () => null, configurable: true });
     Object.defineProperty(authSpy, 'isDoctor', { get: () => false });
     const alertSpy = { success: vi.fn(), error: vi.fn() } as any;
     const routerSpy = { navigate: vi.fn() } as any;
@@ -185,6 +187,34 @@ describe('SetupProfile', () => {
     (component as any).onLogoUploaded(null);
     expect((component as any).logoPath()).toBeNull();
   });
+
+  it('persists one doctor logo and enables the preloaded logo setting', async () => {
+    Object.defineProperty(authService, 'currentDoctor', { get: () => ({ uid: 'd1', role: 'doctor' }), configurable: true });
+    (component as any).mode.set('existing');
+    (component as any).displayEmail.set('doc@test.com');
+    (component as any).form.patchValue({
+      sexo: Sexo.Masculino,
+      phone: '6141234567',
+      especialidad: 'Pediatría',
+      cedula: '12345',
+      cedulaEspecialidad: '',
+      consultorios: 'Consultorio A',
+      password: 'Pass1234!',
+      confirmPassword: 'Pass1234!',
+    });
+    (component as any).onLogoUploaded({ url: 'http://img', path: 'logos/d1/logo.png' });
+
+    await (component as any).finish();
+
+    expect(authService.completeProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ logoPath: 'logos/d1/logo.png' }),
+      'Pass1234!'
+    );
+    expect(TestBed.inject(PrintSettingsRepository).updateSettings).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ usePreloadedLogo: true })
+    );
+  });
 });
 
 describe('SetupProfile invitation by role', () => {
@@ -193,6 +223,7 @@ describe('SetupProfile invitation by role', () => {
     const authSpy = {
       registerFromInvitation: vi.fn(),
       completeProfile: vi.fn(),
+      session$: of(null),
     } as any;
     Object.defineProperty(authSpy, 'currentDoctor', { get: () => null });
     Object.defineProperty(authSpy, 'isDoctor', { get: () => false });

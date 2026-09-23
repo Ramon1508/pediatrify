@@ -34,6 +34,7 @@ describe('DeleteDoctorDialog', () => {
     const { fixture } = createFixture();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Eliminar doctor');
+    expect(el.textContent).toContain('Al eliminar un doctor(a), éste y todos sus pacientes perderán acceso a la plataforma, junto con sus historiales. Esta acción no es reversible.');
   });
 
   it('shows cancel and confirm buttons', () => {
@@ -62,6 +63,19 @@ describe('DeleteDoctorDialog', () => {
   it('closes with false on close()', () => {
     const { component, dialogRef } = createFixture();
     component.close();
+    expect(dialogRef.close).toHaveBeenCalledWith(false);
+  });
+
+  it('cancels from the button without deleting the doctor', () => {
+    const { fixture, userRepo, dialogRef } = createFixture();
+    const element = fixture.nativeElement as HTMLElement;
+    const buttons = element.querySelectorAll<HTMLButtonElement>('button');
+    const cancelButton = Array.from(buttons)
+      .find((button) => button.textContent?.trim() === 'Cancelar') as HTMLButtonElement;
+
+    cancelButton.click();
+
+    expect(userRepo.deleteUser).not.toHaveBeenCalled();
     expect(dialogRef.close).toHaveBeenCalledWith(false);
   });
 });

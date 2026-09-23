@@ -25,6 +25,9 @@ export class PrintSettingsRepository {
   }
 
   async updateSettings(doctorUid: string, settings: PrintSettings): Promise<void> {
-    await updateDoc(this.docRef(doctorUid), { printSettings: settings });
+    const { logoUrl: _legacyLogoUrl, ...cleanSettings } = settings as PrintSettings & {
+      logoUrl?: string;
+    };
+    await updateDoc(this.docRef(doctorUid), { printSettings: cleanSettings });
   }
 }

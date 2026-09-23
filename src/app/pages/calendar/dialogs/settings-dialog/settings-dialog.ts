@@ -16,6 +16,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { AppUser, TimeSegment } from '../../../../core/models/user';
 import { normalizeEmail } from '../../../../core/utils/normalize-email';
+import { cloneTimeSegmentsByDay } from '../../../../core/utils/availability';
 
 export interface SettingsData {
   consultationDuration: number;
@@ -25,6 +26,11 @@ export interface SettingsData {
   doctorId: string;
   doctorEmail?: string;
 }
+
+export type SettingsSaveResult = Pick<
+  SettingsData,
+  'consultationDuration' | 'allowPatientScheduling' | 'timeSegmentsByDay' | 'availableDays'
+>;
 
 const DEFAULT_EMPTY: TimeSegment[] = [{ startTime: '06:00', endTime: '00:00' }];
 
@@ -74,7 +80,7 @@ export class SettingsDialog {
   setData(data: SettingsData) {
     this.doctorId = data.doctorId;
     this.doctorEmail = data.doctorEmail ?? '';
-    this.timeSegmentsByDay = { ...(data.timeSegmentsByDay ?? {}) };
+    this.timeSegmentsByDay = cloneTimeSegmentsByDay(data.timeSegmentsByDay);
     // Compatibilidad: si el doc no tiene segmentos por día pero sí globales, los reparte a sus días.
     if (Object.keys(this.timeSegmentsByDay).length === 0 && data.availableDays.length) {
       const legacy = (data as any).legacyTimeSegments as TimeSegment[] | undefined;
@@ -88,9 +94,6 @@ export class SettingsDialog {
       allowPatientScheduling: data.allowPatientScheduling,
     });
     this.selectedDay = this.availableDaysList()[0] ?? this.dayNamesShort[0];
-    if (!this.timeSegmentsByDay[this.selectedDay]) {
-      this.timeSegmentsByDay[this.selectedDay] = DEFAULT_EMPTY.map((s) => ({ ...s }));
-    }
     this.applyDayToForm(this.selectedDay);
   }
 
@@ -109,9 +112,6 @@ export class SettingsDialog {
   toggleDay(day: string) {
     this.syncSelectedDaySegments();
     this.selectedDay = day;
-    if (!this.timeSegmentsByDay[day]?.length) {
-      this.timeSegmentsByDay[day] = DEFAULT_EMPTY.map((s) => ({ ...s }));
-    }
     this.applyDayToForm(day);
     this.cdr.markForCheck();
   }
@@ -133,10 +133,14 @@ export class SettingsDialog {
 
   addSegment() {
     this.timeSegments.push(this.fb.group({ startTime: '06:00', endTime: '00:00' }));
+    this.syncSelectedDaySegments();
+    this.cdr.markForCheck();
   }
 
   removeSegment(index: number) {
     this.timeSegments.removeAt(index);
+    this.syncSelectedDaySegments();
+    this.cdr.markForCheck();
   }
 
   close() {
@@ -160,11 +164,14 @@ export class SettingsDialog {
       }
 
       const oldUser = await this.userRepo.getUser(targetUid);
-      const updateData = {
+      const savedSettings: SettingsSaveResult = {
         consultationDuration: raw.consultationDuration ?? 30,
         allowPatientScheduling: raw.allowPatientScheduling ?? false,
         availableDays,
-        timeSegmentsByDay: this.timeSegmentsByDay,
+        timeSegmentsByDay: cloneTimeSegmentsByDay(this.timeSegmentsByDay),
+      };
+      const updateData = {
+        ...savedSettings,
         timeSegments: [],
         updatedAt: serverTimestamp(),
       };
@@ -191,7 +198,10 @@ export class SettingsDialog {
         },
       });
       this.alert.success({ message: 'Configuración guardada', duration: 5000 });
-      this.dialogRef.close(true);
+      if (currentUser?.uid === targetUid) {
+        this.authService.updateCurrentDoctor(savedSettings);
+      }
+      this.dialogRef.close(savedSettings);
     } catch (e: any) {
       console.error('Settings save error:', e);
       this.alert.error({ message: 'Error al guardar configuración' });

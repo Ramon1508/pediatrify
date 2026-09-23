@@ -154,6 +154,8 @@ p {
   vertical-align: middle;
   width: fit-content;
   border-radius: 12px;
+  --mat-button-outlined-container-shape: 12px;
+  --mat-button-text-container-shape: 12px;
   --mdc-outlined-button-label-text-color: #0d6e8f;
   background: transparent;
   border: 1px solid #0d6e8f;
@@ -175,6 +177,8 @@ p {
   vertical-align: middle;
   width: fit-content;
   border-radius: 12px;
+  --mat-button-text-container-shape: 12px;
+  --mat-button-outlined-container-shape: 12px;
   background: transparent;
   background-color: transparent !important;
   --mdc-text-button-container-color: transparent;
@@ -182,6 +186,40 @@ p {
   color: #0d6e8f;
   border: none;
   box-shadow: none;
+  outline: none;
+  --mat-button-text-focus-state-layer-opacity: 0;
+  --mat-button-outlined-focus-state-layer-opacity: 0;
+
+  &:focus:not(:focus-visible) {
+    box-shadow: none;
+  }
+
+  &:focus-visible {
+    box-shadow: none;
+    outline: 2px solid #0d6e8f;
+    outline-offset: 2px;
+  }
+
+  &.cdk-program-focused {
+    box-shadow: none;
+    outline: none;
+  }
+
+  &.cdk-keyboard-focused {
+    box-shadow: none;
+    outline: 2px solid #0d6e8f;
+    outline-offset: 2px;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: rgba(13, 110, 143, 0.08) !important;
+    box-shadow: 0 0 0 3px rgba(13, 110, 143, 0.28);
+  }
+
+  &:active {
+    background-color: transparent !important;
+    box-shadow: none;
+  }
 }
 
 .btn-danger {

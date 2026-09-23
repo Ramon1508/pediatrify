@@ -119,8 +119,9 @@
 
   @if (selectedAppointment(); as apt) {
     @if (overlayPosition(); as pos) {
-      <div class="detail-overlay" role="button" tabindex="0" [style.top.px]="pos.top" [style.left.px]="pos.left" (click)="selectedAppointment.set(null); overlayPosition.set(null)" (keydown.escape)="selectedAppointment.set(null); overlayPosition.set(null)" (keydown.enter)="selectedAppointment.set(null); overlayPosition.set(null)" (keydown.space)="selectedAppointment.set(null); overlayPosition.set(null)">
-        <div class="detail-overlay-inner" (click)="$event.stopPropagation()">
+      <div class="detail-overlay">
+        <div class="detail-backdrop" role="button" tabindex="0" aria-label="Cerrar información de la cita" (click)="closeAppointmentDetails()" (keydown.escape)="closeAppointmentDetails()" (keydown.enter)="closeAppointmentDetails()" (keydown.space)="closeAppointmentDetails()"></div>
+        <div class="detail-overlay-inner" [style.top.px]="pos.top" [style.left.px]="pos.left" (click)="$event.stopPropagation()">
           <app-appointment-detail-card
             [appointment]="apt"
             [allowPatientScheduling]="allowScheduling()"

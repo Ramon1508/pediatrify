@@ -23,7 +23,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { CalendarFocusService } from '../../core/services/calendar-focus.service';
 import { AppointmentDetailCard } from '../../shared/components/appointment-detail-card/appointment-detail-card';
 import { AppointmentDialog } from './dialogs/appointment-dialog/appointment-dialog';
-import { SettingsDialog, SettingsData } from './dialogs/settings-dialog/settings-dialog';
+import { SettingsDialog, SettingsData, SettingsSaveResult } from './dialogs/settings-dialog/settings-dialog';
 import { buildAvailabilityFromUser } from '../../core/utils/availability';
 
 import { Subscription, combineLatest } from 'rxjs';
@@ -168,9 +168,34 @@ export class Calendar implements OnInit, OnDestroy {
     dialogRef.componentInstance.setData(data);
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        this.loadDoctorData(this.selectedDoctorId());
+        this.applySavedSettings(result);
       }
     });
+  }
+
+  private applySavedSettings(settings: SettingsSaveResult) {
+    const availability = buildAvailabilityFromUser(settings);
+    this.settingsForm.patchValue({
+      consultationDuration: settings.consultationDuration,
+      allowPatientScheduling: settings.allowPatientScheduling,
+    });
+    this.allowScheduling.set(settings.allowPatientScheduling);
+    this.consultationDurationSignal.set(settings.consultationDuration);
+    this.timeSegmentsByDaySignal.set(availability.timeSegmentsByDay);
+    this.availableDaysSignal.set(availability.availableDays);
+
+    this.timeSegmentsFormArray.clear();
+    const firstDay = this.getDayShort(new Date());
+    const firstSegments = availability.timeSegmentsByDay[firstDay]
+      ?? availability.timeSegmentsByDay[availability.availableDays[0]]
+      ?? [];
+    for (const segment of firstSegments) {
+      this.timeSegmentsFormArray.push(this.fb.group({
+        startTime: segment.startTime,
+        endTime: segment.endTime,
+      }));
+    }
+    this.cdr.markForCheck();
   }
 
   protected getAppointmentsForDay = computed(() => {
@@ -517,7 +542,13 @@ export class Calendar implements OnInit, OnDestroy {
       });
     }
 
-    this.loadDoctorData(doctorId);
+    await this.loadDoctorData(doctorId);
+
+    if (history.state?.openAppointment) {
+      this.openSideAppointment();
+      const { openAppointment: _openAppointment, ...navigationState } = history.state;
+      history.replaceState(navigationState, '');
+    }
 
     this.focusSub = this.focusService.target$.subscribe((focus) => {
       if (!focus) return;
@@ -703,6 +734,11 @@ export class Calendar implements OnInit, OnDestroy {
     this.selectedAppointment.set(apt);
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     this.overlayPosition.set({ top: rect.bottom + 4, left: rect.left });
+  }
+
+  protected closeAppointmentDetails() {
+    this.selectedAppointment.set(null);
+    this.overlayPosition.set(null);
   }
 
   openNewAppointment(date: Date, slot: TimeSlot) {

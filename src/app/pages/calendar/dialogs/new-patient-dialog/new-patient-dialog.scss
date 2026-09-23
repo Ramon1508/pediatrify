@@ -96,6 +96,11 @@
   width: 100%;
 }
 
+.patient-form {
+  display: flex;
+  flex-direction: column;
+}
+
 mat-dialog-actions {
   padding: 0 24px 16px !important;
   gap: 8px;

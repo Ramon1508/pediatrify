@@ -1,6 +1,6 @@
 <mat-toolbar class="app-navbar">
   <div class="nav-center" (click)="goHome()" style="cursor: pointer;">
-    <img ngSrc="images/Logo.jpg" alt="Logo" class="nav-logo" width="40" height="40" priority />
+    <img [src]="logoUrl()" alt="Logo" class="nav-logo" width="40" height="40" />
     <span class="nav-brand">{{ brandName }}</span>
   </div>
 

@@ -36,7 +36,7 @@ describe('ProfileDialog', () => {
     const userRepo = { updateUser: vi.fn().mockResolvedValue(undefined) };
     const printSettingsRepo = { getSettings: vi.fn().mockResolvedValue({ usePreloadedLogo: true }), updateSettings: vi.fn().mockResolvedValue(undefined) };
     const alertService = { success: vi.fn(), error: vi.fn() };
-    const authService = { currentDoctor: doctor, logout: vi.fn() };
+    const authService = { currentDoctor: doctor, updateCurrentDoctor: vi.fn(), logout: vi.fn() };
     const dialogRef = { close: vi.fn() };
     const router = { navigate: vi.fn() };
     const firebase = { storage: {} };
@@ -57,7 +57,7 @@ describe('ProfileDialog', () => {
     const fixture = TestBed.createComponent(ProfileDialog);
     const component = fixture.componentInstance as any;
     fixture.detectChanges();
-    return { fixture, component, userRepo, alertService, authService, dialogRef, router };
+    return { fixture, component, userRepo, printSettingsRepo, alertService, authService, dialogRef, router };
   }
 
   it('renders the title "Perfil"', () => {
@@ -92,11 +92,35 @@ describe('ProfileDialog', () => {
     expect(el.textContent).not.toContain('Pediatría');
   });
 
+  it('does not allow an assistant to set a doctor logo', () => {
+    const { component } = createFixture(mockAssistant);
+
+    component.onLogoUploaded({
+      path: 'logos/a1/forbidden.png',
+      url: 'https://example.com/forbidden.png',
+    });
+
+    expect(component.logoUpload).toBeUndefined();
+    expect(component.logoUrl).toBe('');
+  });
+
   it('switchToEdit enables the form', () => {
     const { component } = createFixture();
     component.switchToEdit();
     expect(component.readOnly).toBe(false);
     expect(component.form.enabled).toBe(true);
+  });
+
+  it('loads the same persisted logo when the profile is opened again', async () => {
+    const { component } = createFixture({
+      ...mockDoctor,
+      logoPath: 'logos/d1/persisted-logo.png',
+    });
+
+    await vi.waitFor(() => {
+      expect(component.logoFileName).toBe('persisted-logo.png');
+      expect(component.logoUrl).toBe('https://example.com/logos/logo.png');
+    });
   });
 
   it('cancelEdit restores original values and disables the form', () => {
@@ -120,6 +144,49 @@ describe('ProfileDialog', () => {
     expect(component.showSaved).toBe(true);
     expect(component.readOnly).toBe(true);
     expect(component.form.disabled).toBe(true);
+  });
+
+  it('updates the shared doctor session after saving a new logo', async () => {
+    const { component, authService, printSettingsRepo } = createFixture();
+    component.switchToEdit();
+    component.onLogoUploaded({
+      path: 'logos/d1/new-logo.png',
+      url: 'https://example.com/new-logo.png',
+    });
+
+    await component.save();
+
+    expect(authService.updateCurrentDoctor).toHaveBeenCalledWith(
+      expect.objectContaining({ logoPath: 'logos/d1/new-logo.png' })
+    );
+    expect(printSettingsRepo.updateSettings).toHaveBeenCalledWith(
+      'd1',
+      expect.objectContaining({ usePreloadedLogo: true })
+    );
+    expect(component.logoUrl).toBe('https://example.com/new-logo.png');
+  });
+
+  it('removes the shared doctor logo instead of keeping a stale copy', async () => {
+    const { component, userRepo, authService, printSettingsRepo } = createFixture({
+      ...mockDoctor,
+      logoPath: 'logos/d1/old-logo.png',
+    });
+    component.switchToEdit();
+    component.onLogoUploaded(null);
+
+    await component.save();
+
+    expect(userRepo.updateUser).toHaveBeenCalledWith(
+      'd1',
+      expect.objectContaining({ logoPath: '' })
+    );
+    expect(authService.updateCurrentDoctor).toHaveBeenCalledWith(
+      expect.objectContaining({ logoPath: '' })
+    );
+    expect(printSettingsRepo.updateSettings).toHaveBeenCalledWith(
+      'd1',
+      expect.objectContaining({ usePreloadedLogo: true })
+    );
   });
 
   it('save() does nothing when the form is invalid', async () => {

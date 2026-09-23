@@ -37,10 +37,8 @@ export class FileUpload {
   constructor() {
     effect(() => {
       const url = this.initialPreview();
-      if (url) {
-        this.preview.set(url);
-        this.fileName.set(this.initialFileName());
-      }
+      this.preview.set(url || null);
+      this.fileName.set(url ? this.initialFileName() : '');
     });
   }
 
@@ -85,7 +83,8 @@ export class FileUpload {
       const snap = await uploadBytes(storageRef, file, { contentType: file.type });
       const url = await getDownloadURL(snap.ref);
 
-      this.uploaded.emit({ url, path: bucket });
+      const separator = url.includes('?') ? '&' : '?';
+      this.uploaded.emit({ url: `${url}${separator}v=${Date.now()}`, path: bucket });
     } catch (e: any) {
       this.alert.error({ message: 'Error al subir el archivo', duration: 5000 });
       this.preview.set(null);

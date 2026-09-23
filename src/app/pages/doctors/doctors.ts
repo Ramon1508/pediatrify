@@ -146,7 +146,7 @@ export class Doctors implements OnInit, OnDestroy {
 
   deleteDoctor(doctor: AppUser) {
     const dialogRef = this.dialog.open(DeleteDoctorDialog, {
-      width: '400px',
+      width: '552px',
       disableClose: false,
       panelClass: 'context-card-panel',
     });

@@ -371,7 +371,18 @@
 
 .detail-overlay {
   position: fixed;
+  inset: 0;
   z-index: 1000;
+}
+
+.detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+
+.detail-overlay-inner {
+  position: absolute;
 }
 
 @media (max-width: 320px) {

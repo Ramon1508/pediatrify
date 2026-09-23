@@ -12,7 +12,6 @@ export interface PrintSettings {
   marginLeft: number;
   marginRight: number;
   usePreloadedLogo: boolean;
-  logoUrl?: string;
   logoPosition: LogoPosition;
   logoWidth: number;
   showDoctorName: boolean;

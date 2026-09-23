@@ -55,14 +55,18 @@
   &.active {
     background: #0d6e8f;
     color: #ffffff;
+
+    .day-check {
+      color: #ffffff;
+    }
   }
 
   &.configured {
-    background: #e7f2f7;
+    background: #e6f2f7;
   }
 
   .day-check {
-    color: #ffffff;
+    color: #0d6e8f;
     font-size: 18px;
     width: 18px;
     height: 18px;

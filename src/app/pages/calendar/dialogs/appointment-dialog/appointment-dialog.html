@@ -8,26 +8,33 @@
 
   <mat-dialog-content>
     <form [formGroup]="form">
-      <mat-form-field appearance="outline" class="full-width patient-search">
-        <mat-label>Buscar paciente</mat-label>
-        <input
-          matInput
-          #patientInput
-          [matAutocomplete]="auto"
-          [formControl]="patientSearchControl"
-          (focus)="onPatientSearchFocus()"
-        />
-        <mat-icon matSuffix class="search-suffix" (mousedown)="$event.preventDefault(); patientInput.focus()">arrow_drop_down</mat-icon>
-        <mat-autocomplete
-          #auto="matAutocomplete"
-          [displayWith]="displayPatientFn"
-          (optionSelected)="onPatientSelected($event.option.value)"
-        >
-          @for (p of filteredPatients; track p.id) {
-            <mat-option [value]="p">{{ p.name }} {{ p.lastName }}</mat-option>
-          }
-        </mat-autocomplete>
-      </mat-form-field>
+      @if (patientLocked) {
+        <div class="patient-readonly">
+          <span class="readonly-label">Paciente</span>
+          <span class="readonly-value">{{ lockedPatientName }}</span>
+        </div>
+      } @else {
+        <mat-form-field appearance="outline" class="full-width patient-search">
+          <mat-label>Buscar paciente</mat-label>
+          <input
+            matInput
+            #patientInput
+            [matAutocomplete]="auto"
+            [formControl]="patientSearchControl"
+            (focus)="onPatientSearchFocus()"
+          />
+          <mat-icon matSuffix class="search-suffix" (mousedown)="focusPatientSearch($event)">arrow_drop_down</mat-icon>
+          <mat-autocomplete
+            #auto="matAutocomplete"
+            [displayWith]="displayPatientFn"
+            (optionSelected)="onPatientSelected($event.option.value)"
+          >
+            @for (p of filteredPatients; track p.id) {
+              <mat-option [value]="p">{{ p.name }} {{ p.lastName }}</mat-option>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+      }
       <input type="hidden" formControlName="patientId" />
       @if (form.get('patientId')?.invalid && (form.get('patientId')?.touched || submitted)) {
         <mat-error>Selecciona un paciente</mat-error>

@@ -13,6 +13,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { MatDialog } from '@angular/material/dialog';
 import { provideNativeDateAdapter } from '@angular/material/core';
+import { Router } from '@angular/router';
 
 class MockResizeObserver {
   observe() {}
@@ -123,6 +124,31 @@ describe('Patients', () => {
     expect(el.textContent).toContain('María');
   });
 
+  it('shows only the centered add button when there are no patients', () => {
+    (component as any).patients.set([]);
+    (component as any).patientsWithAge.set([]);
+    (component as any).loading.set(false);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    const headerAddButton = el.querySelector('.header-actions button');
+    const emptyStateAddButton = el.querySelector('.empty-state-content button');
+
+    expect(el.textContent).toContain('No has agregado ningún paciente.');
+    expect(emptyStateAddButton?.textContent).toContain('Agregar paciente');
+    expect(headerAddButton).toBeNull();
+  });
+
+  it('shows only the header add button when patients exist', () => {
+    const el: HTMLElement = fixture.nativeElement;
+    const headerAddButton = el.querySelector('.header-actions button');
+    const emptyStateAddButton = el.querySelector('.empty-state-content button');
+
+    expect(headerAddButton?.textContent).toContain('Agregar paciente');
+    expect(emptyStateAddButton).toBeNull();
+    expect(el.querySelectorAll('app-patient-card')).toHaveLength(2);
+  });
+
   it('shows today appointments carousel', () => {
     const appts = (component as any).todayAppointments();
     expect(appts.length).toBe(1);
@@ -133,6 +159,24 @@ describe('Patients', () => {
     expect(el.textContent).toContain('Consultas del día de hoy');
     expect(el.textContent).toContain('Juan Pérez');
     expect(el.textContent).toContain('Cancelar');
+    expect(el.querySelector('.appointments-empty-state')).toBeNull();
+  });
+
+  it('shows the independent appointments empty state and reuses the scheduling flow', () => {
+    (component as any).todayAppointments.set([]);
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('Consultas del día de hoy');
+    expect(el.textContent).toContain('No tienes consultas agendadas para el día de hoy.');
+    const button = el.querySelector('.appointments-empty-state button') as HTMLButtonElement;
+    expect(button.textContent).toContain('Agendar consulta');
+    expect(el.querySelectorAll('app-patient-card')).toHaveLength(2);
+
+    button.click();
+    expect(navigate).toHaveBeenCalledWith(['/app/calendar'], { state: { openAppointment: true } });
   });
 
   it('opens dialog for new patient', async () => {

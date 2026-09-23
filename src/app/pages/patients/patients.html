@@ -3,9 +3,9 @@
     <mat-progress-bar mode="indeterminate" />
   }
 
-  @if (todayAppointments().length > 0) {
-    <div class="carousel-section">
-      <span class="carousel-label">Consultas del d&iacute;a de hoy ({{ todayDateLabel() }})</span>
+  <section class="carousel-section">
+    <span class="carousel-label">Consultas del d&iacute;a de hoy ({{ todayDateLabel() }})</span>
+    @if (todayAppointments().length > 0) {
       <app-carousel [items]="todayAppointments()" [slotWidth]="376">
         <ng-template let-appt>
           <app-appointment-card
@@ -15,24 +15,34 @@
           />
         </ng-template>
       </app-carousel>
-    </div>
-  }
+    } @else if (!loading()) {
+      <div class="appointments-empty-state empty-state-content">
+        <span class="empty-text">No tienes consultas agendadas para el d&iacute;a de hoy.</span>
+        <button mat-unelevated-button class="btn-primary" (click)="scheduleAppointment()">
+          <mat-icon>add</mat-icon>
+          Agendar consulta
+        </button>
+      </div>
+    }
+  </section>
 
   <div class="header-actions">
     <span class="page-title">Pacientes</span>
-    <button mat-unelevated-button class="btn-primary" (click)="openNewPatient()">
-      <mat-icon>add</mat-icon>
-      Nuevo paciente
-    </button>
+    @if (patients().length > 0) {
+      <button mat-unelevated-button class="btn-primary" (click)="openNewPatient()">
+        <mat-icon>add</mat-icon>
+        Agregar paciente
+      </button>
+    }
   </div>
 
   @if (patients().length === 0 && !loading()) {
     <div class="empty-state-wrapper">
       <div class="empty-state-content">
-        <span class="empty-text">No hay pacientes registrados</span>
+        <span class="empty-text">No has agregado ning&uacute;n paciente.</span>
         <button mat-unelevated-button class="btn-primary" (click)="openNewPatient()">
           <mat-icon>add</mat-icon>
-          Nuevo paciente
+          Agregar paciente
         </button>
       </div>
     </div>

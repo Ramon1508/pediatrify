@@ -285,6 +285,12 @@ export class AuthService {
     return s?.type === 'doctor' ? s.user : null;
   }
 
+  updateCurrentDoctor(changes: Partial<AppUser>): void {
+    const session = this.sessionSubject.value;
+    if (session?.type !== 'doctor') return;
+    this.setSession({ ...session, user: { ...session.user, ...changes } });
+  }
+
   get currentPatient(): Patient | null {
     const s = this.sessionSubject.value;
     return s?.type === 'patient' ? s.patient : null;

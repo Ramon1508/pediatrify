@@ -70,6 +70,51 @@ describe('AppointmentDialog', () => {
     expect(el.textContent).toContain('Reagendar consulta');
   });
 
+  it('locks the preselected patient when scheduling from the patient profile', () => {
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1' });
+    component.lockPatient('p1');
+    fixture.detectChanges();
+
+    const readOnlyPatient = fixture.nativeElement.querySelector('.patient-readonly') as HTMLElement;
+    expect((component as any).form.get('patientId')?.value).toBe('p1');
+    expect(readOnlyPatient.querySelector('.readonly-label')?.textContent).toContain('Paciente');
+    expect(readOnlyPatient.querySelector('.readonly-value')?.textContent).toContain('Juan');
+    expect(readOnlyPatient.querySelector('input')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.patient-search')).toBeNull();
+  });
+
+  it('saves a locked appointment with the preselected patient id', async () => {
+    const aptRepo = TestBed.inject(AppointmentRepository);
+    (aptRepo.createAppointment as any).mockResolvedValue(undefined);
+    component.setData({
+      allPatients: mockPatients,
+      selectedDoctorId: 'd1',
+      timeSegmentsByDay: { Lun: [{ startTime: '09:00', endTime: '17:00' }] },
+      consultationDuration: 30,
+    });
+    component.lockPatient('p1');
+    (component as any).form.patchValue({ date: '2026-07-13', time: '10:00', notes: '' });
+    (component as any).form.markAsDirty();
+
+    await component.save();
+
+    expect(aptRepo.createAppointment).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ patientId: 'p1' })
+    );
+  });
+
+  it('keeps the rest of the appointment form enabled when the patient is locked', () => {
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1' });
+    component.lockPatient('p1');
+    fixture.detectChanges();
+
+    expect((component as any).form.get('date')?.enabled).toBe(true);
+    expect((component as any).form.get('time')?.enabled).toBe(true);
+    expect((component as any).form.get('notes')?.enabled).toBe(true);
+    expect(fixture.nativeElement.textContent).not.toContain('Añadir nuevo paciente');
+  });
+
   it('shows error on save when form is invalid', async () => {
     component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1' });
     fixture.detectChanges();

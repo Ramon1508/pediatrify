@@ -53,6 +53,7 @@ export class Impresion implements OnInit {
   protected isEditing = signal(false);
   protected pendingLogoPath = '';
   protected pendingLogoUrl = signal('');
+  private logoRemoved = false;
   protected saving = signal(false);
   protected loading = signal(true);
 
@@ -104,20 +105,19 @@ export class Impresion implements OnInit {
 
   async save() {
     const doctor = this.auth.currentDoctor;
-    if (!doctor) return;
+    if (!doctor || doctor.role !== 'doctor') return;
 
     this.saving.set(true);
     try {
       const current = this.settings();
-      const logoPath = this.pendingLogoPath || this.doctor?.logoPath || '';
-      // Logo por defecto = "precargado". Sin logo → default (true); con logo → respeta el checkbox.
-      const usePreloadedLogo = logoPath ? current.usePreloadedLogo : true;
+      const logoPath = this.logoRemoved ? '' : (this.pendingLogoPath || doctor.logoPath || '');
+      const usePreloadedLogo = this.pendingLogoPath || this.logoRemoved
+        ? true
+        : current.usePreloadedLogo;
 
-      if (logoPath) {
-        await this.userRepo.updateUser(doctor.uid, { logoPath });
-      }
+      await this.userRepo.updateUser(doctor.uid, { logoPath });
 
-      const { customWidth, customHeight, logoUrl, ...rest } = current;
+      const { customWidth, customHeight, ...rest } = current;
       const cleaned: PrintSettings = {
         ...rest,
         usePreloadedLogo,
@@ -127,8 +127,11 @@ export class Impresion implements OnInit {
       if (doctor) {
         this.doctor = { ...doctor, logoPath: logoPath || undefined };
       }
+      this.auth.updateCurrentDoctor({ logoPath });
       this.pendingLogoPath = '';
       this.pendingLogoUrl.set('');
+      this.logoRemoved = false;
+      await this.refreshLogoUrl();
       this.savedSettings.set(structuredClone(cleaned));
       this.isEditing.set(false);
       this.snackBar.open('Configuración guardada correctamente', 'Cerrar', { duration: 5000 });
@@ -141,6 +144,11 @@ export class Impresion implements OnInit {
 
   cancel() {
     this.settings.set(structuredClone(this.savedSettings()));
+    this.pendingLogoPath = '';
+    this.pendingLogoUrl.set('');
+    this.logoRemoved = false;
+    this.doctor = this.auth.currentDoctor;
+    this.refreshLogoUrl();
     this.isEditing.set(false);
   }
 
@@ -163,7 +171,7 @@ export class Impresion implements OnInit {
     }
 
     const doctor = this.auth.currentDoctor;
-    if (!doctor) return;
+    if (!doctor || doctor.role !== 'doctor') return;
 
     const bucket = `logos/${doctor.uid}/${file.name}`;
     try {
@@ -171,7 +179,9 @@ export class Impresion implements OnInit {
       const snap = await uploadBytes(storageRef, file, { contentType: file.type });
       const url = await getDownloadURL(snap.ref);
       this.pendingLogoPath = bucket;
-      this.pendingLogoUrl.set(url);
+      const separator = url.includes('?') ? '&' : '?';
+      this.pendingLogoUrl.set(`${url}${separator}v=${Date.now()}`);
+      this.logoRemoved = false;
       await this.refreshLogoUrl();
     } catch {
       this.snackBar.open('Error al subir el logo', 'Cerrar', { duration: 5000 });
@@ -180,8 +190,10 @@ export class Impresion implements OnInit {
   }
 
   removeLogo() {
+    if (this.auth.currentDoctor?.role !== 'doctor') return;
     this.pendingLogoPath = '';
     this.pendingLogoUrl.set('');
+    this.logoRemoved = true;
     this.settings.update((s) => ({ ...s, usePreloadedLogo: true }));
     this.refreshLogoUrl();
   }
@@ -189,11 +201,15 @@ export class Impresion implements OnInit {
   protected logoUrl = signal(this.defaultLogo);
 
   private logoSource(): string {
-    const s = this.settings();
-    return s.usePreloadedLogo ? this.defaultLogo : (this.doctor?.logoPath || this.defaultLogo);
+    if (this.logoRemoved) return this.defaultLogo;
+    return this.pendingLogoPath || this.doctor?.logoPath || this.defaultLogo;
   }
 
   private async refreshLogoUrl() {
+    if (this.pendingLogoUrl()) {
+      this.logoUrl.set(this.pendingLogoUrl());
+      return;
+    }
     const source = this.logoSource();
     this.logoUrl.set(await resolveLogoUrl(this.firebase.storage, source || this.defaultLogo));
   }

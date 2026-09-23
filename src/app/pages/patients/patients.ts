@@ -162,6 +162,10 @@ export class Patients implements OnInit, OnDestroy {
     return `${y}-${m}-${day}`;
   }
 
+  protected scheduleAppointment() {
+    this.router.navigate(['/app/calendar'], { state: { openAppointment: true } });
+  }
+
   async openNewPatient() {
     const dialogRef = this.dialog.open(NewPatientDialog, {
       width: '400px',

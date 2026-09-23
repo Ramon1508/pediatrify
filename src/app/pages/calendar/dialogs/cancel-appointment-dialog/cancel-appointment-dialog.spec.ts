@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { MatDialogRef } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { CancelAppointmentDialog } from './cancel-appointment-dialog';
 
 describe('CancelAppointmentDialog', () => {
@@ -27,6 +27,21 @@ describe('CancelAppointmentDialog', () => {
     const texts = Array.from(btns).map((b: any) => b.textContent.trim());
     expect(texts).toContain('Cerrar');
     expect(texts).toContain('Cancelar consulta');
+  });
+
+  it('focuses the dialog container instead of the first tertiary button on open', async () => {
+    TestBed.configureTestingModule({
+      imports: [CancelAppointmentDialog, NoopAnimationsModule],
+    });
+    const dialog = TestBed.inject(MatDialog);
+    const ref = dialog.open(CancelAppointmentDialog);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const tertiary = document.querySelector('.cancel-actions .btn-tertiary');
+    expect(document.activeElement).not.toBe(tertiary);
+    expect(document.activeElement?.getAttribute('role')).toBe('dialog');
+
+    ref.close();
   });
 
   it('closes with false on close()', () => {

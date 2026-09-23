@@ -133,6 +133,73 @@ describe('Calendar', () => {
     expect((component as any).isHovered(date, slot)).toBe(false);
   });
 
+  it('applies saved settings to the calendar immediately', () => {
+    const savedSettings = {
+      consultationDuration: 45,
+      allowPatientScheduling: true,
+      timeSegmentsByDay: {
+        Lun: [{ startTime: '07:00', endTime: '11:00' }],
+        Vie: [{ startTime: '13:00', endTime: '18:00' }],
+      },
+      availableDays: ['Lun', 'Vie'],
+    };
+    const setData = vi.fn();
+    const dialog = {
+      open: vi.fn().mockReturnValue({
+        componentInstance: { setData },
+        afterClosed: () => of(savedSettings),
+      }),
+    };
+    (component as any).dialog = dialog;
+
+    (component as any).openSettingsDialog();
+
+    expect(setData).toHaveBeenCalled();
+    expect((component as any).consultationDurationSignal()).toBe(45);
+    expect((component as any).availableDaysSignal()).toEqual(['Lun', 'Vie']);
+    expect((component as any).timeSegmentsByDaySignal()).toEqual(savedSettings.timeSegmentsByDay);
+    expect((component as any).settingsForm.value.allowPatientScheduling).toBe(true);
+  });
+
+  it('opens the existing scheduling drawer when navigation requests a new appointment', async () => {
+    const setData = vi.fn();
+    const dialog = {
+      open: vi.fn().mockReturnValue({
+        componentInstance: { setData },
+        afterClosed: () => of(null),
+      }),
+    };
+    (component as any).dialog = dialog;
+    history.replaceState({ openAppointment: true }, '');
+
+    await component.ngOnInit();
+
+    expect(dialog.open).toHaveBeenCalled();
+    expect(setData).toHaveBeenCalledWith(expect.objectContaining({ editingAppointment: null }));
+    expect(history.state.openAppointment).toBeUndefined();
+  });
+
+  it('opens appointment details and dismisses them from the backdrop without opening the scheduler', () => {
+    const openDialog = vi.spyOn(component as any, 'openAppointmentDialog');
+    const target = document.createElement('button');
+    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
+      top: 10, right: 110, bottom: 50, left: 20, width: 90, height: 40, x: 20, y: 10,
+      toJSON: () => ({}),
+    });
+
+    (component as any).selectAppointment(mockAppointments[0], { currentTarget: target } as unknown as MouseEvent);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.detail-overlay')).toBeTruthy();
+    const backdrop = fixture.nativeElement.querySelector('.detail-backdrop') as HTMLElement;
+    expect(backdrop).toBeTruthy();
+    backdrop.click();
+    fixture.detectChanges();
+
+    expect((component as any).selectedAppointment()).toBeNull();
+    expect(openDialog).not.toHaveBeenCalled();
+  });
+
   it('applies focus to an appointment set on the focus service', async () => {
     const date = '2026-06-01';
     TestBed.resetTestingModule();
