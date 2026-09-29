@@ -1,5 +1,6 @@
 @use '@angular/material' as mat;
 @use 'sass:color';
+@use './styles/form-layout';
 @import 'quill/dist/quill.snow.css';
 
 $primary: #0d6e8f;
@@ -246,6 +247,7 @@ p {
 .dialog-btn {
   padding: 16px 24px !important;
   height: auto !important;
+  justify-content: center;
 }
 
 .btn-primary:disabled,
@@ -345,13 +347,7 @@ p {
 }
 
 .form-row-responsive {
-  display: flex;
-  gap: 16px;
-}
-
-.form-row-responsive > * {
-  flex: 1;
-  min-width: 0;
+  @include form-layout.fields($gap: 16px);
 }
 
 .truncate {
@@ -410,11 +406,6 @@ p {
   .responsive-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 16px;
-  }
-
-  .form-row-responsive {
-    flex-direction: column;
-    gap: 0;
   }
 
   .desktop-only {
@@ -705,12 +696,16 @@ p {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: $bp-mobile) {
   .w-100-mobile {
     width: 100% !important;
   }
 
-  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) {
+  .mat-mdc-dialog-actions > .desktop-dialog-action {
+    display: none;
+  }
+
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel):not(.right-panel):not(.profile-edit-panel) {
     top: var(--app-header-h, 56px) !important;
     bottom: var(--app-nav-h, 0px) !important;
     left: 0 !important;
@@ -723,9 +718,9 @@ p {
     overflow: hidden;
   }
 
-  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mat-mdc-dialog-container,
-  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mdc-dialog__container,
-  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mdc-dialog__surface.mat-mdc-dialog-surface {
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel):not(.right-panel):not(.profile-edit-panel) .mat-mdc-dialog-container,
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel):not(.right-panel):not(.profile-edit-panel) .mdc-dialog__container,
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel):not(.right-panel):not(.profile-edit-panel) .mdc-dialog__surface.mat-mdc-dialog-surface {
     width: 100% !important;
     max-width: 100% !important;
     height: 100% !important;
@@ -733,13 +728,13 @@ p {
     border-radius: 0 !important;
   }
 
-  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mdc-dialog__surface.mat-mdc-dialog-surface {
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel):not(.right-panel):not(.profile-edit-panel) .mdc-dialog__surface.mat-mdc-dialog-surface {
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
-  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mat-mdc-dialog-content {
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel):not(.right-panel):not(.profile-edit-panel) .mat-mdc-dialog-content {
     flex: 1 1 auto;
     min-height: 0;
     max-height: none;
@@ -747,26 +742,134 @@ p {
     overflow-x: hidden;
   }
 
-  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel) .mat-mdc-dialog-actions {
+  .cdk-overlay-pane:has(.mat-mdc-dialog-container):not(.cancel-dialog):not(.context-card-panel):not(.right-panel):not(.profile-edit-panel) .mat-mdc-dialog-actions {
     flex-shrink: 0;
     flex-wrap: wrap;
     gap: 16px;
   }
 
-  .right-panel {
-    .mat-mdc-dialog-container {
-      .mdc-dialog__surface.mat-mdc-dialog-surface {
-        border-radius: 0 !important;
+  // Match only the backdrop belonging to a drawer (including CDK popover overlays).
+  .cdk-overlay-backdrop:has(+ :is(.right-panel, .profile-edit-panel)),
+  .cdk-overlay-backdrop:has(+ .cdk-global-overlay-wrapper > :is(.right-panel, .profile-edit-panel)) {
+    background: var(--State-Layers-Scrim-Opacity-16, #00000029);
+  }
+
+  @keyframes drawer-sheet-enter {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  // Editing begins inside an already-open profile dialog.
+  .profile-edit-panel .mat-mdc-dialog-surface {
+    animation: drawer-sheet-enter 150ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .cdk-overlay-pane:is(.right-panel, .profile-edit-panel) {
+    --sheet-top-gap: 76px;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+    height: calc(100vh - var(--sheet-top-gap)) !important;
+    height: calc(100dvh - var(--sheet-top-gap)) !important;
+    max-height: 100% !important;
+    overflow: visible;
+
+    .mat-mdc-dialog-container,
+    .mat-mdc-dialog-inner-container {
+      height: 100%;
+      min-height: 0;
+      max-height: 100%;
+    }
+
+    .mat-mdc-dialog-container .mat-mdc-dialog-surface {
+      height: 100% !important;
+      max-height: 100% !important;
+      min-height: 0;
+      border-radius: 28px 28px 0 0 !important;
+      background: #ffffff;
+      box-shadow: 0px 1px 3px 0px #0000004d, 0px 4px 8px 3px #00000026;
+      overflow: hidden;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      transform: translateY(100%);
+    }
+
+    .mdc-dialog--open .mat-mdc-dialog-surface {
+      transform: translateY(0);
+    }
+
+    // The panel class is attached after Material starts opening. Explicit
+    // keyframes avoid inheriting the initial scale animation from the dialog.
+    .mdc-dialog--opening .mat-mdc-dialog-surface {
+      transition: none;
+      animation: drawer-sheet-enter var(--mat-dialog-transition-duration, 150ms)
+        cubic-bezier(0, 0, 0.2, 1) both;
+    }
+
+    .mdc-dialog--closing .mat-mdc-dialog-surface {
+      animation: none;
+      transform: translateY(100%);
+    }
+
+    .mat-mdc-dialog-component-host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .dialog-title-container {
+      flex-shrink: 0;
+      gap: 8px;
+      padding: 12px 16px;
+    }
+
+    .dialog-title {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      margin-bottom: 0;
+    }
+
+    .mat-mdc-dialog-content {
+      --mat-dialog-content-padding: 16px 16px 0;
+      --mat-dialog-with-actions-content-padding: 16px 16px 0;
+      flex: 1 1 auto;
+      min-height: 0;
+      min-width: 0;
+      overscroll-behavior-y: contain;
+    }
+
+    .mat-mdc-dialog-actions {
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      > button {
+        flex: 1 1 auto;
+        max-width: 100%;
+        margin: 0;
+        white-space: normal;
       }
     }
   }
 
-  .cdk-overlay-pane.right-panel {
-    height: auto !important;
-    max-height: calc(100dvh - var(--app-header-h, 56px) - var(--app-nav-h, 0px)) !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden;
+  @media (orientation: landscape) {
+    .cdk-overlay-pane:is(.right-panel, .profile-edit-panel) {
+      --sheet-top-gap: 24px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cdk-overlay-pane:is(.right-panel, .profile-edit-panel) .mat-mdc-dialog-container .mat-mdc-dialog-surface,
+    :is(.right-panel, .profile-edit-panel) .mat-mdc-dialog-inner-container {
+      transition: none;
+      animation: none;
+    }
   }
 }
 

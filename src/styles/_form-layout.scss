@@ -1,0 +1,11 @@
+// Wrap at the fields' usable width, independently of the viewport breakpoint.
+@mixin fields($min-width: 14rem, $gap: 24px) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, #{$min-width}), 1fr));
+  gap: $gap;
+
+  > * {
+    min-width: 0;
+    width: 100%;
+  }
+}

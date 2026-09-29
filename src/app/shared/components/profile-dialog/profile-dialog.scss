@@ -131,18 +131,43 @@
   .profile-content {
     height: 100vh;
     height: 100dvh;
+
+    &.profile-editing {
+      height: 100%;
+    }
   }
 
   .profile-header {
     padding: 16px 16px 0;
+    flex-shrink: 0;
   }
 
   .profile-body {
+    order: 2;
     padding: 16px 16px 0;
   }
 
   .profile-footer {
+    order: 3;
     padding: 16px;
+  }
+
+  .profile-read-actions {
+    order: 1;
+    padding-bottom: 0;
+
+    .footer-actions {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 8px;
+
+      button {
+        flex: 1;
+        min-width: 0;
+        width: auto;
+        white-space: normal;
+      }
+    }
   }
 
   .footer-actions {
@@ -154,5 +179,9 @@
   .footer-actions button {
     width: 100%;
     justify-content: center;
+  }
+
+  .footer-actions > .desktop-dialog-action {
+    display: none;
   }
 }

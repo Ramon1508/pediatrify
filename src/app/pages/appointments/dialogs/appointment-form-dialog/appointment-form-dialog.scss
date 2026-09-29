@@ -1,11 +1,7 @@
-.form-row {
-  display: flex;
-  gap: 1rem;
+@use '../../../../../styles/form-layout';
 
-  mat-form-field {
-    flex: 1;
-    min-width: 0;
-  }
+.form-row {
+  @include form-layout.fields($gap: 1rem);
 }
 
 .dialog-error {
@@ -14,11 +10,6 @@
 }
 
 @media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-    gap: 0;
-  }
-
   mat-dialog-actions {
     flex-direction: column;
     align-items: stretch;

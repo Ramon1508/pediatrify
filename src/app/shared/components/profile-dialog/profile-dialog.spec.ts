@@ -37,7 +37,7 @@ describe('ProfileDialog', () => {
     const printSettingsRepo = { getSettings: vi.fn().mockResolvedValue({ usePreloadedLogo: true }), updateSettings: vi.fn().mockResolvedValue(undefined) };
     const alertService = { success: vi.fn(), error: vi.fn() };
     const authService = { currentDoctor: doctor, updateCurrentDoctor: vi.fn(), logout: vi.fn() };
-    const dialogRef = { close: vi.fn() };
+    const dialogRef = { close: vi.fn(), addPanelClass: vi.fn(), removePanelClass: vi.fn() };
     const router = { navigate: vi.fn() };
     const firebase = { storage: {} };
 
@@ -67,9 +67,10 @@ describe('ProfileDialog', () => {
   }, 10000);
 
   it('starts in read-only mode with the form disabled', () => {
-    const { component } = createFixture();
+    const { component, dialogRef } = createFixture();
     expect(component.readOnly).toBe(true);
     expect(component.form.disabled).toBe(true);
+    expect(dialogRef.addPanelClass).not.toHaveBeenCalled();
   });
 
   it('doctor profile shows all read fields and "Editar perfil"', () => {
@@ -105,10 +106,11 @@ describe('ProfileDialog', () => {
   });
 
   it('switchToEdit enables the form', () => {
-    const { component } = createFixture();
+    const { component, dialogRef } = createFixture();
     component.switchToEdit();
     expect(component.readOnly).toBe(false);
     expect(component.form.enabled).toBe(true);
+    expect(dialogRef.addPanelClass).toHaveBeenCalledWith('profile-edit-panel');
   });
 
   it('loads the same persisted logo when the profile is opened again', async () => {
@@ -124,17 +126,18 @@ describe('ProfileDialog', () => {
   });
 
   it('cancelEdit restores original values and disables the form', () => {
-    const { component } = createFixture();
+    const { component, dialogRef } = createFixture();
     component.switchToEdit();
     component.form.controls.name.setValue('Dr. Cambiado');
     component.cancelEdit();
     expect(component.form.disabled).toBe(true);
     expect(component.form.value.name).toBe('Dr. Test');
     expect(component.readOnly).toBe(true);
+    expect(dialogRef.removePanelClass).toHaveBeenCalledWith('profile-edit-panel');
   });
 
   it('save() calls updateUser and shows the saved message', async () => {
-    const { component, userRepo } = createFixture();
+    const { component, userRepo, dialogRef } = createFixture();
     component.switchToEdit();
     await component.save();
     expect(userRepo.updateUser).toHaveBeenCalledWith(
@@ -142,6 +145,7 @@ describe('ProfileDialog', () => {
       expect.objectContaining({ name: 'Dr. Test', phone: '555', logoPath: '' })
     );
     expect(component.showSaved).toBe(true);
+    expect(dialogRef.removePanelClass).toHaveBeenCalledWith('profile-edit-panel');
     expect(component.readOnly).toBe(true);
     expect(component.form.disabled).toBe(true);
   });
@@ -190,20 +194,23 @@ describe('ProfileDialog', () => {
   });
 
   it('save() does nothing when the form is invalid', async () => {
-    const { component, userRepo } = createFixture();
+    const { component, userRepo, dialogRef } = createFixture();
     component.switchToEdit();
     component.form.controls.name.setValue('');
     await component.save();
     expect(userRepo.updateUser).not.toHaveBeenCalled();
+    expect(dialogRef.removePanelClass).not.toHaveBeenCalled();
   });
 
   it('save() failure shows an error alert', async () => {
-    const { component, userRepo, alertService } = createFixture();
+    const { component, userRepo, alertService, dialogRef } = createFixture();
     userRepo.updateUser.mockRejectedValue(new Error('fail'));
     component.switchToEdit();
     await component.save();
     expect(alertService.error).toHaveBeenCalledWith({ message: 'Error al guardar los cambios', duration: 5000 });
     expect(component.saving).toBe(false);
+    expect(component.readOnly).toBe(false);
+    expect(dialogRef.removePanelClass).not.toHaveBeenCalled();
   });
 
   it('close() closes the dialog in read-only mode', () => {

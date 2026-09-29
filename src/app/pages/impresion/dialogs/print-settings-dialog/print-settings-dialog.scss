@@ -1,0 +1,25 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.print-settings-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.print-settings-actions {
+  padding: 16px 16px 24px;
+
+  .print-settings-save {
+    width: 100%;
+    padding: 10px;
+    justify-content: center;
+  }
+}

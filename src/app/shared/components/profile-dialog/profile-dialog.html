@@ -1,6 +1,6 @@
-<div class="profile-content">
+<div class="profile-content" [class.profile-editing]="!readOnly">
   <div class="profile-header">
-    <h1 class="profile-title">Perfil</h1>
+    <h1 class="profile-title">{{ readOnly ? 'Perfil' : 'Editar perfil' }}</h1>
     <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
       <mat-icon>close</mat-icon>
     </button>
@@ -124,7 +124,7 @@
     </form>
   </div>
 
-  <div class="profile-footer">
+  <div class="profile-footer" [class.profile-read-actions]="readOnly">
     @if (showSaved) {
       <div class="saved-snackbar">
         <span>Cambios guardados.</span>
@@ -147,7 +147,7 @@
           Cerrar sesión
         </button>
       } @else {
-        <button mat-stroked-button class="btn-secondary profile-btn" (click)="cancelEdit()">
+        <button mat-stroked-button class="btn-secondary profile-btn desktop-dialog-action" (click)="cancelEdit()">
           Cancelar
         </button>
         <button mat-unelevated-button class="btn-primary profile-btn" (click)="save()" [disabled]="saving">

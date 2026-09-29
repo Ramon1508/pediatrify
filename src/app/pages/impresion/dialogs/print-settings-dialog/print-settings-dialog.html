@@ -1,0 +1,16 @@
+<div class="dialog-title-container">
+  <h2 id="print-settings-title" class="dialog-title">Editar ajustes de impresión</h2>
+  <button mat-icon-button class="btn-close-dialog" mat-dialog-close [disabled]="data.saving()" aria-label="Cerrar">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>
+
+<div class="print-settings-body">
+  <ng-container [ngTemplateOutlet]="data.tabs" [ngTemplateOutletContext]="{ editing: true, mobilePreview: false }" />
+</div>
+
+<mat-dialog-actions class="print-settings-actions">
+  <button mat-unelevated-button class="btn-primary print-settings-save" (click)="data.save()" [disabled]="data.saving()">
+    Guardar cambios
+  </button>
+</mat-dialog-actions>

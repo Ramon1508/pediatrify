@@ -1,4 +1,4 @@
-import { Component, input, computed, signal, ContentChild, TemplateRef, ViewChild, ElementRef, ChangeDetectionStrategy, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, input, computed, signal, effect, ContentChild, TemplateRef, ViewChild, ElementRef, ChangeDetectionStrategy, AfterViewInit, OnDestroy } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -31,6 +31,13 @@ export class Carousel<T> implements AfterViewInit, OnDestroy {
 
   private ro: ResizeObserver | null = null;
 
+  constructor() {
+    effect(() => {
+      const lastPage = this.totalPages() - 1;
+      this.page.update((page) => Math.min(page, lastPage));
+    });
+  }
+
   ngAfterViewInit() {
     const el = this.trackWrapper?.nativeElement;
     if (!el) return;
@@ -56,6 +63,6 @@ export class Carousel<T> implements AfterViewInit, OnDestroy {
   }
 
   goTo(page: number) {
-    this.page.set(Math.min(page, this.totalPages() - 1));
+    this.page.set(Math.max(0, Math.min(page, this.totalPages() - 1)));
   }
 }

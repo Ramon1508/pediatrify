@@ -148,6 +148,7 @@
 
 @media (max-width: 768px) {
   .patients-container {
+    --appointment-card-max-width: 100%;
     width: auto;
     margin: 16px;
     padding: 0;

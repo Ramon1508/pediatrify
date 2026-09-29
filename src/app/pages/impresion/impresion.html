@@ -3,25 +3,46 @@
     <div class="header-left">
       <span class="title-large">Ajustes de impresión de recetas y recomendaciones</span>
     </div>
-    @if (isEditing()) {
+    @if (isEditing() && !isMobile()) {
       <div class="header-actions">
-        <button mat-unelevated-button class="btn-secondary" (click)="cancel()">Cancelar</button>
+        <button mat-unelevated-button class="btn-secondary" (click)="cancel()" [disabled]="saving()">Cancelar</button>
         <button mat-unelevated-button class="btn-primary" (click)="save()" [disabled]="saving()">Guardar cambios</button>
       </div>
     } @else {
       <div class="header-actions">
-        <button mat-unelevated-button class="btn-primary" (click)="toggleEdit()">Editar</button>
+        <button mat-unelevated-button class="btn-primary" (click)="toggleEdit()" [disabled]="loading() || saving()">Editar</button>
       </div>
     }
   </div>
 
   <div class="impresion-body">
-    <div class="settings-panel">
-      <mat-tab-group dynamicHeight>
-        <!-- Tab 1: Márgenes y estilos -->
+    <ng-container [ngTemplateOutlet]="settingsTabs" [ngTemplateOutletContext]="{ editing: isEditing() && !isMobile(), mobilePreview: isMobile() }" />
+
+    @if (!isMobile()) {
+      <div class="preview-panel">
+        <p class="preview-label">Preview</p>
+        <ng-container [ngTemplateOutlet]="previewTemplate" />
+      </div>
+    }
+  </div>
+</div>
+
+<ng-template #settingsTabs let-editing="editing" let-mobilePreview="mobilePreview">
+    <div class="settings-panel" [class.settings-sheet]="editing && isMobile()">
+      <mat-tab-group [dynamicHeight]="!editing || !isMobile()">
+        @if (mobilePreview) {
+          <mat-tab label="Preview">
+            <ng-template matTabContent>
+              <div class="preview-tab">
+                <ng-container [ngTemplateOutlet]="previewTemplate" />
+              </div>
+            </ng-template>
+          </mat-tab>
+        }
+
         <mat-tab label="Márgenes y estilos">
           <div class="tab-content">
-            @if (isEditing()) {
+            @if (editing) {
               <div class="form-row">
                 <mat-form-field appearance="outline" class="margin-input">
                   <mat-label>Tamaño</mat-label>
@@ -74,7 +95,7 @@
               }
             }
 
-            @if (isEditing()) {
+            @if (editing) {
               <div class="form-row">
                 <mat-form-field appearance="outline" class="margin-input">
                   <mat-label>Superior</mat-label>
@@ -120,15 +141,14 @@
           </div>
         </mat-tab>
 
-        <!-- Tab 2: Logo -->
         <mat-tab label="Logo">
           <div class="tab-content">
             <div class="form-row">
-              <mat-checkbox [checked]="settings().usePreloadedLogo" (change)="updateSetting('usePreloadedLogo', $event.checked)" [disabled]="!isEditing()">
+              <mat-checkbox [checked]="settings().usePreloadedLogo" (change)="updateSetting('usePreloadedLogo', $event.checked)" [disabled]="!editing">
                 Usar logo Precargado
               </mat-checkbox>
             </div>
-            @if (isEditing()) {
+            @if (editing) {
               @if (!settings().usePreloadedLogo) {
                 <div class="logo-upload-area" (click)="logoInput.click()" (keydown.enter)="logoInput.click()" tabindex="0" role="button" aria-label="Subir logo">
                   @if (pendingLogoUrl() || doctor?.logoPath) {
@@ -149,7 +169,7 @@
               </div>
             }
 
-            @if (isEditing()) {
+            @if (editing) {
               <div class="form-row">
                 <mat-form-field appearance="outline" class="margin-input">
                   <mat-label>Posición</mat-label>
@@ -181,51 +201,50 @@
           </div>
         </mat-tab>
 
-        <!-- Tab 3: Información -->
         <mat-tab label="Información">
           <div class="tab-content">
             <div class="checkbox-group">
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showDoctorName" (change)="updateSetting('showDoctorName', $event.checked)" [disabled]="!isEditing()">Mostrar nombre del doctor(a)</mat-checkbox>
+                <mat-checkbox [checked]="settings().showDoctorName" (change)="updateSetting('showDoctorName', $event.checked)" [disabled]="!editing">Mostrar nombre del doctor(a)</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showSpecialty" (change)="updateSetting('showSpecialty', $event.checked)" [disabled]="!isEditing()">Mostrar especialidad</mat-checkbox>
+                <mat-checkbox [checked]="settings().showSpecialty" (change)="updateSetting('showSpecialty', $event.checked)" [disabled]="!editing">Mostrar especialidad</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showProfessionalId" (change)="updateSetting('showProfessionalId', $event.checked)" [disabled]="!isEditing()">Mostrar cédula profesional</mat-checkbox>
+                <mat-checkbox [checked]="settings().showProfessionalId" (change)="updateSetting('showProfessionalId', $event.checked)" [disabled]="!editing">Mostrar cédula profesional</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showSpecialtyId" (change)="updateSetting('showSpecialtyId', $event.checked)" [disabled]="!isEditing()">Mostrar cédula de especialidad</mat-checkbox>
+                <mat-checkbox [checked]="settings().showSpecialtyId" (change)="updateSetting('showSpecialtyId', $event.checked)" [disabled]="!editing">Mostrar cédula de especialidad</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showDoctorPhone" (change)="updateSetting('showDoctorPhone', $event.checked)" [disabled]="!isEditing()">Mostrar teléfono del doctor</mat-checkbox>
+                <mat-checkbox [checked]="settings().showDoctorPhone" (change)="updateSetting('showDoctorPhone', $event.checked)" [disabled]="!editing">Mostrar teléfono del doctor</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showDoctorOffice" (change)="updateSetting('showDoctorOffice', $event.checked)" [disabled]="!isEditing()">Mostrar consultorio(s) del doctor</mat-checkbox>
+                <mat-checkbox [checked]="settings().showDoctorOffice" (change)="updateSetting('showDoctorOffice', $event.checked)" [disabled]="!editing">Mostrar consultorio(s) del doctor</mat-checkbox>
               </div>
             </div>
 
             <div class="checkbox-group">
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showPatientName" (change)="updateSetting('showPatientName', $event.checked)" [disabled]="!isEditing()">Mostrar nombre del paciente</mat-checkbox>
+                <mat-checkbox [checked]="settings().showPatientName" (change)="updateSetting('showPatientName', $event.checked)" [disabled]="!editing">Mostrar nombre del paciente</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showConsultDate" (change)="updateSetting('showConsultDate', $event.checked)" [disabled]="!isEditing()">Mostrar fecha de la consulta</mat-checkbox>
+                <mat-checkbox [checked]="settings().showConsultDate" (change)="updateSetting('showConsultDate', $event.checked)" [disabled]="!editing">Mostrar fecha de la consulta</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showPatientAge" (change)="updateSetting('showPatientAge', $event.checked)" [disabled]="!isEditing()">Mostrar edad del paciente</mat-checkbox>
+                <mat-checkbox [checked]="settings().showPatientAge" (change)="updateSetting('showPatientAge', $event.checked)" [disabled]="!editing">Mostrar edad del paciente</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showPatientWeight" (change)="updateSetting('showPatientWeight', $event.checked)" [disabled]="!isEditing()">Mostrar peso del paciente</mat-checkbox>
+                <mat-checkbox [checked]="settings().showPatientWeight" (change)="updateSetting('showPatientWeight', $event.checked)" [disabled]="!editing">Mostrar peso del paciente</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showPatientHeight" (change)="updateSetting('showPatientHeight', $event.checked)" [disabled]="!isEditing()">Mostrar talla del paciente</mat-checkbox>
+                <mat-checkbox [checked]="settings().showPatientHeight" (change)="updateSetting('showPatientHeight', $event.checked)" [disabled]="!editing">Mostrar talla del paciente</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showPatientHeadCircumference" (change)="updateSetting('showPatientHeadCircumference', $event.checked)" [disabled]="!isEditing()">Mostrar perímetro cefálico del paciente</mat-checkbox>
+                <mat-checkbox [checked]="settings().showPatientHeadCircumference" (change)="updateSetting('showPatientHeadCircumference', $event.checked)" [disabled]="!editing">Mostrar perímetro cefálico del paciente</mat-checkbox>
               </div>
               <div class="checkbox-row">
-                <mat-checkbox [checked]="settings().showPatientTemperature" (change)="updateSetting('showPatientTemperature', $event.checked)" [disabled]="!isEditing()">Mostrar temperatura del paciente</mat-checkbox>
+                <mat-checkbox [checked]="settings().showPatientTemperature" (change)="updateSetting('showPatientTemperature', $event.checked)" [disabled]="!editing">Mostrar temperatura del paciente</mat-checkbox>
               </div>
             </div>
           </div>
@@ -233,14 +252,16 @@
       </mat-tab-group>
     </div>
 
-    <div class="preview-panel">
-      <p class="preview-label">Preview</p>
+</ng-template>
+
+<ng-template #previewTemplate>
+    <div class="preview-viewport" #previewViewport>
       <div class="preview-frame" [style]="previewStyle()">
         <div class="preview-content" [style]="previewContentStyle()">
           <div class="preview-top-section">
             @if (showLogo()) {
               <div class="preview-logo" [class.preview-logo-right]="settings().logoPosition === 'top-right'" [style.width.px]="previewLogoWidthPx()">
-                <img [src]="logoUrl()" alt="Logo" />
+                <img [src]="logoUrl()" alt="Logo del doctor en la vista previa de impresión" />
               </div>
             }
 
@@ -303,5 +324,4 @@
         </div>
       </div>
     </div>
-  </div>
-</div>
+</ng-template>

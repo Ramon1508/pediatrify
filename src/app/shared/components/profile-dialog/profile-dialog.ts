@@ -124,6 +124,7 @@ export class ProfileDialog {
 
   switchToEdit() {
     this.readOnly = false;
+    this.dialogRef.addPanelClass('profile-edit-panel');
     this.form.enable();
     if (!this.logoUrl && this.doctor?.logoPath) {
       this.resolveLogoUrl(this.doctor.logoPath).then((url) => {
@@ -158,6 +159,7 @@ export class ProfileDialog {
     }
     this.logoUpload = undefined;
     this.readOnly = true;
+    this.dialogRef.removePanelClass('profile-edit-panel');
     this.form.disable();
     this.cdr.markForCheck();
   }
@@ -225,6 +227,7 @@ export class ProfileDialog {
       this.logoUpload = undefined;
 
       this.readOnly = true;
+      this.dialogRef.removePanelClass('profile-edit-panel');
       this.form.disable();
       this.showSaved = true;
       setTimeout(() => {

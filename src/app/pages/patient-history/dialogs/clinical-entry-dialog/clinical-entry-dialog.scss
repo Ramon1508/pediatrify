@@ -1,3 +1,5 @@
+@use '../../../../../styles/form-layout';
+
 .entry-meta {
   display: flex;
   justify-content: space-between;
@@ -64,18 +66,8 @@
 }
 
 .form-row {
-  display: flex;
-  gap: 24px;
+  @include form-layout.fields();
   margin-bottom: 0.75rem;
-
-  mat-form-field {
-    flex: 1;
-    min-width: 0;
-  }
-}
-
-.desktop-2col > * {
-  width: calc(50% - 12px);
 }
 
 .form-gap-40 {
@@ -139,24 +131,5 @@ mat-dialog-actions {
   .step-header {
     align-items: flex-start;
     gap: 16px;
-  }
-
-  .form-row.desktop-2col {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .desktop-2col > * {
-    width: 100%;
-  }
-
-  mat-dialog-actions {
-    flex-direction: column;
-    align-items: stretch;
-
-    button {
-      width: 100%;
-      justify-content: center;
-    }
   }
 }

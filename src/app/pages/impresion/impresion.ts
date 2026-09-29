@@ -1,5 +1,8 @@
-import { Component, inject, signal, computed, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { UpperCasePipe } from '@angular/common';
+import { Component, inject, signal, computed, effect, viewChild, ElementRef, OnInit, ChangeDetectionStrategy, DestroyRef, untracked } from '@angular/core';
+import { NgTemplateOutlet, UpperCasePipe } from '@angular/common';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -8,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { FormsModule } from '@angular/forms';
 import { PrintSettingsRepository } from '../../core/repositories/print-settings.repository';
 import { AuthService } from '../../core/services/auth.service';
@@ -18,7 +22,11 @@ import { Sexo } from '../../core/models/sexo';
 import { FirebaseService } from '../../core/firebase/firebase.service';
 import { resolveLogoUrl } from '../../core/utils/logo-utils';
 import { UserRepository } from '../../core/repositories/user.repository';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes } from 'firebase/storage';
+import { PrintSettingsDialog, PrintSettingsDialogData } from './dialogs/print-settings-dialog/print-settings-dialog';
+
+// Matches the project's $bp-mobile token in styles.scss.
+const MOBILE_QUERY = '(max-width: 768px)';
 
 @Component({
   selector: 'app-impresion',
@@ -37,6 +45,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
     MatSnackBarModule,
     FormsModule,
     UpperCasePipe,
+    NgTemplateOutlet,
   ],
 })
 export class Impresion implements OnInit {
@@ -46,6 +55,47 @@ export class Impresion implements OnInit {
   private snackBar = inject(MatSnackBar);
   private firebase = inject(FirebaseService);
   private defaultLogo = inject(DEFAULT_LOGO_URL);
+  private breakpoints = inject(BreakpointObserver);
+  private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
+  private editorRef?: MatDialogRef<PrintSettingsDialog, 'saved' | 'layout'>;
+  private readonly settingsTabs = viewChild.required<PrintSettingsDialogData['tabs']>('settingsTabs');
+  protected readonly isMobile = toSignal(
+    this.breakpoints.observe(MOBILE_QUERY).pipe(map((state) => state.matches)),
+    { initialValue: this.breakpoints.isMatched(MOBILE_QUERY) },
+  );
+  private readonly previewViewport = viewChild<ElementRef<HTMLElement>>('previewViewport');
+  private readonly previewAvailableWidth = signal(400);
+  private readonly previewWidth = computed(() =>
+    this.isMobile() ? Math.min(400, this.previewAvailableWidth()) : 400,
+  );
+
+  constructor() {
+    effect((onCleanup) => {
+      const viewport = this.previewViewport()?.nativeElement;
+      if (!viewport) return;
+      const observer = new ResizeObserver(([entry]) => {
+        if (entry.contentRect.width > 0) {
+          this.previewAvailableWidth.set(entry.contentRect.width);
+        }
+      });
+      observer.observe(viewport);
+      onCleanup(() => observer.disconnect());
+    });
+
+    effect(() => {
+      const showSheet = this.isMobile() && this.isEditing();
+      untracked(() => {
+        if (showSheet) this.openEditor();
+        else this.closeEditor('layout');
+      });
+    });
+
+    this.destroyRef.onDestroy(() => {
+      this.closeEditor('layout');
+      this.clearPendingLogo();
+    });
+  }
 
   protected doctor: AppUser | null = null;
   protected settings = signal<PrintSettings>(getDefaultSettings());
@@ -53,6 +103,7 @@ export class Impresion implements OnInit {
   protected isEditing = signal(false);
   protected pendingLogoPath = '';
   protected pendingLogoUrl = signal('');
+  private pendingLogoFile?: File;
   private logoRemoved = false;
   protected saving = signal(false);
   protected loading = signal(true);
@@ -93,7 +144,32 @@ export class Impresion implements OnInit {
   }
 
   toggleEdit() {
-    this.isEditing.update((v) => !v);
+    this.isEditing.set(true);
+  }
+
+  private openEditor() {
+    if (this.editorRef) return;
+    const ref = this.dialog.open<PrintSettingsDialog, PrintSettingsDialogData, 'saved' | 'layout'>(PrintSettingsDialog, {
+      panelClass: 'right-panel',
+      width: '100%',
+      maxWidth: '100vw',
+      ariaLabelledBy: 'print-settings-title',
+      autoFocus: '.btn-close-dialog',
+      disableClose: this.saving(),
+      data: { tabs: this.settingsTabs(), saving: this.saving, save: () => this.save() },
+    });
+    this.editorRef = ref;
+    ref.beforeClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((result) => {
+      if (this.editorRef === ref) this.editorRef = undefined;
+      // Resizing transfers the same draft to desktop; dismissing discards it.
+      if (result !== 'saved' && result !== 'layout') this.cancel();
+    });
+  }
+
+  private closeEditor(result: 'saved' | 'layout') {
+    const ref = this.editorRef;
+    this.editorRef = undefined;
+    ref?.close(result);
   }
 
   updateSetting(key: keyof PrintSettings, value: any) {
@@ -105,15 +181,21 @@ export class Impresion implements OnInit {
 
   async save() {
     const doctor = this.auth.currentDoctor;
-    if (!doctor || doctor.role !== 'doctor') return;
+    if (!doctor || doctor.role !== 'doctor' || this.saving()) return;
 
     this.saving.set(true);
+    if (this.editorRef) this.editorRef.disableClose = true;
     try {
       const current = this.settings();
       const logoPath = this.logoRemoved ? '' : (this.pendingLogoPath || doctor.logoPath || '');
       const usePreloadedLogo = this.pendingLogoPath || this.logoRemoved
         ? true
         : current.usePreloadedLogo;
+
+      if (this.pendingLogoFile) {
+        const storageRef = ref(this.firebase.storage, this.pendingLogoPath);
+        await uploadBytes(storageRef, this.pendingLogoFile, { contentType: this.pendingLogoFile.type });
+      }
 
       await this.userRepo.updateUser(doctor.uid, { logoPath });
 
@@ -128,24 +210,25 @@ export class Impresion implements OnInit {
         this.doctor = { ...doctor, logoPath: logoPath || undefined };
       }
       this.auth.updateCurrentDoctor({ logoPath });
-      this.pendingLogoPath = '';
-      this.pendingLogoUrl.set('');
+      this.clearPendingLogo();
       this.logoRemoved = false;
       await this.refreshLogoUrl();
       this.savedSettings.set(structuredClone(cleaned));
+      this.settings.set(cleaned);
       this.isEditing.set(false);
+      this.closeEditor('saved');
       this.snackBar.open('Configuración guardada correctamente', 'Cerrar', { duration: 5000 });
     } catch {
       this.snackBar.open('Error al guardar la configuración', 'Cerrar', { duration: 5000 });
     } finally {
       this.saving.set(false);
+      if (this.editorRef) this.editorRef.disableClose = false;
     }
   }
 
   cancel() {
     this.settings.set(structuredClone(this.savedSettings()));
-    this.pendingLogoPath = '';
-    this.pendingLogoUrl.set('');
+    this.clearPendingLogo();
     this.logoRemoved = false;
     this.doctor = this.auth.currentDoctor;
     this.refreshLogoUrl();
@@ -173,26 +256,25 @@ export class Impresion implements OnInit {
     const doctor = this.auth.currentDoctor;
     if (!doctor || doctor.role !== 'doctor') return;
 
-    const bucket = `logos/${doctor.uid}/${file.name}`;
-    try {
-      const storageRef = ref(this.firebase.storage, bucket);
-      const snap = await uploadBytes(storageRef, file, { contentType: file.type });
-      const url = await getDownloadURL(snap.ref);
-      this.pendingLogoPath = bucket;
-      const separator = url.includes('?') ? '&' : '?';
-      this.pendingLogoUrl.set(`${url}${separator}v=${Date.now()}`);
-      this.logoRemoved = false;
-      await this.refreshLogoUrl();
-    } catch {
-      this.snackBar.open('Error al subir el logo', 'Cerrar', { duration: 5000 });
-    }
+    this.clearPendingLogo();
+    this.pendingLogoFile = file;
+    this.pendingLogoPath = `logos/${doctor.uid}/${file.name}`;
+    this.pendingLogoUrl.set(URL.createObjectURL(file));
+    this.logoRemoved = false;
+    await this.refreshLogoUrl();
     input.value = '';
+  }
+
+  private clearPendingLogo() {
+    if (this.pendingLogoFile) URL.revokeObjectURL(this.pendingLogoUrl());
+    this.pendingLogoFile = undefined;
+    this.pendingLogoPath = '';
+    this.pendingLogoUrl.set('');
   }
 
   removeLogo() {
     if (this.auth.currentDoctor?.role !== 'doctor') return;
-    this.pendingLogoPath = '';
-    this.pendingLogoUrl.set('');
+    this.clearPendingLogo();
     this.logoRemoved = true;
     this.settings.update((s) => ({ ...s, usePreloadedLogo: true }));
     this.refreshLogoUrl();
@@ -225,13 +307,13 @@ export class Impresion implements OnInit {
   private previewScaleCmPerPx = computed(() => {
     const s = this.settings();
     const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
-    const previewMaxWidth = 400;
+    const previewMaxWidth = this.previewWidth();
     return dim.width / previewMaxWidth;
   });
 
   private ptToPx = computed(() => {
     const dim = getPaperDimensions(this.settings().paperSize, this.settings().customWidth, this.settings().customHeight, this.settings().orientation);
-    const previewWidth = 400;
+    const previewWidth = this.previewWidth();
     const cmPerPx = dim.width / previewWidth;
     const ptToCm = 2.54 / 72;
     return ptToCm / cmPerPx;
@@ -249,7 +331,7 @@ export class Impresion implements OnInit {
     const s = this.settings();
     const dim = getPaperDimensions(s.paperSize, s.customWidth, s.customHeight, s.orientation);
     const aspect = dim.width / dim.height;
-    return { width: '400px', aspectRatio: `${aspect}` };
+    return { width: `${this.previewWidth()}px`, aspectRatio: `${aspect}` };
   });
 
   protected previewContentStyle = computed(() => {
