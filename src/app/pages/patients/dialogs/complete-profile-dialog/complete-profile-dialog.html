@@ -28,7 +28,7 @@
 
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Fecha de nacimiento</mat-label>
-          <input matInput [matDatepicker]="dp" formControlName="birthDate" placeholder="DD/MM/AAAA" (click)="dp.open()" />
+          <input matInput [matDatepicker]="dp" formControlName="birthDate" (click)="dp.open()" />
           <mat-datepicker #dp></mat-datepicker>
           <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
           @if (form.get('birthDate')?.invalid && (form.get('birthDate')?.touched || submittedSteps[0])) {

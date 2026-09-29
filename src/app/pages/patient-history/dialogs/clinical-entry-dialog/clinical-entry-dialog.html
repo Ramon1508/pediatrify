@@ -142,7 +142,7 @@
         <form [formGroup]="step2Form" class="tab-form">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Visible para el paciente hasta</mat-label>
-            <input matInput [matDatepicker]="dpRec" formControlName="visibleUntil" placeholder="DD/MM/AAAA" (click)="dpRec.open()" [matDatepickerFilter]="noPastDates" />
+            <input matInput [matDatepicker]="dpRec" formControlName="visibleUntil" (click)="dpRec.open()" [matDatepickerFilter]="noPastDates" />
             <mat-icon matSuffix (click)="dpRec.open()">calendar_today</mat-icon>
             <mat-datepicker #dpRec></mat-datepicker>
             @if (step2Form.get('visibleUntil')?.invalid && submitted) {
@@ -164,7 +164,7 @@
         <form [formGroup]="step3Form" class="tab-form">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Visible para el paciente hasta</mat-label>
-            <input matInput [matDatepicker]="dpRx" formControlName="visibleUntilRx" placeholder="DD/MM/AAAA" (click)="dpRx.open()" [matDatepickerFilter]="noPastDates" />
+            <input matInput [matDatepicker]="dpRx" formControlName="visibleUntilRx" (click)="dpRx.open()" [matDatepickerFilter]="noPastDates" />
             <mat-icon matSuffix (click)="dpRx.open()">calendar_today</mat-icon>
             <mat-datepicker #dpRx></mat-datepicker>
             @if (step3Form.get('visibleUntilRx')?.invalid && submitted) {
@@ -181,7 +181,7 @@
     <form [formGroup]="step2Form" class="context-form">
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Visible para el paciente hasta</mat-label>
-        <input matInput [matDatepicker]="dpRecCtx" formControlName="visibleUntil" placeholder="DD/MM/AAAA" (click)="dpRecCtx.open()" [matDatepickerFilter]="noPastDates" />
+        <input matInput [matDatepicker]="dpRecCtx" formControlName="visibleUntil" (click)="dpRecCtx.open()" [matDatepickerFilter]="noPastDates" />
         <mat-icon matSuffix (click)="dpRecCtx.open()">calendar_today</mat-icon>
         <mat-datepicker #dpRecCtx></mat-datepicker>
         @if (step2Form.get('visibleUntil')?.invalid && submitted) {
@@ -195,7 +195,7 @@
     <form [formGroup]="step3Form" class="context-form">
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Visible para el paciente hasta</mat-label>
-        <input matInput [matDatepicker]="dpRxCtx" formControlName="visibleUntilRx" placeholder="DD/MM/AAAA" (click)="dpRxCtx.open()" [matDatepickerFilter]="noPastDates" />
+        <input matInput [matDatepicker]="dpRxCtx" formControlName="visibleUntilRx" (click)="dpRxCtx.open()" [matDatepickerFilter]="noPastDates" />
         <mat-icon matSuffix (click)="dpRxCtx.open()">calendar_today</mat-icon>
         <mat-datepicker #dpRxCtx></mat-datepicker>
         @if (step3Form.get('visibleUntilRx')?.invalid && submitted) {
@@ -324,7 +324,7 @@
         <form [formGroup]="step2Form" class="step-form">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Visible para el paciente hasta</mat-label>
-            <input matInput [matDatepicker]="dpRecWiz" formControlName="visibleUntil" placeholder="DD/MM/AAAA" (click)="dpRecWiz.open()" [matDatepickerFilter]="noPastDates" />
+            <input matInput [matDatepicker]="dpRecWiz" formControlName="visibleUntil" (click)="dpRecWiz.open()" [matDatepickerFilter]="noPastDates" />
             <mat-icon matSuffix (click)="dpRecWiz.open()">calendar_today</mat-icon>
             <mat-datepicker #dpRecWiz></mat-datepicker>
             @if (step2Form.get('visibleUntil')?.invalid && submitted) {
@@ -340,7 +340,7 @@
         <form [formGroup]="step3Form" class="step-form">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Visible para el paciente hasta</mat-label>
-            <input matInput [matDatepicker]="dpRxWiz" formControlName="visibleUntilRx" placeholder="DD/MM/AAAA" (click)="dpRxWiz.open()" [matDatepickerFilter]="noPastDates" />
+            <input matInput [matDatepicker]="dpRxWiz" formControlName="visibleUntilRx" (click)="dpRxWiz.open()" [matDatepickerFilter]="noPastDates" />
             <mat-icon matSuffix (click)="dpRxWiz.open()">calendar_today</mat-icon>
             <mat-datepicker #dpRxWiz></mat-datepicker>
             @if (step3Form.get('visibleUntilRx')?.invalid && submitted) {

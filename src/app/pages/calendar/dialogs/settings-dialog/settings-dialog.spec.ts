@@ -86,6 +86,19 @@ describe('SettingsDialog', () => {
     expect(component.selectedDay).toBe('Vie');
   });
 
+  it('renders no segment fields when opened without configured days', () => {
+    const { fixture } = createFixture({
+      ...defaultData,
+      timeSegmentsByDay: {},
+      availableDays: [],
+    });
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('.segments-list mat-form-field')).toHaveLength(0);
+    expect(element.querySelectorAll('.segments-list mat-label')).toHaveLength(0);
+    expect(element.querySelector('.segments-list')).toBeNull();
+    expect(element.querySelector('.btn-add-segment')).not.toBeNull();
+  });
+
   it('loads each day schedule without changing the other days', () => {
     const { component } = createFixture({
       ...defaultData,
@@ -128,8 +141,40 @@ describe('SettingsDialog', () => {
     fixture.detectChanges();
     element = fixture.nativeElement as HTMLElement;
     expect(component.timeSegments.length).toBe(0);
+    expect(element.querySelectorAll('.segments-list mat-form-field')).toHaveLength(0);
+    expect(element.querySelectorAll('.segments-list mat-label')).toHaveLength(0);
     expect(element.querySelector('.chip-day.active')?.textContent).toContain('Dom');
     expect(element.querySelector('.chip-day.active')?.querySelector('.day-check')).toBeNull();
+  });
+
+  it('removes the whole segment container on empty days and recreates it when adding', () => {
+    const { fixture, component } = createFixture();
+    const element = fixture.nativeElement as HTMLElement;
+    const clickDay = (day: string) => {
+      const chip = Array.from(element.querySelectorAll<HTMLButtonElement>('.chip-day'))
+        .find((button) => button.textContent?.includes(day));
+      chip!.click();
+      fixture.detectChanges();
+    };
+
+    for (let i = 0; i < 3; i++) {
+      clickDay('Dom');
+      expect(element.querySelector('.segments-list')).toBeNull();
+      expect(element.querySelectorAll('.availability-section mat-label')).toHaveLength(0);
+
+      element.querySelector<HTMLButtonElement>('.btn-add-segment')!.click();
+      fixture.detectChanges();
+      expect(element.querySelectorAll('.segments-list input')).toHaveLength(2);
+
+      element.querySelector<HTMLButtonElement>('.segment-remove')!.click();
+      fixture.detectChanges();
+      expect(element.querySelector('.segments-list')).toBeNull();
+      expect(component.timeSegmentsByDay.Dom).toEqual([]);
+
+      clickDay('Lun');
+      expect(Array.from(element.querySelectorAll<HTMLInputElement>('.segments-list input'))
+        .map((input) => input.value)).toEqual(['08:00', '14:00']);
+    }
   });
 
   it('adds a segment only to the selected day and marks it configured', () => {
@@ -151,6 +196,10 @@ describe('SettingsDialog', () => {
 
     fixture.detectChanges();
     expect(component.timeSegmentsByDay.Mar).toEqual([]);
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelectorAll('.segments-list mat-form-field')).toHaveLength(0);
+    expect(element.querySelectorAll('.segments-list mat-label')).toHaveLength(0);
+    expect(element.querySelector('.btn-add-segment')).not.toBeNull();
     expect(component.timeSegmentsByDay.Lun).toEqual([{ startTime: '08:00', endTime: '14:00' }]);
     expect((fixture.nativeElement as HTMLElement).querySelector('.chip-day.active .day-check')).toBeNull();
   });

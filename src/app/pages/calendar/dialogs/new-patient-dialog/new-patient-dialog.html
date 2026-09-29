@@ -36,10 +36,9 @@
 
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Fecha de nacimiento</mat-label>
-      <input matInput [matDatepicker]="dp" formControlName="birthDate" placeholder="DD/MM/AAAA" (click)="dp.open()" />
+      <input matInput [matDatepicker]="dp" formControlName="birthDate" (click)="dp.open()" />
       <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
       <mat-datepicker #dp></mat-datepicker>
-      <mat-hint>DD/MM/AAAA</mat-hint>
       @if (form.get('birthDate')?.invalid && (form.get('birthDate')?.touched || submitted)) {
         <mat-error>Selecciona la fecha de nacimiento</mat-error>
       }

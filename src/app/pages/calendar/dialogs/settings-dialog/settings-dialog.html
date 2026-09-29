@@ -40,34 +40,36 @@
       <div class="segments-header">
         <span class="segments-title">Segmentos de horario — {{ selectedDay }}</span>
       </div>
-      <div formArrayName="timeSegments" class="segments-list">
-        @for (seg of timeSegments.controls; track seg) {
-          @if (timeSegments.length > 1) {
-            @if ($index > 0) {
-              <hr class="segment-divider" />
+      @if (timeSegments.length > 0) {
+        <div formArrayName="timeSegments" class="segments-list">
+          @for (seg of timeSegments.controls; track seg) {
+            @if (timeSegments.length > 1) {
+              @if ($index > 0) {
+                <hr class="segment-divider" />
+              }
+              <div class="segment-header-row">
+                <span class="segment-number">{{ $index + 1 }}° Segmento</span>
+                <button type="button" class="btn-segment-remove" (click)="removeSegment($index)">- Eliminar</button>
+              </div>
             }
-            <div class="segment-header-row">
-              <span class="segment-number">{{ $index + 1 }}° Segmento</span>
-              <button type="button" class="btn-segment-remove" (click)="removeSegment($index)">- Eliminar</button>
+            <div class="segment-inputs-row" [formGroupName]="$index" [class.single-segment]="timeSegments.length <= 1">
+              <mat-form-field appearance="outline" class="time-field">
+                <mat-label>Inicio</mat-label>
+                <input matInput type="time" formControlName="startTime" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="time-field">
+                <mat-label>Fin</mat-label>
+                <input matInput type="time" formControlName="endTime" />
+              </mat-form-field>
+              @if (timeSegments.length <= 1) {
+                <button type="button" mat-icon-button class="segment-remove" (click)="removeSegment($index)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
             </div>
           }
-          <div class="segment-inputs-row" [formGroupName]="$index" [class.single-segment]="timeSegments.length <= 1">
-            <mat-form-field appearance="outline" class="time-field">
-              <mat-label>Inicio</mat-label>
-              <input matInput type="time" formControlName="startTime" />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="time-field">
-              <mat-label>Fin</mat-label>
-              <input matInput type="time" formControlName="endTime" />
-            </mat-form-field>
-            @if (timeSegments.length <= 1) {
-              <button type="button" mat-icon-button class="segment-remove" (click)="removeSegment($index)">
-                <mat-icon>close</mat-icon>
-              </button>
-            }
-          </div>
-        }
-      </div>
+        </div>
+      }
       <button type="button" class="btn-add-segment" (click)="addSegment()">+ Añadir nuevo segmento</button>
     </div>
   </form>
