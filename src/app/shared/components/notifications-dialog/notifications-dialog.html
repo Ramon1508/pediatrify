@@ -6,6 +6,30 @@
     </button>
   </header>
 
+  <div class="notif-filters">
+    <mat-radio-group
+      [value]="activeFilter()"
+      (change)="setFilter($event.value)"
+      aria-label="Filtrar notificaciones">
+      <mat-radio-button value="all">Todos</mat-radio-button>
+      <mat-radio-button value="unread">Sin leer</mat-radio-button>
+    </mat-radio-group>
+    @if (unreadCount() > 0) {
+      <button mat-stroked-button type="button" class="btn-secondary mark-all-read"
+        (click)="markAllAsRead()"
+        [disabled]="isMarkingAllRead()"
+        [attr.aria-busy]="isMarkingAllRead()"
+        aria-label="Marcar todas como leídas"
+        matTooltip="Marcar todas como leídas">
+        @if (isMarkingAllRead()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          <mat-icon>mark_email_read</mat-icon>
+        }
+      </button>
+    }
+  </div>
+
   @if (isInitialLoading()) {
     <div class="notif-skeleton" aria-hidden="true">
       @for (_ of skeletonItems; track $index) {
@@ -20,19 +44,9 @@
     </div>
   } @else if (notifications().length === 0) {
     <p class="notif-empty">
-      Aún no tienes notificaciones.
+      {{ activeFilter() === 'unread' ? 'No tienes notificaciones sin leer.' : 'Aún no tienes notificaciones.' }}
     </p>
   } @else {
-    <div class="notif-filters">
-      <mat-radio-group
-        [value]="activeFilter()"
-        (change)="setFilter($event.value)"
-        aria-label="Filtrar notificaciones">
-        <mat-radio-button value="all">Todos</mat-radio-button>
-        <mat-radio-button value="unread">Sin leer</mat-radio-button>
-      </mat-radio-group>
-    </div>
-
     <div class="notifications-list" #notifList (scroll)="onScroll($event)">
       @for (item of items(); track item.notification.id) {
         <div class="notif-item">

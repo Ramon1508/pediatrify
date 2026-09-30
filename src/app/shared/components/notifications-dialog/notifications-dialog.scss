@@ -31,8 +31,34 @@
 }
 
 .notif-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 8px 16px 4px;
   flex-shrink: 0;
+
+  mat-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+}
+
+:host::ng-deep .mark-all-read.btn-secondary {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px !important;
+  justify-content: center;
+
+  .mdc-button__label {
+    display: none;
+  }
+
+  mat-icon {
+    margin: 0;
+  }
 }
 
 .notif-empty {

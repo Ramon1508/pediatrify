@@ -127,8 +127,7 @@ export class AppointmentDialog {
         notes: apt.notes || '',
       });
       this.form.markAsDirty();
-      const patient = data.allPatients.find((p) => p.id === apt.patientId);
-      this.patientSearchControl.setValue((patient || '') as any);
+      this.lockPatient(apt.patientId, apt.patientName);
     }
 
     this.computeTimeSlots();
@@ -175,12 +174,12 @@ export class AppointmentDialog {
     this.cdr.markForCheck();
   }
 
-  /** Preselecciona al paciente y lo deja read-only (desde el perfil de un paciente). */
-  lockPatient(patientId: string) {
+  /** Muestra al paciente como texto al reagendar o al agendar desde su perfil. */
+  lockPatient(patientId: string, fallbackName = '') {
     const patient = this.allPatients.find((p) => p.id === patientId);
     this.form.patchValue({ patientId });
     this.patientSearchControl.setValue((patient || '') as any);
-    this.lockedPatientName = patient ? `${patient.name} ${patient.lastName}` : '';
+    this.lockedPatientName = patient ? `${patient.name} ${patient.lastName}` : fallbackName;
     this.patientLocked = true;
     this.cdr.markForCheck();
   }
@@ -279,7 +278,8 @@ export class AppointmentDialog {
       const doctorEmail = this.dialogDoctorEmail || targetDoctor?.email || '';
       const { patientId, date: rawDate, time, notes } = this.form.getRawValue();
       const date = this.toDateStr(rawDate);
-      const patient = this.allPatients.find((p) => p.id === patientId);
+      const appointmentPatientId = this.editingAppointment?.patientId ?? patientId;
+      const patient = this.allPatients.find((p) => p.id === appointmentPatientId);
       if (!doctorId || !patient) return;
 
       if (this.editingAppointment) {

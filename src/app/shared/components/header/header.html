@@ -1,8 +1,8 @@
 <mat-toolbar class="app-navbar">
-  <div class="nav-center" (click)="goHome()" style="cursor: pointer;">
-    <img [src]="logoUrl()" alt="Logo" class="nav-logo" width="40" height="40" />
+  <a class="nav-center" [routerLink]="homeRoute()" aria-label="Ir al inicio">
+    <img [src]="logoUrl()" [alt]="'Logo de ' + brandName" class="nav-logo" width="40" height="40" />
     <span class="nav-brand">{{ brandName }}</span>
-  </div>
+  </a>
 
   <div class="nav-right">
     @if (authService.isAuthenticated) {

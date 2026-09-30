@@ -208,6 +208,39 @@ describe('NotificationRepository', () => {
     expect(read('n1').read).toBe(true);
   });
 
+  it('marks every unread page for this recipient without modifying another inbox', async () => {
+    const pending = Array.from({ length: 205 }, (_, i) => notif(`n${i}`, {
+      createdAt: new Date(Date.UTC(2026, 7, 1, 0, i)),
+      type: i % 2 ? 'appointment-created' : 'appointment-cancelled',
+    }));
+    seed([...pending, notif('other', { recipientId: 'doc2' }), notif('read', { read: true })]);
+    const marked = await repo.markAllRead('doc1');
+    expect(new Set(marked)).toEqual(new Set(pending.map((n) => n.id)));
+    expect(pending.every((n) => read(n.id).read)).toBe(true);
+    expect(read('other').read).toBe(false);
+    expect(marked).not.toContain('read');
+  });
+
+  it('returns no marked ids when there are no unread notifications', async () => {
+    seed([notif('read', { read: true }), notif('other', { recipientId: 'doc2' })]);
+    expect(await repo.markAllRead('doc1')).toEqual([]);
+    expect(read('other').read).toBe(false);
+  });
+
+  it('propagates failed batch writes instead of claiming success', async () => {
+    seed([notif('n1')]);
+    const batch = vi.spyOn(firestoreModule, 'writeBatch').mockReturnValueOnce({
+      update: vi.fn(),
+      commit: vi.fn().mockRejectedValue(new Error('write failed')),
+    });
+    try {
+      await expect(repo.markAllRead('doc1')).rejects.toThrow('write failed');
+      expect(read('n1').read).toBe(false);
+    } finally {
+      batch.mockRestore();
+    }
+  });
+
   it('markAllCancelledRead marca solo las canceladas no leídas del destinatario', async () => {
     seed([
       notif('nCanc', { type: 'appointment-cancelled', read: false, createdAt: new Date('2026-08-12T10:00:00') }),

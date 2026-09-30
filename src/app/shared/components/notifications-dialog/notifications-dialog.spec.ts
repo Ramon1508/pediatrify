@@ -9,6 +9,7 @@ import { AppointmentRepository } from '../../../core/repositories/appointment.re
 import { Router } from '@angular/router';
 import { CalendarFocusService } from '../../../core/services/calendar-focus.service';
 import { AppNotification } from '../../../core/models/notification';
+import { AlertService } from '../../../core/services/alert.service';
 
 describe('NotificationsDialog', () => {
   let fixture: ComponentFixture<NotificationsDialog>;
@@ -16,6 +17,7 @@ describe('NotificationsDialog', () => {
   let dialogRef: any;
   let close$: Subject<void>;
   let serviceMock: any;
+  let alertMock: { error: ReturnType<typeof vi.fn> };
   let appointmentRepoMock: { getAppointment: ReturnType<typeof vi.fn> };
 
   const baseNotification: AppNotification = {
@@ -47,12 +49,15 @@ describe('NotificationsDialog', () => {
       activeFilter: signal<'all' | 'unread'>('all'),
       isInitialLoading: signal(options.initialLoading ?? false),
       isLoadingMore: signal(false),
+      unreadCount: signal(list.filter((n) => !n.read).length),
+      isMarkingAllRead: signal(false),
       hasMore: signal(true),
       recipientId: signal(recipient),
       loadFirstPage: vi.fn().mockResolvedValue(undefined),
       loadMore: vi.fn().mockResolvedValue(undefined),
       setFilter: vi.fn().mockResolvedValue(undefined),
       markAsRead: vi.fn().mockResolvedValue(undefined),
+      markAllAsRead: vi.fn().mockResolvedValue(undefined),
       markCancelledRead: vi.fn().mockResolvedValue(undefined),
       refreshUnreadCount: vi.fn().mockResolvedValue(undefined),
     };
@@ -65,6 +70,7 @@ describe('NotificationsDialog', () => {
       }
     }
     const routerMock = { navigate: vi.fn() };
+    alertMock = { error: vi.fn() };
     const focusMock = new CalendarFocusService();
     close$ = new Subject<void>();
     dialogRef = {
@@ -80,6 +86,7 @@ describe('NotificationsDialog', () => {
         { provide: Router, useValue: routerMock },
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: CalendarFocusService, useValue: focusMock },
+        { provide: AlertService, useValue: alertMock },
       ],
     });
 
@@ -92,6 +99,68 @@ describe('NotificationsDialog', () => {
   it('shows the empty state when there are no notifications', () => {
     createFixture([]);
     expect(fixture.nativeElement.textContent).toContain('Aún no tienes notificaciones.');
+  });
+
+  it('marks all unread notifications only when the accessible toolbar button is clicked', async () => {
+    createFixture([baseNotification]);
+    expect(serviceMock.markAllAsRead).not.toHaveBeenCalled();
+    const button = fixture.nativeElement.querySelector('.mark-all-read') as HTMLButtonElement;
+    expect(button.getAttribute('aria-label')).toBe('Marcar todas como leídas');
+    expect(button.textContent).toContain('mark_email_read');
+    button.click();
+    await fixture.whenStable();
+    expect(serviceMock.markAllAsRead).toHaveBeenCalledTimes(1);
+    expect(dialogRef.close).not.toHaveBeenCalled();
+  });
+
+  it('uses the global unread count even when none of the loaded notifications are unread', () => {
+    createFixture([{ ...baseNotification, read: true }]);
+    serviceMock.unreadCount.set(12);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mark-all-read').disabled).toBe(false);
+  });
+
+  it('disables marking all while busy and removes the button when the unread count reaches zero', () => {
+    createFixture([baseNotification]);
+    serviceMock.isMarkingAllRead.set(true);
+    fixture.detectChanges();
+    const button = fixture.nativeElement.querySelector('.mark-all-read') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    button.click();
+    expect(serviceMock.markAllAsRead).not.toHaveBeenCalled();
+    serviceMock.isMarkingAllRead.set(false);
+    serviceMock.unreadCount.set(0);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.mark-all-read')).toBeNull();
+  });
+
+  it.each([
+    { name: 'empty inbox', list: [] as AppNotification[] },
+    { name: 'read-only inbox', list: [{ ...baseNotification, read: true }] },
+  ])('does not render the bulk read button for an $name', ({ list }) => {
+    createFixture(list);
+    expect(fixture.nativeElement.querySelector('.mark-all-read')).toBeNull();
+  });
+
+  it('keeps filters available after the unread list becomes empty', () => {
+    createFixture([baseNotification]);
+    serviceMock.activeFilter.set('unread');
+    serviceMock.notifications.set([]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('No tienes notificaciones sin leer.');
+    expect(fixture.nativeElement.querySelector('mat-radio-group')).not.toBeNull();
+    component.setFilter('all');
+    expect(serviceMock.setFilter).toHaveBeenCalledWith('all');
+  });
+
+  it('reports a failure to mark all and leaves the dialog open', async () => {
+    createFixture([baseNotification]);
+    serviceMock.markAllAsRead.mockRejectedValueOnce(new Error('offline'));
+    await component.markAllAsRead();
+    expect(alertMock.error).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'No se pudieron marcar todas las notificaciones como leídas. Intenta de nuevo.',
+    }));
+    expect(dialogRef.close).not.toHaveBeenCalled();
   });
 
   it('shows skeleton items while initial loading is in progress', () => {

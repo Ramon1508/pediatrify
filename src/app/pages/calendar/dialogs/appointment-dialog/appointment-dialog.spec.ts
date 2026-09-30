@@ -55,9 +55,11 @@ describe('AppointmentDialog', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Agendar una consulta');
+    expect(el.querySelector('.patient-search input')).not.toBeNull();
+    expect(el.querySelector('.patient-readonly')).toBeNull();
   });
 
-  it('renders title when editing', () => {
+  it('shows the patient as read-only text when rescheduling while keeping the other fields editable', () => {
     component.setData({
       allPatients: mockPatients,
       selectedDoctorId: 'd1',
@@ -68,6 +70,53 @@ describe('AppointmentDialog', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('Reagendar consulta');
+    const readOnlyPatient = el.querySelector('.patient-readonly') as HTMLElement;
+    expect(readOnlyPatient.querySelector('.readonly-label')?.textContent).toContain('Paciente');
+    expect(readOnlyPatient.querySelector('.readonly-value')?.textContent).toContain('Juan Pérez');
+    expect(readOnlyPatient.querySelector('input')).toBeNull();
+    expect(el.querySelector('.patient-search')).toBeNull();
+    expect(el.textContent).not.toContain('Añadir nuevo paciente');
+    expect((component as any).form.get('patientId')?.value).toBe('p1');
+    expect((component as any).form.get('date')?.enabled).toBe(true);
+    expect((component as any).form.get('time')?.enabled).toBe(true);
+    expect((component as any).form.get('notes')?.enabled).toBe(true);
+  });
+
+  it('uses the appointment patient name when the patient is not in the loaded list', () => {
+    component.setData({
+      allPatients: [],
+      selectedDoctorId: 'd1',
+      editingAppointment: { id: 'a1', patientId: 'p1', patientName: 'Juan Pérez', date: '2026-07-01', time: '10:00', doctorId: 'd1' } as any,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.readonly-value')?.textContent).toContain('Juan Pérez');
+    expect(fixture.nativeElement.querySelector('.patient-search')).toBeNull();
+  });
+
+  it('preserves the original patient when saving a rescheduled appointment', async () => {
+    const aptRepo = TestBed.inject(AppointmentRepository);
+    const notifications = TestBed.inject(NotificationService);
+    component.setData({
+      allPatients: [...mockPatients, { ...mockPatients[0], id: 'p2', name: 'Ana' }],
+      selectedDoctorId: 'd1',
+      editingAppointment: { id: 'a1', patientId: 'p1', patientName: 'Juan Pérez', date: '2026-07-01', time: '10:00', doctorId: 'd1' } as any,
+    });
+    (component as any).form.patchValue({ patientId: 'p2', date: new Date(2026, 6, 2), time: '11:00', notes: 'Nuevo horario' });
+
+    await component.save();
+
+    const rescheduledAppointment = expect.objectContaining({
+      patientId: 'p1',
+      patientName: 'Juan Pérez',
+      date: '2026-07-02',
+      time: '11:00',
+      notes: 'Nuevo horario',
+    });
+    expect(aptRepo.updateAppointment).toHaveBeenCalledWith('a1', rescheduledAppointment);
+    expect(aptRepo.createAppointment).not.toHaveBeenCalled();
+    expect(notifications.notifyAppointmentRescheduled).toHaveBeenCalledWith(rescheduledAppointment, '2026-07-01', '10:00');
+    expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 
   it('locks the preselected patient when scheduling from the patient profile', () => {

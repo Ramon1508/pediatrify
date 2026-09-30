@@ -33,6 +33,7 @@ export class NotificationService implements OnDestroy {
   readonly activeFilter = signal<NotificationFilter>('all');
   readonly isInitialLoading = signal(false);
   readonly isLoadingMore = signal(false);
+  readonly isMarkingAllRead = signal(false);
 
   readonly hasMoreAll = signal(true);
   readonly hasMoreUnread = signal(true);
@@ -58,6 +59,8 @@ export class NotificationService implements OnDestroy {
   private ready = false;
   private knownIds = new Set<string>();
   private newestKnownAt: number | null = null;
+  private sessionVersion = 0;
+  private confirmedReadIds = new Set<string>();
 
   private sessionSub: Subscription | null = null;
   private realtimeSub: Subscription | null = null;
@@ -114,6 +117,9 @@ export class NotificationService implements OnDestroy {
   }
 
   private resetState() {
+    this.sessionVersion++;
+    this.confirmedReadIds.clear();
+    this.isMarkingAllRead.set(false);
     this.ready = false;
     this.knownIds = new Set();
     this.newestKnownAt = null;
@@ -186,7 +192,9 @@ export class NotificationService implements OnDestroy {
   private applyPage(filter: NotificationFilter, page: NotificationPage, replace: boolean) {
     const existing = replace ? [] : (filter === 'all' ? this.allCache() : this.unreadCache());
     const seen = new Set(existing.map((n) => n.id));
-    const deduped = page.items.filter((n) => !seen.has(n.id));
+    const deduped = page.items
+      .map((n) => this.confirmedReadIds.has(n.id) ? { ...n, read: true } : n)
+      .filter((n) => !seen.has(n.id) && (filter === 'all' || !n.read));
 
     if (filter === 'all') {
       this.allCache.set([...existing, ...deduped]);
@@ -234,6 +242,34 @@ export class NotificationService implements OnDestroy {
 
     this.allCache.set(markReadInList(this.allCache()));
     this.unreadCache.set(this.unreadCache().filter((n) => n.id !== notificationId));
+  }
+
+  /**
+   * Marca toda la bandeja como leída. El badge sigue viniendo de la suscripción.
+   * Los ids confirmados evitan que una página en vuelo restaure estados viejos.
+   */
+  async markAllAsRead(): Promise<void> {
+    const recipient = this.recipientId();
+    if (!recipient || this.isMarkingAllRead()) return;
+    const version = this.sessionVersion;
+    this.isMarkingAllRead.set(true);
+    try {
+      const marked = await this.repo.markAllRead(recipient);
+      if (version !== this.sessionVersion) return;
+      marked.forEach((id) => this.confirmedReadIds.add(id));
+      this.allCache.update((items) => items.map((n) =>
+        this.confirmedReadIds.has(n.id) ? { ...n, read: true } : n
+      ));
+      this.unreadCache.update((items) => items.filter((n) => !this.confirmedReadIds.has(n.id)));
+      this.unreadCursor = null;
+      this.hasMoreUnread.set(false);
+    } catch (error) {
+      // A later batch can fail after earlier batches were committed.
+      if (version === this.sessionVersion) await this.refresh();
+      throw error;
+    } finally {
+      if (version === this.sessionVersion) this.isMarkingAllRead.set(false);
+    }
   }
 
   /**

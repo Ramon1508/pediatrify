@@ -16,6 +16,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -23,6 +24,7 @@ import { AppointmentRepository } from '../../../core/repositories/appointment.re
 import { CalendarFocusService } from '../../../core/services/calendar-focus.service';
 import { Appointment } from '../../../core/models/user';
 import { AppNotification } from '../../../core/models/notification';
+import { AlertService } from '../../../core/services/alert.service';
 
 const SCROLL_THRESHOLD = 80;
 const MAX_AUTOFILL_PAGES = 2;
@@ -41,6 +43,7 @@ const MAX_AUTOFILL_PAGES = 2;
     MatRadioModule,
     MatDividerModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
   ],
 })
 export class NotificationsDialog implements OnDestroy {
@@ -49,12 +52,15 @@ export class NotificationsDialog implements OnDestroy {
   private router = inject(Router);
   private dialogRef = inject(MatDialogRef<NotificationsDialog>);
   private focusService = inject(CalendarFocusService);
+  private alert = inject(AlertService);
 
   protected notifications = this.notificationsService.notifications;
   protected activeFilter = this.notificationsService.activeFilter;
   protected isInitialLoading = this.notificationsService.isInitialLoading;
   protected isLoadingMore = this.notificationsService.isLoadingMore;
   protected hasMore = this.notificationsService.hasMore;
+  protected unreadCount = this.notificationsService.unreadCount;
+  protected isMarkingAllRead = this.notificationsService.isMarkingAllRead;
 
   protected appointments = signal<Record<string, Appointment | null>>({});
   protected skeletonItems = [0, 1, 2];
@@ -137,6 +143,15 @@ export class NotificationsDialog implements OnDestroy {
   protected setFilter(filter: 'all' | 'unread') {
     this.autoFillCount = 0;
     void this.notificationsService.setFilter(filter);
+  }
+
+  protected async markAllAsRead() {
+    if (this.isMarkingAllRead() || this.unreadCount() === 0) return;
+    try {
+      await this.notificationsService.markAllAsRead();
+    } catch {
+      this.alert.error({ message: 'No se pudieron marcar todas las notificaciones como leídas. Intenta de nuevo.', duration: 5000 });
+    }
   }
 
   protected onScroll(event: Event) {

@@ -166,10 +166,26 @@ export class NotificationRepository {
     await updateDoc(this.docRef(notificationId), { read: true });
   }
 
-  async markAllRead(recipientId: string, notificationIds: string[]): Promise<void> {
-    await Promise.all(
-      notificationIds.map((id) => this.markRead(id).catch(() => undefined))
-    );
+  /** Marca toda la bandeja pendiente del destinatario, incluida la no cargada en la UI. */
+  async markAllRead(recipientId: string): Promise<string[]> {
+    const pageSize = 100;
+    const marked: string[] = [];
+    let cursor: QueryDocumentSnapshot | null = null;
+
+    for (;;) {
+      const page = await this.getPage(recipientId, 'unread', pageSize, cursor);
+      if (!page.items.length) break;
+      const batch = writeBatch(this.db);
+      for (const notification of page.items) {
+        batch.update(this.docRef(notification.id), { read: true });
+      }
+      await batch.commit();
+      marked.push(...page.items.map((notification) => notification.id));
+      cursor = page.lastVisible;
+      if (page.items.length < pageSize || !cursor) break;
+    }
+
+    return marked;
   }
 
   /**

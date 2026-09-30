@@ -764,7 +764,9 @@ export class Calendar implements OnInit, OnDestroy {
     this.overlayPosition.set(null);
     const dialogRef = this.alert.confirm({
       title: 'Cancelar consulta',
-      message: 'Al cancelar una consulta el padre o tutor del paciente recibirá una notificación de la cancelación y podrá seleccionar un nuevo día y horario para la consulta si así lo desea.',
+      message: this.patientMode
+        ? 'Al cancelar una consulta el o la doctora recibirá una notificación de la cancelación.'
+        : 'Al cancelar una consulta el padre o tutor del paciente recibirá una notificación de la cancelación y podrá seleccionar un nuevo día y horario para la consulta si así lo desea.',
       confirmText: 'Cancelar consulta',
       cancelText: 'Cerrar',
       confirmClass: 'btn-danger dialog-btn',

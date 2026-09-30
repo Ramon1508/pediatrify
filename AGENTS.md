@@ -11,6 +11,7 @@
 - All button custom classes (`.btn-secondary`, `.btn-tertiary`, `.btn-danger`) are self-contained (padding, font, border-radius)
 - `.w-100-mobile` class for full-width on ≤768px, re-usable
 - No `!important` on general properties (padding, font) but allowed on MDC overrides to force primary colors
+- Always scope `::ng-deep` with `:host` (e.g. `:host ::ng-deep .target`) so component styles do not affect other parts of the app. Never use unscoped `::ng-deep`.
 - Alert system: multi-alert (max 5), individual timers, close button, `success` bg `#BFEDFA`, `error` bg `#F9DEDC`, `padding 14px 16px`, font `Roboto 400 14px/20px`, position `fixed center bottom 24px`, `min-width 344px` desktop, `100% width` mobile with `16px` padding horizontal
 - Login layout: logo + "Lilcare" title + email + password + row of buttons (`btn-secondary` "Olvidé mi contraseña" left, primary "Iniciar sesión" right); desktop `max-width 428px`, mobile `100%`; mobile buttons stack vertically `width 100%` with `gap 24px`; "Iniciar sesión" width `202px` desktop
 - Setup-profile container: `max-width 880px` desktop, `100%` mobile

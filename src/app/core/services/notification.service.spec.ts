@@ -16,6 +16,7 @@ describe('NotificationService', () => {
     getPage: ReturnType<typeof vi.fn>;
     watchUnreadCount: ReturnType<typeof vi.fn>;
     markRead: ReturnType<typeof vi.fn>;
+    markAllRead: ReturnType<typeof vi.fn>;
     watchForRecipient: ReturnType<typeof vi.fn>;
     markAllCancelledRead: ReturnType<typeof vi.fn>;
   };
@@ -101,6 +102,7 @@ describe('NotificationService', () => {
       getPage: vi.fn().mockResolvedValue(firstPage),
       watchUnreadCount: vi.fn().mockReturnValue(count$),
       markRead: vi.fn().mockResolvedValue(undefined),
+      markAllRead: vi.fn().mockResolvedValue([]),
       markAllCancelledRead: vi.fn().mockResolvedValue([]),
       watchForRecipient: vi.fn().mockReturnValue({
         subscribe: (cb: (list: AppNotification[]) => void) => {
@@ -364,6 +366,95 @@ describe('NotificationService', () => {
   });
 
   describe('lectura y contador', () => {
+    it('marks the entire inbox and updates both caches without overwriting the realtime badge', async () => {
+      configure(undefined, { items: [makeNotification('n1')], lastVisible: null });
+      await flush();
+      await service.setFilter('unread');
+      repoMock.markAllRead.mockResolvedValue(['n1', 'outside-loaded-page']);
+      await service.markAllAsRead();
+      expect(repoMock.markAllRead).toHaveBeenCalledWith('doc1');
+      expect(service.notifications()).toEqual([]);
+      expect(service.unreadCount()).toBe(3);
+      await service.setFilter('all');
+      expect(service.notifications()[0].read).toBe(true);
+      count$.next(0);
+      expect(service.unreadCount()).toBe(0);
+    });
+
+    it('prevents duplicate bulk requests and releases the busy state', async () => {
+      configure();
+      await flush();
+      let finish!: (ids: string[]) => void;
+      repoMock.markAllRead.mockReturnValue(new Promise<string[]>((resolve) => finish = resolve));
+      const request = service.markAllAsRead();
+      expect(service.isMarkingAllRead()).toBe(true);
+      await service.markAllAsRead();
+      expect(repoMock.markAllRead).toHaveBeenCalledTimes(1);
+      finish([]);
+      await request;
+      expect(service.isMarkingAllRead()).toBe(false);
+    });
+
+    it('does not restore stale unread notifications from a page already in flight', async () => {
+      configure(undefined, { items: [makeNotification('n1')], lastVisible: null });
+      await flush();
+      let finishPage!: (page: NotificationPage) => void;
+      repoMock.getPage.mockReturnValueOnce(new Promise<NotificationPage>((resolve) => finishPage = resolve));
+      const loading = service.setFilter('unread');
+      repoMock.markAllRead.mockResolvedValue(['n1']);
+      await service.markAllAsRead();
+      finishPage({ items: [makeNotification('n1')], lastVisible: null });
+      await loading;
+      expect(service.notifications()).toEqual([]);
+    });
+
+    it('does not mark a newer notification that arrived during the bulk request', async () => {
+      const listeners: Array<(items: AppNotification[]) => void> = [];
+      configure(undefined, { items: [makeNotification('n1', { createdAt: new Date(1000) })], lastVisible: null }, (cb) => {
+        listeners.push(cb);
+        return { unsubscribe: vi.fn() };
+      });
+      await flush();
+      let finish!: (ids: string[]) => void;
+      repoMock.markAllRead.mockReturnValue(new Promise<string[]>((resolve) => finish = resolve));
+      const request = service.markAllAsRead();
+      listeners[0]([makeNotification('new', { createdAt: new Date(2000) })]);
+      finish(['n1']);
+      await request;
+      expect(service.notifications().find((n) => n.id === 'new')?.read).toBe(false);
+    });
+
+    it('refreshes confirmed backend state and reports a bulk failure', async () => {
+      configure(undefined, { items: [makeNotification('n1')], lastVisible: null });
+      await flush();
+      repoMock.markAllRead.mockRejectedValueOnce(new Error('write failed'));
+      await expect(service.markAllAsRead()).rejects.toThrow('write failed');
+      expect(service.isMarkingAllRead()).toBe(false);
+      expect(service.notifications()[0].read).toBe(false);
+      expect(service.unreadCount()).toBe(3);
+    });
+
+    it('ignores a bulk result after the active user changes', async () => {
+      configure(undefined, { items: [makeNotification('n1')], lastVisible: null });
+      await flush();
+      let finish!: (ids: string[]) => void;
+      repoMock.markAllRead.mockReturnValue(new Promise<string[]>((resolve) => finish = resolve));
+      const request = service.markAllAsRead();
+      repoMock.getPage.mockResolvedValue({ items: [], lastVisible: null });
+      session$.next({ type: 'doctor', user: { ...doctor, uid: 'doc2' } });
+      await flush();
+      finish(['n1']);
+      await request;
+      expect(service.recipientId()).toBe('doc2');
+      expect(service.notifications()).toEqual([]);
+    });
+
+    it('does not mark anything without an eligible recipient', async () => {
+      configure({ currentDoctor: { ...doctor, role: 'admin' }, currentPatient: null });
+      await service.markAllAsRead();
+      expect(repoMock.markAllRead).not.toHaveBeenCalled();
+    });
+
     function unreadList(): NotificationPage {
       return {
         items: [makeNotification('n1')],
