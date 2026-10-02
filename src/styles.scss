@@ -957,3 +957,12 @@ mat-dialog-content {
 .mat-mdc-form-field {
   margin-bottom: 8px;
 }
+
+// Tamaño estándar de Material para el error/hint (body-small), por si algún
+// override global lo está agrandando.
+.mat-mdc-form-field .mat-mdc-form-field-error,
+.mat-mdc-form-field .mat-mdc-form-field-hint {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: 0.4px;
+}

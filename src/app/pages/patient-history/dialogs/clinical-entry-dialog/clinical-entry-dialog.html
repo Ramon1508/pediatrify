@@ -32,13 +32,11 @@
               <mat-label>Perímetro cefálico</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="headCircumference" />
               <mat-hint>En centímetros</mat-hint>
-              @if (step1Form.get('headCircumference')?.invalid && submitted) {
-                @if (step1Form.get('headCircumference')?.errors?.['required']) {
-                  <mat-error>Ingresa el perímetro cefálico del paciente</mat-error>
-                }
-                @if (step1Form.get('headCircumference')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('headCircumference')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa el perímetro cefálico del paciente</mat-error>
+              }
+              @if (step1Form.get('headCircumference')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
 
@@ -46,13 +44,11 @@
               <mat-label>Peso</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="weight" (input)="calcBMI()" />
               <mat-hint>En kilogramos</mat-hint>
-              @if (step1Form.get('weight')?.invalid && submitted) {
-                @if (step1Form.get('weight')?.errors?.['required']) {
-                  <mat-error>Ingresa el peso del paciente</mat-error>
-                }
-                @if (step1Form.get('weight')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('weight')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa el peso del paciente</mat-error>
+              }
+              @if (step1Form.get('weight')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
           </div>
@@ -62,13 +58,11 @@
               <mat-label>Talla</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="height" (input)="calcBMI()" />
               <mat-hint>En centímetros</mat-hint>
-              @if (step1Form.get('height')?.invalid && submitted) {
-                @if (step1Form.get('height')?.errors?.['required']) {
-                  <mat-error>Ingresa la talla del paciente</mat-error>
-                }
-                @if (step1Form.get('height')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('height')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa la talla del paciente</mat-error>
+              }
+              @if (step1Form.get('height')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
 
@@ -84,13 +78,11 @@
               <mat-label>Saturación</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="saturation" />
               <mat-hint>En porcentaje</mat-hint>
-              @if (step1Form.get('saturation')?.invalid && submitted) {
-                @if (step1Form.get('saturation')?.errors?.['required']) {
-                  <mat-error>Ingresa la saturación del paciente</mat-error>
-                }
-                @if (step1Form.get('saturation')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('saturation')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa la saturación del paciente</mat-error>
+              }
+              @if (step1Form.get('saturation')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
 
@@ -98,13 +90,11 @@
               <mat-label>Temperatura</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="temperature" />
               <mat-hint>En grados centígrados</mat-hint>
-              @if (step1Form.get('temperature')?.invalid && submitted) {
-                @if (step1Form.get('temperature')?.errors?.['required']) {
-                  <mat-error>Ingresa la temperatura del paciente</mat-error>
-                }
-                @if (step1Form.get('temperature')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('temperature')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa la temperatura del paciente</mat-error>
+              }
+              @if (step1Form.get('temperature')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
           </div>
@@ -220,13 +210,11 @@
               <mat-label>Perímetro cefálico</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="headCircumference" />
               <mat-hint>En centímetros</mat-hint>
-              @if (step1Form.get('headCircumference')?.invalid && submitted) {
-                @if (step1Form.get('headCircumference')?.errors?.['required']) {
-                  <mat-error>Ingresa el perímetro cefálico del paciente</mat-error>
-                }
-                @if (step1Form.get('headCircumference')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('headCircumference')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa el perímetro cefálico del paciente</mat-error>
+              }
+              @if (step1Form.get('headCircumference')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
 
@@ -234,13 +222,11 @@
               <mat-label>Peso</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="weight" (input)="calcBMI()" />
               <mat-hint>En kilogramos</mat-hint>
-              @if (step1Form.get('weight')?.invalid && submitted) {
-                @if (step1Form.get('weight')?.errors?.['required']) {
-                  <mat-error>Ingresa el peso del paciente</mat-error>
-                }
-                @if (step1Form.get('weight')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('weight')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa el peso del paciente</mat-error>
+              }
+              @if (step1Form.get('weight')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
           </div>
@@ -250,13 +236,11 @@
               <mat-label>Talla</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="height" (input)="calcBMI()" />
               <mat-hint>En centímetros</mat-hint>
-              @if (step1Form.get('height')?.invalid && submitted) {
-                @if (step1Form.get('height')?.errors?.['required']) {
-                  <mat-error>Ingresa la talla del paciente</mat-error>
-                }
-                @if (step1Form.get('height')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('height')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa la talla del paciente</mat-error>
+              }
+              @if (step1Form.get('height')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
 
@@ -272,13 +256,11 @@
               <mat-label>Saturación</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="saturation" />
               <mat-hint>En porcentaje</mat-hint>
-              @if (step1Form.get('saturation')?.invalid && submitted) {
-                @if (step1Form.get('saturation')?.errors?.['required']) {
-                  <mat-error>Ingresa la saturación del paciente</mat-error>
-                }
-                @if (step1Form.get('saturation')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('saturation')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa la saturación del paciente</mat-error>
+              }
+              @if (step1Form.get('saturation')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
 
@@ -286,13 +268,11 @@
               <mat-label>Temperatura</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="temperature" />
               <mat-hint>En grados centígrados</mat-hint>
-              @if (step1Form.get('temperature')?.invalid && submitted) {
-                @if (step1Form.get('temperature')?.errors?.['required']) {
-                  <mat-error>Ingresa la temperatura del paciente</mat-error>
-                }
-                @if (step1Form.get('temperature')?.errors?.['pattern']) {
-                  <mat-error>Ingresa un valor numérico válido</mat-error>
-                }
+              @if (step1Form.get('temperature')?.errors?.['required'] && submitted) {
+                <mat-error>Ingresa la temperatura del paciente</mat-error>
+              }
+              @if (step1Form.get('temperature')?.errors?.['pattern'] && submitted) {
+                <mat-error>Ingresa un valor numérico válido</mat-error>
               }
             </mat-form-field>
           </div>
