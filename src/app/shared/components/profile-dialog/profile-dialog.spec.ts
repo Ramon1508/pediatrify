@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { MatDialogRef } from '@angular/material/dialog';
+import { MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { ProfileDialog } from './profile-dialog';
 import { UserRepository } from '../../../core/repositories/user.repository';
@@ -49,6 +49,7 @@ describe('ProfileDialog', () => {
         { provide: AuthService, useValue: authService },
         { provide: AlertService, useValue: alertService },
         { provide: MatDialogRef, useValue: dialogRef },
+        { provide: MatDialog, useValue: { open: vi.fn() } },
         { provide: Router, useValue: router },
         { provide: FirebaseService, useValue: firebase },
       ],
@@ -234,5 +235,14 @@ describe('ProfileDialog', () => {
     expect(dialogRef.close).toHaveBeenCalled();
     expect(authService.logout).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('hides the close button when rendered as a page (mobile)', () => {
+    const { fixture } = createFixture();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.btn-close-dialog')).toBeTruthy();
+    fixture.componentRef.setInput('asPage', true);
+    fixture.detectChanges();
+    expect(el.querySelector('.btn-close-dialog')).toBeNull();
   });
 });

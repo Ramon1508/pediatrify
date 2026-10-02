@@ -1,7 +1,7 @@
-import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, Input, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatDialogModule, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -26,6 +26,9 @@ import { FileUpload, UploadResult } from '../file-upload/file-upload';
   styleUrl: './profile-dialog.scss',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.page-mode]': 'asPage',
+  },
   imports: [
     ReactiveFormsModule,
     MatDialogModule,
@@ -43,13 +46,17 @@ import { FileUpload, UploadResult } from '../file-upload/file-upload';
 export class ProfileDialog {
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
-  private dialogRef = inject(MatDialogRef<ProfileDialog>);
+  private dialogRef = inject(MatDialogRef<ProfileDialog>, { optional: true });
+  private dialog = inject(MatDialog);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
   private userRepo = inject(UserRepository);
   private printSettingsRepo = inject(PrintSettingsRepository);
   private firebase = inject(FirebaseService);
   private router = inject(Router);
+
+  /** Cuando se renderiza como página (mobile) en vez de modal: sin X ni estilos de card. */
+  @Input() asPage = false;
 
   protected SexoLabel = SexoLabel;
   protected readonly sexoOptions: { value: Sexo; label: string }[] = [
@@ -67,6 +74,7 @@ export class ProfileDialog {
   protected logoFileName = '';
   protected logoUrl = '';
   private logoUpload: UploadResult | null | undefined = undefined;
+  private openedInEditMode = false;
 
   protected form = this.fb.group({
     name: ['', Validators.required],
@@ -123,8 +131,14 @@ export class ProfileDialog {
   }
 
   switchToEdit() {
+    // En la página de perfil (mobile), "Editar perfil" abre la edición como
+    // bottom sheet dialog (no inline en la página).
+    if (this.asPage) {
+      this.openEditDialog();
+      return;
+    }
     this.readOnly = false;
-    this.dialogRef.addPanelClass('profile-edit-panel');
+    this.dialogRef?.addPanelClass('profile-edit-panel');
     this.form.enable();
     if (!this.logoUrl && this.doctor?.logoPath) {
       this.resolveLogoUrl(this.doctor.logoPath).then((url) => {
@@ -135,7 +149,60 @@ export class ProfileDialog {
     this.cdr.markForCheck();
   }
 
+  /** Abre la edición del perfil como dialog (bottom sheet en mobile). */
+  private openEditDialog() {
+    const ref = this.dialog.open(ProfileDialog, {
+      panelClass: ['profile-panel', 'profile-edit-panel'],
+      backdropClass: 'profile-backdrop',
+      disableClose: false,
+    });
+    ref.componentInstance.enterEditMode();
+    ref.afterClosed().subscribe(() => this.reloadDoctor());
+  }
+
+  /** Deja el dialog en modo edición desde el inicio. */
+  enterEditMode() {
+    this.openedInEditMode = true;
+    this.readOnly = false;
+    this.form.enable();
+    this.cdr.markForCheck();
+  }
+
+  private reloadDoctor() {
+    const doctor = this.authService.currentDoctor;
+    this.doctor = doctor;
+    if (doctor) {
+      this.form.patchValue({
+        name: doctor.name ?? '',
+        sexo: doctor.sexo ?? null,
+        phone: doctor.phone ?? '',
+        especialidad: doctor.especialidad ?? '',
+        cedula: doctor.cedula ?? '',
+        cedulaEspecialidad: doctor.cedulaEspecialidad ?? '',
+        email: doctor.email ?? '',
+        consultorios: doctor.consultorios ?? '',
+      });
+      const logo = doctor.logoPath;
+      this.logoFileName = logo ? this.extractFileName(logo) : '';
+      this.logoUrl = '';
+      if (logo) {
+        this.resolveLogoUrl(logo).then((url) => {
+          this.logoUrl = url;
+          this.cdr.markForCheck();
+        });
+      }
+    }
+    this.readOnly = true;
+    this.form.disable();
+    this.cdr.markForCheck();
+  }
+
   cancelEdit() {
+    // Si el dialog se abrió directamente en modo edición (desde la página), cancelar lo cierra.
+    if (this.openedInEditMode) {
+      this.dialogRef?.close();
+      return;
+    }
     if (this.doctor) {
       this.form.patchValue({
         name: this.doctor.name ?? '',
@@ -159,7 +226,7 @@ export class ProfileDialog {
     }
     this.logoUpload = undefined;
     this.readOnly = true;
-    this.dialogRef.removePanelClass('profile-edit-panel');
+    this.dialogRef?.removePanelClass('profile-edit-panel');
     this.form.disable();
     this.cdr.markForCheck();
   }
@@ -227,8 +294,15 @@ export class ProfileDialog {
       this.logoUpload = undefined;
 
       this.readOnly = true;
-      this.dialogRef.removePanelClass('profile-edit-panel');
+      this.dialogRef?.removePanelClass('profile-edit-panel');
       this.form.disable();
+
+      // Si el dialog se abrió en modo edición (desde la página de perfil), cerrar al guardar.
+      if (this.openedInEditMode) {
+        this.dialogRef?.close(true);
+        return;
+      }
+
       this.showSaved = true;
       setTimeout(() => {
         this.showSaved = false;
@@ -248,12 +322,16 @@ export class ProfileDialog {
   }
 
   logout() {
-    this.dialogRef.close();
+    this.dialogRef?.close();
     this.authService.logout();
     this.router.navigate(['/login']);
   }
 
   close() {
-    this.dialogRef.close();
+    if (this.asPage) {
+      this.router.navigate(['/app/calendar']);
+      return;
+    }
+    this.dialogRef?.close();
   }
 }

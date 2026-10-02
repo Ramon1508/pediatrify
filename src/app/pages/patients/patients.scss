@@ -165,6 +165,16 @@
     justify-content: center;
   }
 
+  // Anchura consistente de los CTA en mobile: ambos empty states ocupan el ancho del contenedor.
+  .empty-state-content {
+    width: 100%;
+  }
+
+  .appointments-empty-state {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .search-field {
     width: 100%;
   }

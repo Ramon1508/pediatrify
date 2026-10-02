@@ -1,6 +1,7 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Location } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,7 +12,7 @@ import { FirebaseService } from '../../../core/firebase/firebase.service';
 import { resolveLogoUrl } from '../../../core/utils/logo-utils';
 import { ProfileDialog } from '../profile-dialog/profile-dialog';
 import { NotificationBell } from '../notification-bell/notification-bell';
-import { from, map, of, switchMap } from 'rxjs';
+import { from, filter, map, of, switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -31,9 +32,42 @@ export class Header {
   protected authService = inject(AuthService);
   protected brandName = inject(BRAND_NAME);
   private dialog = inject(MatDialog);
+  private router = inject(Router);
+  private location = inject(Location);
   private firebase = inject(FirebaseService);
   private defaultLogo = inject(DEFAULT_LOGO_URL);
   private logoRevision = 0;
+
+  protected profileActive = signal(false);
+  private profileDialogOpen = false;
+
+  private readonly mobileQuery = '(max-width: 768px)';
+
+  constructor() {
+    if (this.router.events) {
+      this.router.events
+        .pipe(filter((e) => e instanceof NavigationEnd))
+        .subscribe(() => this.syncProfileActive());
+    }
+    this.syncProfileActive();
+  }
+
+  private get isMobile(): boolean {
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(this.mobileQuery).matches
+    );
+  }
+
+  private syncProfileActive() {
+    this.profileActive.set(this.onProfileRoute() || this.profileDialogOpen);
+  }
+
+  private onProfileRoute(): boolean {
+    return (this.router.url ?? '').split('?')[0].startsWith('/app/perfil');
+  }
+
 
   protected readonly homeRoute = toSignal(
     this.authService.session$.pipe(map((session) => {
@@ -63,10 +97,26 @@ export class Header {
   }
 
   protected openProfileDialog() {
-    this.dialog.open(ProfileDialog, {
+    // En mobile (usuario del portal doctor) Perfil es una página completa (ruta).
+    // Un segundo click estando ya en Perfil vuelve a la ruta anterior.
+    if (this.isMobile && this.authService.currentDoctor) {
+      if (this.onProfileRoute()) {
+        this.location.back();
+      } else {
+        this.router.navigate(['/app/perfil']);
+      }
+      return;
+    }
+    this.profileDialogOpen = true;
+    this.profileActive.set(true);
+    const ref = this.dialog.open(ProfileDialog, {
       panelClass: 'profile-panel',
       backdropClass: 'profile-backdrop',
       disableClose: false,
+    });
+    ref.afterClosed().subscribe(() => {
+      this.profileDialogOpen = false;
+      this.syncProfileActive();
     });
   }
 }

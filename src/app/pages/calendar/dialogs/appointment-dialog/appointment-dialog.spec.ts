@@ -11,6 +11,7 @@ import { AlertService } from '../../../../core/services/alert.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { AuditRepository } from '../../../../core/repositories/audit.repository';
 import { EmailService } from '../../../../core/services/email.service';
+import { weekdayShortOf } from '../../../../core/utils/availability';
 
 describe('AppointmentDialog', () => {
   let fixture: ComponentFixture<AppointmentDialog>;
@@ -97,19 +98,23 @@ describe('AppointmentDialog', () => {
   it('preserves the original patient when saving a rescheduled appointment', async () => {
     const aptRepo = TestBed.inject(AppointmentRepository);
     const notifications = TestBed.inject(NotificationService);
+    const segs = { startTime: '09:00', endTime: '17:00' };
+    const allDays = { Lun: [segs], Mar: [segs], Mié: [segs], Jue: [segs], Vie: [segs], Sáb: [segs], Dom: [segs] };
     component.setData({
       allPatients: [...mockPatients, { ...mockPatients[0], id: 'p2', name: 'Ana' }],
       selectedDoctorId: 'd1',
       editingAppointment: { id: 'a1', patientId: 'p1', patientName: 'Juan Pérez', date: '2026-07-01', time: '10:00', doctorId: 'd1' } as any,
+      timeSegmentsByDay: allDays,
+      consultationDuration: 30,
     });
-    (component as any).form.patchValue({ patientId: 'p2', date: new Date(2026, 6, 2), time: '11:00', notes: 'Nuevo horario' });
+    (component as any).form.patchValue({ patientId: 'p2', date: new Date(2099, 0, 5), time: '11:00', notes: 'Nuevo horario' });
 
     await component.save();
 
     const rescheduledAppointment = expect.objectContaining({
       patientId: 'p1',
       patientName: 'Juan Pérez',
-      date: '2026-07-02',
+      date: '2099-01-05',
       time: '11:00',
       notes: 'Nuevo horario',
     });
@@ -175,8 +180,10 @@ describe('AppointmentDialog', () => {
     const aptRepo = TestBed.inject(AppointmentRepository);
     (aptRepo.createAppointment as any).mockResolvedValue(undefined);
 
-    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: { Lun: [{ startTime: '09:00', endTime: '17:00' }] }, consultationDuration: 30 });
-    (component as any).form.patchValue({ patientId: 'p1', date: '2026-07-15', time: '10:00', notes: '' });
+    const segs = { startTime: '09:00', endTime: '17:00' };
+    const allDays = { Lun: [segs], Mar: [segs], Mié: [segs], Jue: [segs], Vie: [segs], Sáb: [segs], Dom: [segs] };
+    component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: allDays, consultationDuration: 30 });
+    (component as any).form.patchValue({ patientId: 'p1', date: new Date(2099, 0, 5), time: '10:00', notes: '' });
     (component as any).form.markAsDirty();
     fixture.detectChanges();
 
@@ -233,5 +240,46 @@ describe('AppointmentDialog', () => {
 
     expect((component as any).showNewPatient()).toBe(false);
     expect((component as any).form.get('patientId')?.value).toBe('p2');
+  });
+
+  describe('fecha y horas disponibles', () => {
+    const seg = (startTime: string, endTime: string) => ({ startTime, endTime });
+    const allDays = () => {
+      const s = [seg('09:00', '17:00')];
+      return { Lun: s, Mar: s, Mié: s, Jue: s, Vie: s, Sáb: s, Dom: s };
+    };
+
+    it('dateFilter: past date → disabled; future configured day → enabled', () => {
+      component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: allDays(), consultationDuration: 30 });
+      const filter = (component as any).dateFilter;
+      expect(filter(new Date(2000, 0, 1))).toBe(false);
+      expect(filter(new Date(2099, 0, 5))).toBe(true);
+    });
+
+    it('dateFilter: day without segments → disabled', () => {
+      component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: {}, consultationDuration: 30 });
+      expect((component as any).dateFilter(new Date(2099, 0, 5))).toBe(false);
+    });
+
+    it('dateFilter: today without future hours → disabled', () => {
+      const today = new Date();
+      const key = weekdayShortOf(today);
+      const pastSeg = [seg('00:00', '00:01')];
+      component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: { [key]: pastSeg }, consultationDuration: 60 });
+      expect((component as any).dateFilter(today)).toBe(false);
+    });
+
+    it('selecting a valid future date loads only its valid hours', () => {
+      const future = new Date(2099, 0, 5);
+      const key = weekdayShortOf(future);
+      component.setData({
+        allPatients: mockPatients,
+        selectedDoctorId: 'd1',
+        timeSegmentsByDay: { [key]: [seg('09:00', '10:00'), seg('16:00', '17:00')] },
+        consultationDuration: 30,
+      });
+      (component as any).form.patchValue({ date: future });
+      expect((component as any).availableTimes).toEqual(['09:00', '09:30', '16:00', '16:30']);
+    });
   });
 });

@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog } from '@angular/material/dialog';
 import { signal } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import { provideRouter, Router } from '@angular/router';
 import { Header } from './header';
 import { AuthService } from '../../../core/services/auth.service';
@@ -26,7 +26,7 @@ describe('Header', () => {
     Object.defineProperty(authSpy, 'currentDoctor', { get: () => null, configurable: true });
     Object.defineProperty(authSpy, 'currentPatient', { get: () => null, configurable: true });
     Object.defineProperty(authSpy, 'isAuthenticated', { get: () => false, configurable: true });
-    const dialogSpy = { open: vi.fn() } as any;
+    const dialogSpy = { open: vi.fn().mockReturnValue({ afterClosed: () => of(true) }) } as any;
     const notificationsSpy = {
       unreadCount: signal(0),
       recipientId: signal(null),
@@ -126,5 +126,24 @@ describe('Header', () => {
     expect(dialog.open).toHaveBeenCalledWith(NotificationsDialog, expect.objectContaining({
       panelClass: 'notif-panel',
     }));
+  });
+
+  describe('mobile', () => {
+    afterEach(() => {
+      delete (window as any).matchMedia;
+    });
+
+    it('navigates to the profile route instead of opening the dialog', () => {
+      (window as any).matchMedia = vi.fn().mockReturnValue({ matches: true });
+      Object.defineProperty(authService, 'isAuthenticated', { get: () => true, configurable: true });
+      Object.defineProperty(authService, 'currentDoctor', { get: () => ({ uid: 'd1', role: 'doctor' }), configurable: true });
+      fixture.detectChanges();
+      const router = TestBed.inject(Router);
+      const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      const button = fixture.nativeElement.querySelector('button[aria-label="Perfil"]');
+      button.click();
+      expect(navigate).toHaveBeenCalledWith(['/app/perfil']);
+      expect(dialog.open).not.toHaveBeenCalled();
+    });
   });
 });

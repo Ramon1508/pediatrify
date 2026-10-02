@@ -1,9 +1,11 @@
 <div class="profile-content" [class.profile-editing]="!readOnly">
   <div class="profile-header">
-    <h1 class="profile-title">{{ readOnly ? 'Perfil' : 'Editar perfil' }}</h1>
-    <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
-      <mat-icon>close</mat-icon>
-    </button>
+    <h1 class="profile-title">Perfil</h1>
+    @if (!asPage) {
+      <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
   </div>
 
   <div class="profile-body">

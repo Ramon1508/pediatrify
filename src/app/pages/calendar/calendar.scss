@@ -408,6 +408,22 @@
   }
 }
 
+// En anchos donde el grid de 2 columnas parte el texto de "Agendar consulta" (hasta 400px),
+// apilar en una sola columna con el botón primario (Agendar consulta) arriba.
+@media (max-width: 400px) {
+  .toolbar-right {
+    grid-template-columns: minmax(0, 1fr);
+
+    .btn-primary {
+      order: 1;
+    }
+
+    .btn-secondary {
+      order: 2;
+    }
+  }
+}
+
 // Skeleton de carga del formato del calendario (no aplica a citas, que van en realtime).
 .calendar-skeleton {
   display: flex;

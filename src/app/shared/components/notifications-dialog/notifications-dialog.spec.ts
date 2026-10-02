@@ -383,4 +383,13 @@ describe('NotificationsDialog', () => {
     component.close();
     expect(dialogRef.close).toHaveBeenCalled();
   });
+
+  it('hides the close button when rendered as a page (mobile)', () => {
+    createFixture([]);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.btn-close-dialog')).toBeTruthy();
+    fixture.componentRef.setInput('asPage', true);
+    fixture.detectChanges();
+    expect(el.querySelector('.btn-close-dialog')).toBeNull();
+  });
 });

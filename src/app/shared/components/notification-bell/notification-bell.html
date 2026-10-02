@@ -1,5 +1,5 @@
 @if (recipientId()) {
-  <span class="notification-button-wrapper">
+  <span class="notification-button-wrapper" [class.active]="active()">
     <button
       mat-icon-button
       type="button"

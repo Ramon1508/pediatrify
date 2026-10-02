@@ -147,6 +147,71 @@
   padding: 0 !important;
 }
 
+/* Esquema de vacunación — presentación mobile (bloques verticales por vacuna). */
+.vac-mobile {
+  display: none;
+}
+
+.vac-mobile-name {
+  font-family: Roboto, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  color: #49454F;
+  margin-bottom: 19px;
+  overflow-wrap: anywhere;
+}
+
+.vac-mobile-doses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vac-mobile-dose {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 76.75px;
+}
+
+:host ::ng-deep .vac-mobile-dose .mdc-checkbox__background {
+  border-radius: 2px;
+}
+
+.vac-mobile-age {
+  font-family: Roboto, sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.4px;
+  color: #000000;
+  text-align: center;
+}
+
+.vac-mobile-divider {
+  border-top: 1px solid var(--Schemes-Outline-Variant, #C6C6C6);
+  width: 100%;
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+  .vac-content {
+    overflow-x: visible;
+  }
+
+  .vac-desktop {
+    display: none;
+  }
+
+  .vac-mobile {
+    display: block;
+  }
+}
+
 mat-dialog-content {
   position: relative;
 }

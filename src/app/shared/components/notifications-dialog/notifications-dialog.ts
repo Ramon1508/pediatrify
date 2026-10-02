@@ -1,6 +1,7 @@
 import {
   Component,
   inject,
+  Input,
   signal,
   computed,
   effect,
@@ -35,6 +36,9 @@ const MAX_AUTOFILL_PAGES = 2;
   styleUrl: './notifications-dialog.scss',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.page-mode]': 'asPage',
+  },
   imports: [
     CommonModule,
     MatDialogModule,
@@ -50,9 +54,12 @@ export class NotificationsDialog implements OnDestroy {
   private notificationsService = inject(NotificationService);
   private appointmentRepo = inject(AppointmentRepository);
   private router = inject(Router);
-  private dialogRef = inject(MatDialogRef<NotificationsDialog>);
+  private dialogRef = inject(MatDialogRef<NotificationsDialog>, { optional: true });
   private focusService = inject(CalendarFocusService);
   private alert = inject(AlertService);
+
+  /** Cuando se renderiza como página (mobile) en vez de modal: sin X ni estilos de drawer. */
+  @Input() asPage = false;
 
   protected notifications = this.notificationsService.notifications;
   protected activeFilter = this.notificationsService.activeFilter;
@@ -109,9 +116,9 @@ export class NotificationsDialog implements OnDestroy {
     if (recipient && this.notifications().length === 0 && !this.isInitialLoading()) {
       void this.notificationsService.loadFirstPage(this.activeFilter());
     }
-    this.closeSub = this.dialogRef.afterClosed().subscribe(() => {
+    this.closeSub = this.dialogRef?.afterClosed().subscribe(() => {
       this.triggerMarkCancelledRead();
-    });
+    }) ?? new Subscription();
   }
 
   ngOnDestroy() {
@@ -207,10 +214,14 @@ export class NotificationsDialog implements OnDestroy {
       appointmentId: appointment.id,
     });
     this.router.navigate(['/app/calendar']);
-    this.dialogRef.close();
+    this.dialogRef?.close();
   }
 
   protected close() {
-    this.dialogRef.close();
+    if (this.asPage) {
+      this.router.navigate(['/app/calendar']);
+      return;
+    }
+    this.dialogRef?.close();
   }
 }

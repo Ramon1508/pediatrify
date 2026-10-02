@@ -52,17 +52,18 @@
               Fecha de la consulta
             </div>
             <div class="records-container">
-              <mat-radio-group
-                [value]="selectedRecordId()"
-                (change)="selectRecord($event.value)"
-                class="date-radio-group"
-              >
-                @for (rec of sortedRecords(); track rec.id) {
-                  <mat-radio-button [value]="rec.id" class="date-radio">
-                    {{ formatCivilDate(rec.date) }}
-                  </mat-radio-button>
-                }
-              </mat-radio-group>
+              <mat-form-field appearance="outline" class="date-select">
+                <mat-select
+                  [value]="selectedRecordId()"
+                  (selectionChange)="selectRecord($event.value)"
+                >
+                  @for (rec of sortedRecords(); track rec.id) {
+                    <mat-option [value]="rec.id">
+                      {{ formatCivilDate(rec.date) }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
             </div>
           </div>
 

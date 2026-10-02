@@ -18,6 +18,7 @@ import { AlertService } from '../../../../core/services/alert.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { Appointment, Patient, TimeSegment } from '../../../../core/models/user';
 import { dateStringToLocalDate, dateToString } from '../../../../core/utils/date-utils';
+import { futureSlotsForDate, isDateSelectable } from '../../../../core/utils/availability';
 import { NewPatientDialog } from '../new-patient-dialog/new-patient-dialog';
 
 @Component({
@@ -75,9 +76,7 @@ export class AppointmentDialog {
 
   @ViewChild('patientInput') private patientInput?: ElementRef<HTMLInputElement>;
 
-  readonly dayNamesShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   protected patientScheduling = false;
-  protected availableDays: string[] = [];
   protected occupiedSlots = new Set<string>();
 
   protected form = this.fb.group({
@@ -114,7 +113,6 @@ export class AppointmentDialog {
     this.dialogDoctorName = data.doctorName ?? '';
     this.dialogDoctorEmail = data.doctorEmail ?? '';
     this.patientScheduling = data.patientScheduling ?? false;
-    this.availableDays = data.availableDays ?? [];
     this.occupiedSlots = new Set(data.occupiedSlots ?? []);
     this.computeTimeSlots();
 
@@ -184,56 +182,25 @@ export class AppointmentDialog {
     this.cdr.markForCheck();
   }
 
-  /** Segmentos del día de la semana de la fecha elegida. */
-  private segmentsForSelectedDate(): TimeSegment[] {
+  private selectedDate(): Date | null {
     const dateVal = this.form.get('date')?.value;
-    if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
-      const day = this.weekdayShort(dateVal);
-      if (this.timeSegmentsByDay[day]?.length) return this.timeSegmentsByDay[day];
-    } else if (typeof dateVal === 'string' && dateVal) {
-      const day = this.weekdayShort(dateStringToLocalDate(dateVal));
-      if (this.timeSegmentsByDay[day]?.length) return this.timeSegmentsByDay[day];
-    }
-    const first = Object.keys(this.timeSegmentsByDay)[0];
-    return first ? this.timeSegmentsByDay[first] : [];
+    if (dateVal instanceof Date && !isNaN(dateVal.getTime())) return dateVal;
+    if (typeof dateVal === 'string' && dateVal) return dateStringToLocalDate(dateVal);
+    return null;
   }
 
   private computeTimeSlots() {
-    const segs = this.segmentsForSelectedDate();
-    if (!segs.length) {
-      this.timeSlots = [];
-      return;
-    }
-    const duration = this.consultationDuration;
-    const slots: string[] = [];
-    for (const seg of segs) {
-      const [sh, sm] = seg.startTime.split(':').map(Number);
-      let [eh, em] = seg.endTime.split(':').map(Number);
-      if (eh === 0 && em === 0) eh = 24;
-      let startMinutes = sh * 60 + sm;
-      const endMinutes = eh * 60 + em;
-      while (startMinutes + duration <= endMinutes) {
-        const hour = Math.floor(startMinutes / 60);
-        const minute = startMinutes % 60;
-        slots.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
-        startMinutes += duration;
-      }
-    }
-    this.timeSlots = slots;
+    const date = this.selectedDate();
+    // Horas válidas de la fecha elegida (fuente de verdad: timeSegmentsByDay + duración).
+    // Si es hoy, solo las posteriores a la hora actual.
+    this.timeSlots = date
+      ? futureSlotsForDate(this.timeSegmentsByDay, date, this.consultationDuration)
+      : [];
   }
 
-  private weekdayShort(date: Date): string {
-    const idx = date.getDay();
-    return this.dayNamesShort[idx === 0 ? 6 : idx - 1];
-  }
-
-  /** Permite en el datepicker los días laborales del doctor (las horas ocupadas se filtran aparte). */
-  dateFilter = (date: Date | null): boolean => {
-    if (!this.patientScheduling) return true;
-    if (!date) return true;
-    if (!this.availableDays.includes(this.weekdayShort(date))) return false;
-    return true;
-  };
+  /** Deshabilita en el datepicker fechas inválidas: pasado, día cerrado/sin segmentos, o hoy sin horas futuras. */
+  dateFilter = (date: Date | null): boolean =>
+    date ? isDateSelectable(this.timeSegmentsByDay, date, this.consultationDuration) : true;
 
   /** Horas disponibles del día seleccionado: excluye las que ya tienen cita registrada. */
   get availableTimes(): string[] {
@@ -255,17 +222,15 @@ export class AppointmentDialog {
 
     const chosenDateValue = this.form.get('date')?.value;
     const chosenTime = this.form.get('time')?.value;
-    if (this.patientScheduling) {
-      if (chosenDateValue instanceof Date && !this.dateFilter(chosenDateValue)) {
-        this.error = 'El día seleccionado no está disponible para citas. Elige un día dentro del horario del doctor.';
-        this.cdr.markForCheck();
-        return;
-      }
-      if (chosenTime && this.occupiedSlots.has(`${this.toDateStr(chosenDateValue)}|${chosenTime}`)) {
-        this.error = 'Esa hora ya está ocupada. Elige otra hora disponible.';
-        this.cdr.markForCheck();
-        return;
-      }
+    if (chosenDateValue instanceof Date && !this.dateFilter(chosenDateValue)) {
+      this.error = 'El día seleccionado no está disponible para citas. Elige un día dentro del horario del doctor.';
+      this.cdr.markForCheck();
+      return;
+    }
+    if (this.patientScheduling && chosenTime && this.occupiedSlots.has(`${this.toDateStr(chosenDateValue)}|${chosenTime}`)) {
+      this.error = 'Esa hora ya está ocupada. Elige otra hora disponible.';
+      this.cdr.markForCheck();
+      return;
     }
 
     this.saving = true;

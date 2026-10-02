@@ -43,6 +43,12 @@
   gap: 8px;
 }
 
+// Estado activo del ícono de perfil (ruta /app/perfil en mobile, o modal abierto en desktop).
+.nav-right button.active {
+  background: #BFEDFA;
+  border-radius: 16px;
+}
+
 .user-info {
   font-size: 0.9rem;
   color: #49454F;

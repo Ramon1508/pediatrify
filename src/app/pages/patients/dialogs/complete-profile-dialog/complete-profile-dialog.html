@@ -254,7 +254,33 @@
 
   @if (step === 3) {
     <div class="vac-content">
-      <div class="vac-table-wrap">
+      <!-- Mobile: bloques verticales por vacuna (sin tabla) -->
+      <div class="vac-mobile">
+        @for (row of vaccineRows(); track row.vaccine; let last = $last) {
+          <div class="vac-mobile-block">
+            <div class="vac-mobile-name">{{ row.vaccine }}</div>
+            <div class="vac-mobile-doses">
+              @for (dose of row.doses; track dose.age) {
+                @if (dose.hasDose) {
+                  <div class="vac-mobile-dose">
+                    <mat-checkbox
+                      [checked]="dose.applied"
+                      (change)="toggleDose(row.vaccine, dose.age)"
+                    />
+                    <span class="vac-mobile-age">{{ dose.age }}</span>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+          @if (!last) {
+            <div class="vac-mobile-divider"></div>
+          }
+        }
+      </div>
+
+      <!-- Desktop: tabla -->
+      <div class="vac-table-wrap vac-desktop">
         <table class="vac-table">
           <thead>
             <tr>

@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { NotificationBell } from './notification-bell';
 import { NotificationService } from '../../../core/services/notification.service';
 import { NotificationsDialog } from '../notifications-dialog/notifications-dialog';
@@ -18,13 +20,15 @@ describe('NotificationBell', () => {
       unreadCount: signal(unread),
       recipientId: signal(recipient),
     };
-    const dialogSpy = { open: vi.fn() } as any;
+    const dialogSpy = { open: vi.fn().mockReturnValue({ afterClosed: () => of(true) }) } as any;
+    const routerSpy = { url: '/app/calendar', navigate: vi.fn(), events: of() } as any;
 
     TestBed.configureTestingModule({
       imports: [NotificationBell, NoopAnimationsModule],
       providers: [
         { provide: NotificationService, useValue: serviceMock },
         { provide: MatDialog, useValue: dialogSpy },
+        { provide: Router, useValue: routerSpy },
       ],
     });
 
@@ -70,5 +74,17 @@ describe('NotificationBell', () => {
     expect(dialogSpy.open).toHaveBeenCalledWith(NotificationsDialog, expect.objectContaining({
       panelClass: 'notif-panel',
     }));
+  });
+
+  it('navigates to the notifications route on mobile instead of opening the dialog', () => {
+    (window as any).matchMedia = vi.fn().mockReturnValue({ matches: true });
+    const { dialogSpy } = createFixture({ unread: 1 });
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    const bell = fixture.nativeElement.querySelector('button[aria-label="Abrir notificaciones"]');
+    bell.click();
+    expect(navigate).toHaveBeenCalledWith(['/app/notificaciones']);
+    expect(dialogSpy.open).not.toHaveBeenCalled();
+    delete (window as any).matchMedia;
   });
 });

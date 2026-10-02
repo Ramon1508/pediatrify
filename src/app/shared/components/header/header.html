@@ -8,7 +8,7 @@
     @if (authService.isAuthenticated) {
       <div class="notification-actions">
         <app-notification-bell />
-        <button mat-icon-button (click)="openProfileDialog()" aria-label="Perfil">
+        <button mat-icon-button [class.active]="profileActive()" (click)="openProfileDialog()" aria-label="Perfil">
           <mat-icon>account_circle</mat-icon>
         </button>
       </div>

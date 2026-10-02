@@ -8,6 +8,19 @@
   background: #fff;
 }
 
+// Modo página (mobile): sin card ni altura de modal.
+:host(.page-mode) {
+  display: block;
+  width: 100%;
+  min-height: 100%;
+
+  .profile-content {
+    height: auto;
+    max-height: none;
+    min-height: 100%;
+  }
+}
+
 .profile-header {
   display: flex;
   align-items: center;

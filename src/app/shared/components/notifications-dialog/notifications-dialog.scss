@@ -13,6 +13,21 @@
   overflow: hidden;
 }
 
+// Modo página (mobile): sin card ni altura de drawer.
+:host(.page-mode) {
+  display: block;
+  width: 100%;
+  min-height: 100%;
+
+  .notif-dialog {
+    height: auto;
+    max-height: none;
+    min-height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
 .notif-header {
   display: flex;
   align-items: center;

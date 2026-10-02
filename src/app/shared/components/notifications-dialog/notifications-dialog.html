@@ -1,9 +1,11 @@
 <div class="notif-dialog">
   <header class="notif-header">
     <h1 class="notif-title">Notificaciones</h1>
-    <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar notificaciones">
-      <mat-icon>close</mat-icon>
-    </button>
+    @if (!asPage) {
+      <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar notificaciones">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
   </header>
 
   <div class="notif-filters">

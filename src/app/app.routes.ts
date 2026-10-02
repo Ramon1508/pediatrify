@@ -65,6 +65,17 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/impresion/impresion').then((m) => m.Impresion),
         canActivate: [roleGuard(['doctor'])],
       },
+      {
+        path: 'perfil',
+        loadComponent: () => import('./pages/profile-page/profile-page').then((m) => m.ProfilePage),
+        canActivate: [roleGuard(['admin', 'doctor', 'assistant'])],
+      },
+      {
+        path: 'notificaciones',
+        loadComponent: () =>
+          import('./pages/notifications-page/notifications-page').then((m) => m.NotificationsPage),
+        canActivate: [roleGuard(['admin', 'doctor', 'assistant'])],
+      },
     ],
   },
   {
