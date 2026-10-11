@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, Signal, TemplateRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, Signal, TemplateRef, signal, computed } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,5 +18,5 @@ export interface PrintSettingsDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PrintSettingsDialog {
-  protected readonly data = inject<PrintSettingsDialogData>(MAT_DIALOG_DATA);
+  protected data = signal(inject<PrintSettingsDialogData>(MAT_DIALOG_DATA));
 }

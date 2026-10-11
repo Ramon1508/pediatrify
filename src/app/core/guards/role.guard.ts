@@ -8,9 +8,10 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
     const authService = inject(AuthService);
     const router = inject(Router);
 
-    if (authService.isDoctor && authService.hasAnyRole(allowedRoles)) return true;
-
-    router.navigate(['/login']);
-    return false;
+    const check = () => {
+      if (authService.isDoctor && authService.hasAnyRole(allowedRoles)) return true;
+      router.navigate(['/login']); return false;
+    };
+    return authService.ready ? authService.ready.then(check) : check();
   };
 };

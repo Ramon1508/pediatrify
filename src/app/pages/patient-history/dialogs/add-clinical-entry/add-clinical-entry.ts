@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, signal, computed } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -37,7 +37,7 @@ export class AddClinicalEntry {
   private dialogRef = inject(MatDialogRef<AddClinicalEntry>);
 
   protected patientId = '';
-  protected saving = false;
+  protected saving = signal(false);
 
   protected form = this.fb.group({
     date: [null as unknown as string | Date],
@@ -57,7 +57,7 @@ export class AddClinicalEntry {
   async save() {
     if (!this.patientId) return;
 
-    this.saving = true;
+    this.saving.set(true);
     try {
       const f = this.form.value;
       const doctor = this.authService.currentDoctor;
@@ -76,7 +76,7 @@ export class AddClinicalEntry {
     } catch {
       this.alert.error({ message: 'Error al guardar la entrada', duration: 5000 });
     } finally {
-      this.saving = false;
+      this.saving.set(false);
     }
   }
 }

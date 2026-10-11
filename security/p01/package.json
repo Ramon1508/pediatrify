@@ -1,0 +1,14 @@
+{
+  "name": "lilcare-p01-security-prototype",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test policy.spec.mjs patient-login.spec.mjs",
+    "test:rules": "npx -y firebase-tools@latest emulators:exec --project demo-lilcare-p01 --only firestore --config firebase.emulators.json \"node --test firestore.rules.spec.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.13.0"
+  }
+}

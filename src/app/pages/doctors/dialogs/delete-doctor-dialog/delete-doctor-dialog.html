@@ -1,13 +1,12 @@
-<h2 class="delete-title">{{ title }}</h2>
+<h2 class="delete-title">{{ title() }}</h2>
 
 <p class="delete-subtitle">
-  Al eliminar un doctor(a), éste y todos sus pacientes perderán acceso a la plataforma, junto con
-  sus historiales. Esta acción no es reversible.
+  {{ confirmationMessage() }}
 </p>
 
 <div class="delete-actions">
-  <button mat-button class="btn-tertiary dialog-btn" (click)="close()">Cancelar</button>
-  <button mat-unelevated-button class="btn-danger dialog-btn" (click)="confirm()">
-    {{ confirmLabel }}
+  <button mat-button class="btn-tertiary dialog-btn" [disabled]="saving()" (click)="close()">Cancelar</button>
+  <button mat-unelevated-button class="btn-danger dialog-btn" [disabled]="cannotConfirm()" (click)="confirm()">
+    {{ confirmLabel() }}
   </button>
 </div>

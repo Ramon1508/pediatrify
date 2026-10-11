@@ -1,7 +1,8 @@
-import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy, inject, computed } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Appointment } from '../../../core/models/user';
+import { ClinicClockService } from '../../../core/services/clinic-clock.service';
 
 function calcAge(birthDate: unknown): string {
   let d: Date | null = null;
@@ -34,11 +35,13 @@ function calcAge(birthDate: unknown): string {
   imports: [MatButtonModule, MatTooltipModule],
 })
 export class AppointmentCard {
+  private readonly clock = inject(ClinicClockService);
   readonly appointment = input.required<Appointment>();
   readonly cancel = output<Appointment>();
   readonly viewHistory = output<Appointment>();
 
-  ageDisplay(): string {
+  readonly ageDisplay = computed(() => {
+    this.clock.now();
     return calcAge(this.appointment().patientBirthDate);
-  }
+  });
 }

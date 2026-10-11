@@ -33,6 +33,7 @@ import { FirebaseService } from '../../core/firebase/firebase.service';
 import { resolveLogoUrl } from '../../core/utils/logo-utils';
 import { buildAvailabilityFromUser } from '../../core/utils/availability';
 import { formatLocalDate } from '../../core/utils/date-utils';
+import { DEFAULT_LOGO_URL } from '../../core/config/brand';
 
 function calcAge(birthDate: unknown): string {
   let d: Date | null = null;
@@ -107,6 +108,7 @@ export class PatientHistory implements OnInit, OnDestroy {
   private cascade = inject(CascadeService);
   private userRepo = inject(UserRepository);
   private firebase = inject(FirebaseService);
+  private defaultLogo = inject(DEFAULT_LOGO_URL);
 
   private patientId = '';
   protected patient = computed<(Patient & { ageDisplay: string }) | null>(() => {
@@ -117,10 +119,20 @@ export class PatientHistory implements OnInit, OnDestroy {
   protected sortedRecords = computed(() =>
     [...this.records()].sort((a, b) => b.date.localeCompare(a.date))
   );
+  protected readonly recordOptions = computed(() => this.sortedRecords().map(record => ({ id: record.id, dateLabel: formatLocalDate(record.date) })));
   protected selectedRecordId = signal<string>('');
   protected selectedRecord = computed(() =>
     this.records().find((r) => r.id === this.selectedRecordId()) ?? null
   );
+  protected readonly selectedRecordContent = computed(() => {
+    const record = this.selectedRecord();
+    return {
+      visibleUntilLabel: formatLocalDate(record?.visibleUntil),
+      visibleUntilRxLabel: formatLocalDate(record?.visibleUntilRx),
+      recommendationsHtml: this.sanitize(record?.recommendations),
+      prescriptionHtml: this.sanitize(record?.prescription),
+    };
+  });
   protected selectedRecordAge = computed(() => {
     const record = this.selectedRecord();
     const p = this.patient();
@@ -137,6 +149,7 @@ export class PatientHistory implements OnInit, OnDestroy {
   private historyContainerRef?: ElementRef<HTMLElement>;
 
   protected rowEndIndices = signal<Set<number>>(new Set());
+  protected readonly quickValueRowEnds = computed(() => Array.from({ length: 7 }, (_, index) => this.rowEndIndices().has(index)));
 
   private subs: Subscription[] = [];
   private resizeObserver: ResizeObserver | null = null;
@@ -224,11 +237,12 @@ export class PatientHistory implements OnInit, OnDestroy {
 
     const settings = await this.printRepo.getSettings(doctor.uid);
     const dim = getPaperDimensions(settings.paperSize, settings.customWidth, settings.customHeight, settings.orientation);
-    const logoSource = doctor.logoPath || '/images/Logo.jpg';
+    // P34: "logo precargado" (Lilcare) vs logo propio del Doctor.
+    const logoSource = settings.usePreloadedLogo ? this.defaultLogo : (doctor.logoPath || this.defaultLogo);
     const logoUrl = await resolveLogoUrl(this.firebase.storage, logoSource);
     const prefix = doctor.sexo === Sexo.Femenino ? 'DRA.' : 'DR.';
 
-    const patientAge = calcAge(p.birthDate);
+    const patientAge = calcAgeAtDate(p.birthDate, record.date);
 
     const dateStr = formatLocalDate(record.date);
 
@@ -348,10 +362,15 @@ export class PatientHistory implements OnInit, OnDestroy {
   }
 
   protected async openNewAppointment() {
-    const allPatients = await this.patientRepo.getAllPatients();
     const patientId = this.route.snapshot.paramMap.get('patientId')!;
     const doctor = this.authService.currentDoctor;
-    if (!doctor) return;
+    if (doctor?.role !== 'doctor' || !doctor.uid) return;
+    const allPatients = (await this.patientRepo.getPatientsByDoctor(doctor.uid))
+      .filter((patient) => patient.doctorId === doctor.uid);
+    if (!allPatients.some((patient) => patient.id === patientId)) {
+      this.alert.error({ message: 'Selecciona un paciente asignado a tu consultorio para agendar la consulta.', duration: 5000 });
+      return;
+    }
 
     const doctorUser = (await this.userRepo.getUser(doctor.uid)) as any;
     const availability = buildAvailabilityFromUser(doctorUser);

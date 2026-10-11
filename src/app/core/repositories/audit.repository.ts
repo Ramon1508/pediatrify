@@ -1,14 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
-  doc,
-  setDoc,
   collection,
   onSnapshot,
   query,
   orderBy,
   limit,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
 import { AuditEntry } from '../models/user';
@@ -28,20 +25,13 @@ export class AuditRepository {
     return collection(this.db, 'auditLog');
   }
 
-  async log(entry: AuditEntry): Promise<void> {
-    await setDoc(doc(this.db, 'auditLog', entry.id), {
-      ...entry,
-      timestamp: serverTimestamp(),
-    });
-  }
-
   watchAll(limitCount = 200): Observable<AuditEntry[]> {
     return new Observable((subscriber) => {
       const q = query(this.auditRef, orderBy('timestamp', 'desc'), limit(limitCount));
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const items = snapshot.docs.map((d) => d.data() as AuditEntry);
         subscriber.next(items);
-      });
+      }, (error) => subscriber.error(error));
       return { unsubscribe };
     });
   }

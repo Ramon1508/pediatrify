@@ -1,4 +1,5 @@
-import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -8,14 +9,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { UserRepository } from '../../../../core/repositories/user.repository';
-import { FirebaseService } from '../../../../core/firebase/firebase.service';
-import { AuditRepository } from '../../../../core/repositories/audit.repository';
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { AppUser, TimeSegment } from '../../../../core/models/user';
-import { normalizeEmail } from '../../../../core/utils/normalize-email';
 import { cloneTimeSegmentsByDay } from '../../../../core/utils/availability';
 
 export interface SettingsData {
@@ -33,6 +30,40 @@ export type SettingsSaveResult = Pick<
 >;
 
 const DEFAULT_EMPTY: TimeSegment[] = [{ startTime: '06:00', endTime: '00:00' }];
+const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+
+type SegmentIssue = { start: string; end: string; range: string; overlap: string };
+
+function segmentIssues(segments: TimeSegment[]): SegmentIssue[] {
+  const issues = segments.map(segment => ({
+    start: TIME_PATTERN.test(segment.startTime ?? '') ? '' : 'Ingresa una hora de inicio válida en formato HH:mm.',
+    end: TIME_PATTERN.test(segment.endTime ?? '') ? '' : 'Ingresa una hora de fin válida en formato HH:mm.',
+    range: '', overlap: '',
+  }));
+  const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+  const intervals = segments.map((segment, index) => {
+    if (issues[index].start || issues[index].end) return null;
+    const start = minutes(segment.startTime);
+    const end = segment.endTime === '00:00' ? 1440 : minutes(segment.endTime);
+    if (start >= end) {
+      issues[index].range = 'Elige una hora de fin posterior a la de inicio. Usa 00:00 para el final del día.';
+      return null;
+    }
+    return { start, end };
+  });
+  intervals.forEach((interval, index) => {
+    if (!interval) return;
+    for (let other = index + 1; other < intervals.length; other++) {
+      const candidate = intervals[other];
+      if (candidate && interval.start < candidate.end && candidate.start < interval.end) {
+        const message = 'Modifica este segmento para que no se superponga con otro del mismo día.';
+        issues[index].overlap = message;
+        issues[other].overlap = message;
+      }
+    }
+  });
+  return issues;
+}
 
 @Component({
   selector: 'app-settings-dialog',
@@ -54,47 +85,102 @@ const DEFAULT_EMPTY: TimeSegment[] = [{ startTime: '06:00', endTime: '00:00' }];
 })
 export class SettingsDialog {
   private fb = inject(FormBuilder);
-  private firebase = inject(FirebaseService);
   private userRepo = inject(UserRepository);
-  private auditRepo = inject(AuditRepository);
   private authService = inject(AuthService);
   private alert = inject(AlertService);
   private cdr = inject(ChangeDetectorRef);
   private dialogRef = inject(MatDialogRef<SettingsDialog>);
+  private readonly session = toSignal(this.authService.session$, { initialValue: null });
 
-  readonly dayNamesShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  protected readonly canManagePatientScheduling = computed(() => {
+    const session = this.session();
+    return session?.type === 'doctor' && session.user.role === 'doctor';
+  });
 
-  protected timeSegmentsByDay: Record<string, TimeSegment[]> = {};
-  protected selectedDay = '';
-  protected saving = false;
+  readonly dayNamesShort = signal(['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']);
+
+  protected readonly timeSegmentsByDay = signal<Record<string, TimeSegment[]>>({});
+  protected readonly selectedDay = signal('');
+  protected readonly saving = signal(false);
+  protected readonly submitted = signal(false);
 
   protected form = this.fb.group({
-    consultationDuration: [30, Validators.required],
+    consultationDuration: [30, [Validators.required, Validators.min(1)]],
     allowPatientScheduling: [false],
     timeSegments: this.fb.array<{ startTime: string; endTime: string }>([]),
+  }, { validators: form => this.weekIssuesFor((form.get('timeSegments') as FormArray).getRawValue()).length
+    ? { invalidWeekSegments: true } : null });
+
+  private readonly formState = signal({ invalid: this.form.invalid, pristine: this.form.pristine,
+    values: [] as TimeSegment[], controls: [...this.timeSegments.controls], durationInvalid: false });
+  protected readonly saveDisabled = computed(() => this.formState().invalid || this.formState().pristine || this.saving());
+  protected readonly durationInvalid = computed(() => this.formState().durationInvalid);
+  protected readonly weekErrors = computed(() => this.weekIssuesFor(this.formState().values));
+  protected readonly dayChips = computed(() => this.dayNamesShort().map(day => ({ day,
+    active: day === this.selectedDay(), configured: day === this.selectedDay()
+      ? this.formState().values.length > 0 : !!this.timeSegmentsByDay()[day]?.length })));
+  protected readonly segmentRows = computed(() => {
+    const state = this.formState();
+    const issues = segmentIssues(state.values);
+    return state.controls.map((control, index) => ({ control, index, ...issues[index] }));
   });
+
+  constructor() {
+    this.form.events.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.formState.set({ invalid: this.form.invalid, pristine: this.form.pristine,
+        values: this.timeSegments.getRawValue(), controls: [...this.timeSegments.controls],
+        durationInvalid: this.form.controls.consultationDuration.invalid });
+    });
+  }
+
+  private weekIssuesFor(activeSegments: TimeSegment[]) {
+    const draft = { ...this.timeSegmentsByDay() };
+    if (this.selectedDay()) draft[this.selectedDay()] = activeSegments;
+    return Object.entries(draft).flatMap(([day, segments]) => segmentIssues(segments).flatMap((issue, index) =>
+      Object.entries(issue).filter(([, message]) => !!message).map(([kind, message]) => ({
+        key: `${day}-${index}-${kind}`, message: `${day}, segmento ${index + 1}: ${message}`,
+      }))));
+  }
+
+  private createSegment(segment: TimeSegment) {
+    return this.fb.group({
+      startTime: [segment.startTime, [Validators.required, Validators.pattern(TIME_PATTERN)]],
+      endTime: [segment.endTime, [Validators.required, Validators.pattern(TIME_PATTERN)]],
+    });
+  }
 
   private doctorId = '';
   private doctorEmail = '';
+  private initialAllowPatientScheduling = false;
 
   setData(data: SettingsData) {
     this.doctorId = data.doctorId;
     this.doctorEmail = data.doctorEmail ?? '';
-    this.timeSegmentsByDay = cloneTimeSegmentsByDay(data.timeSegmentsByDay);
+    this.initialAllowPatientScheduling = data.allowPatientScheduling;
+    const byDay = cloneTimeSegmentsByDay(data.timeSegmentsByDay);
     // Compatibilidad: si el doc no tiene segmentos por día pero sí globales, los reparte a sus días.
-    if (Object.keys(this.timeSegmentsByDay).length === 0 && data.availableDays.length) {
+    if (Object.keys(byDay).length === 0 && data.availableDays.length) {
       const legacy = (data as any).legacyTimeSegments as TimeSegment[] | undefined;
       const segs = legacy?.length ? legacy : DEFAULT_EMPTY;
       for (const day of data.availableDays) {
-        this.timeSegmentsByDay[day] = segs.map((s) => ({ ...s }));
+        byDay[day] = segs.map((s) => ({ ...s }));
       }
     }
+    this.timeSegmentsByDay.set(byDay);
     this.form.patchValue({
       consultationDuration: data.consultationDuration,
       allowPatientScheduling: data.allowPatientScheduling,
     });
-    this.selectedDay = this.availableDaysList()[0] ?? this.dayNamesShort[0];
-    this.applyDayToForm(this.selectedDay);
+    if (this.canManagePatientScheduling()) {
+      this.form.controls.allowPatientScheduling.enable();
+    } else {
+      this.form.controls.allowPatientScheduling.disable();
+    }
+    this.selectedDay.set(this.availableDaysList()[0] ?? this.dayNamesShort()[0]);
+    this.applyDayToForm(this.selectedDay());
+    this.form.markAsPristine();
+    this.form.markAsUntouched();
+    this.submitted.set(false);
   }
 
   get timeSegments(): FormArray {
@@ -102,43 +188,39 @@ export class SettingsDialog {
   }
 
   protected availableDaysList(): string[] {
-    return Object.keys(this.timeSegmentsByDay).filter((d) => this.timeSegmentsByDay[d]?.length);
-  }
-
-  protected isConfigured(day: string): boolean {
-    return !!this.timeSegmentsByDay[day]?.length;
+    return Object.keys(this.timeSegmentsByDay()).filter((d) => this.timeSegmentsByDay()[d]?.length);
   }
 
   toggleDay(day: string) {
     this.syncSelectedDaySegments();
-    this.selectedDay = day;
+    this.selectedDay.set(day);
     this.applyDayToForm(day);
     this.cdr.markForCheck();
   }
 
   private syncSelectedDaySegments() {
-    if (!this.selectedDay) return;
-    this.timeSegmentsByDay[this.selectedDay] = this.timeSegments.controls.map((c) => ({
-      startTime: c.get('startTime')?.value ?? '06:00',
-      endTime: c.get('endTime')?.value ?? '00:00',
-    }));
+    if (!this.selectedDay()) return;
+    this.timeSegmentsByDay.update(byDay => ({ ...byDay, [this.selectedDay()]: this.timeSegments.getRawValue() }));
   }
 
   private applyDayToForm(day: string) {
-    this.timeSegments.clear();
-    for (const seg of this.timeSegmentsByDay[day] ?? []) {
-      this.timeSegments.push(this.fb.group({ startTime: seg.startTime, endTime: seg.endTime }));
+    this.timeSegments.clear({ emitEvent: false });
+    for (const seg of this.timeSegmentsByDay()[day] ?? []) {
+      this.timeSegments.push(this.createSegment(seg), { emitEvent: false });
     }
+    this.form.updateValueAndValidity();
   }
 
   addSegment() {
-    this.timeSegments.push(this.fb.group({ startTime: '06:00', endTime: '00:00' }));
+    this.timeSegments.push(this.createSegment(DEFAULT_EMPTY[0]));
+    this.form.markAsDirty();
     this.syncSelectedDaySegments();
     this.cdr.markForCheck();
   }
 
   removeSegment(index: number) {
     this.timeSegments.removeAt(index);
+    this.form.markAsDirty();
     this.syncSelectedDaySegments();
     this.cdr.markForCheck();
   }
@@ -148,55 +230,42 @@ export class SettingsDialog {
   }
 
   async save() {
+    if (this.saving()) return;
     this.syncSelectedDaySegments();
-    this.saving = true;
+    this.submitted.set(true);
+    this.form.markAllAsTouched();
+    this.form.updateValueAndValidity();
+    if (this.form.invalid || this.form.pristine) return;
+    this.saving.set(true);
     try {
-      const raw = this.form.value;
+      const raw = this.form.getRawValue();
       const availableDays = this.availableDaysList();
       const currentUser = this.authService.currentDoctor;
+      const canManagePatientScheduling = currentUser?.role === 'doctor';
 
-      let targetUid = this.doctorId;
-      if (this.doctorEmail) {
-        const userByEmail = await this.userRepo.getUserByEmail(normalizeEmail(this.doctorEmail));
-        if (userByEmail) {
-          targetUid = (userByEmail as any).uid ?? targetUid;
-        }
-      }
+      const targetUid = this.doctorId;
 
       const oldUser = await this.userRepo.getUser(targetUid);
-      const savedSettings: SettingsSaveResult = {
+      const availabilitySettings = {
         consultationDuration: raw.consultationDuration ?? 30,
-        allowPatientScheduling: raw.allowPatientScheduling ?? false,
         availableDays,
-        timeSegmentsByDay: cloneTimeSegmentsByDay(this.timeSegmentsByDay),
+        timeSegmentsByDay: cloneTimeSegmentsByDay(this.timeSegmentsByDay()),
+      };
+      const savedSettings: SettingsSaveResult = {
+        ...availabilitySettings,
+        allowPatientScheduling: canManagePatientScheduling
+          ? raw.allowPatientScheduling ?? false
+          : oldUser?.allowPatientScheduling ?? this.initialAllowPatientScheduling,
       };
       const updateData = {
-        ...savedSettings,
+        ...availabilitySettings,
+        ...(canManagePatientScheduling
+          ? { allowPatientScheduling: savedSettings.allowPatientScheduling }
+          : {}),
         timeSegments: [],
-        updatedAt: serverTimestamp(),
       };
-      await setDoc(doc(this.firebase.firestore, 'users', targetUid), updateData, { merge: true });
-      await this.auditRepo.log({
-        id: crypto.randomUUID(),
-        action: 'update',
-        entityType: 'doctor_settings',
-        entityId: targetUid,
-        performedBy: currentUser?.email ?? '',
-        performedByUid: currentUser?.uid ?? '',
-        timestamp: new Date() as any,
-        oldValues: {
-          consultationDuration: oldUser?.consultationDuration,
-          allowPatientScheduling: oldUser?.allowPatientScheduling,
-          availableDays: oldUser?.availableDays,
-          timeSegmentsByDay: (oldUser as any)?.timeSegmentsByDay,
-        },
-        newValues: {
-          consultationDuration: raw.consultationDuration,
-          allowPatientScheduling: raw.allowPatientScheduling,
-          availableDays,
-          timeSegmentsByDay: this.timeSegmentsByDay,
-        },
-      });
+      await this.userRepo.updateSchedule(targetUid, updateData);
+
       this.alert.success({ message: 'Configuración guardada', duration: 5000 });
       if (currentUser?.uid === targetUid) {
         this.authService.updateCurrentDoctor(savedSettings);
@@ -207,7 +276,7 @@ export class SettingsDialog {
       this.alert.error({ message: 'Error al guardar configuración' });
       this.cdr.markForCheck();
     } finally {
-      this.saving = false;
+      this.saving.set(false);
       this.cdr.markForCheck();
     }
   }

@@ -22,7 +22,8 @@ import { Sexo } from '../../core/models/sexo';
 import { FirebaseService } from '../../core/firebase/firebase.service';
 import { resolveLogoUrl } from '../../core/utils/logo-utils';
 import { UserRepository } from '../../core/repositories/user.repository';
-import { ref, uploadBytes } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { createLogoObjectPath } from '../../core/utils/logo-utils';
 import { PrintSettingsDialog, PrintSettingsDialogData } from './dialogs/print-settings-dialog/print-settings-dialog';
 
 // Matches the project's $bp-mobile token in styles.scss.
@@ -97,7 +98,7 @@ export class Impresion implements OnInit {
     });
   }
 
-  protected doctor: AppUser | null = null;
+  protected doctor = signal<AppUser | null>(null);
   protected settings = signal<PrintSettings>(getDefaultSettings());
   protected savedSettings = signal<PrintSettings>(getDefaultSettings());
   protected isEditing = signal(false);
@@ -108,12 +109,12 @@ export class Impresion implements OnInit {
   protected saving = signal(false);
   protected loading = signal(true);
 
-  protected readonly paperSizes = PAPER_SIZES;
+  protected paperSizes = signal(PAPER_SIZES);
 
-  protected readonly orientations: { value: PaperOrientation; label: string }[] = [
+  protected orientations = signal<{ value: PaperOrientation; label: string }[]>([
     { value: 'horizontal', label: 'Horizontal' },
     { value: 'vertical', label: 'Vertical' },
-  ];
+  ]);
 
   protected paperSizeLabel = computed(() => {
     const value = this.settings().paperSize;
@@ -127,11 +128,11 @@ export class Impresion implements OnInit {
     const [labelPart] = found.label.split('(').map((s) => s.trim());
     return labelPart || found.label;
   }
-  protected readonly Sexo = Sexo;
+  protected Sexo = signal(Sexo);
 
   async ngOnInit() {
     const doctor = this.auth.currentDoctor;
-    this.doctor = doctor;
+    this.doctor.set(doctor);
 
     if (doctor) {
       const s = await this.repo.getSettings(doctor.uid);
@@ -188,16 +189,21 @@ export class Impresion implements OnInit {
     try {
       const current = this.settings();
       const logoPath = this.logoRemoved ? '' : (this.pendingLogoPath || doctor.logoPath || '');
-      const usePreloadedLogo = this.pendingLogoPath || this.logoRemoved
+      const usePreloadedLogo = this.logoRemoved
         ? true
-        : current.usePreloadedLogo;
+        : this.pendingLogoPath
+          ? false
+          : current.usePreloadedLogo;
 
       if (this.pendingLogoFile) {
         const storageRef = ref(this.firebase.storage, this.pendingLogoPath);
         await uploadBytes(storageRef, this.pendingLogoFile, { contentType: this.pendingLogoFile.type });
+        const committedUrl = await getDownloadURL(storageRef);
+        URL.revokeObjectURL(this.pendingLogoUrl());
+        this.pendingLogoFile = undefined;
+        this.pendingLogoUrl.set(committedUrl);
+        this.logoUrl.set(committedUrl);
       }
-
-      await this.userRepo.updateUser(doctor.uid, { logoPath });
 
       const { customWidth, customHeight, ...rest } = current;
       const cleaned: PrintSettings = {
@@ -205,11 +211,11 @@ export class Impresion implements OnInit {
         usePreloadedLogo,
         ...(current.paperSize === 'custom' ? { customWidth, customHeight } : {}),
       };
-      await this.repo.updateSettings(doctor.uid, cleaned);
+      await this.userRepo.updateUser(doctor.uid, { logoPath, printSettings: cleaned });
       if (doctor) {
-        this.doctor = { ...doctor, logoPath: logoPath || undefined };
+        this.doctor.set({ ...doctor, logoPath: logoPath || undefined });
       }
-      this.auth.updateCurrentDoctor({ logoPath });
+      this.auth.updateCurrentDoctor({ logoPath, printSettings: cleaned });
       this.clearPendingLogo();
       this.logoRemoved = false;
       await this.refreshLogoUrl();
@@ -219,7 +225,9 @@ export class Impresion implements OnInit {
       this.closeEditor('saved');
       this.snackBar.open('Configuración guardada correctamente', 'Cerrar', { duration: 5000 });
     } catch {
-      this.snackBar.open('Error al guardar la configuración', 'Cerrar', { duration: 5000 });
+      this.snackBar.open(this.pendingLogoPath && !this.pendingLogoFile
+        ? 'No se guardó la configuración. El logo subido está listo para reintentar; la configuración anterior se conserva.'
+        : 'Error al guardar la configuración', 'Cerrar', { duration: 5000 });
     } finally {
       this.saving.set(false);
       if (this.editorRef) this.editorRef.disableClose = false;
@@ -230,7 +238,7 @@ export class Impresion implements OnInit {
     this.settings.set(structuredClone(this.savedSettings()));
     this.clearPendingLogo();
     this.logoRemoved = false;
-    this.doctor = this.auth.currentDoctor;
+    this.doctor.set(this.auth.currentDoctor);
     this.refreshLogoUrl();
     this.isEditing.set(false);
   }
@@ -258,9 +266,11 @@ export class Impresion implements OnInit {
 
     this.clearPendingLogo();
     this.pendingLogoFile = file;
-    this.pendingLogoPath = `logos/${doctor.uid}/${file.name}`;
+    this.pendingLogoPath = createLogoObjectPath(doctor.uid, file.name);
     this.pendingLogoUrl.set(URL.createObjectURL(file));
     this.logoRemoved = false;
+    // Elegir un logo propio implica no usar el precargado (P34).
+    this.settings.update((s) => ({ ...s, usePreloadedLogo: false }));
     await this.refreshLogoUrl();
     input.value = '';
   }
@@ -283,12 +293,13 @@ export class Impresion implements OnInit {
   protected logoUrl = signal(this.defaultLogo);
 
   private logoSource(): string {
-    if (this.logoRemoved) return this.defaultLogo;
-    return this.pendingLogoPath || this.doctor?.logoPath || this.defaultLogo;
+    // P34: "logo precargado" (Lilcare) vs logo propio del Doctor.
+    if (this.logoRemoved || this.settings().usePreloadedLogo) return this.defaultLogo;
+    return this.pendingLogoPath || this.doctor()?.logoPath || this.defaultLogo;
   }
 
   private async refreshLogoUrl() {
-    if (this.pendingLogoUrl()) {
+    if (this.pendingLogoUrl() && !this.settings().usePreloadedLogo && !this.logoRemoved) {
       this.logoUrl.set(this.pendingLogoUrl());
       return;
     }
@@ -326,6 +337,7 @@ export class Impresion implements OnInit {
   protected gapPx(value: number): string {
     return `${Math.round(value * this.scaleRatio())}px`;
   }
+  protected readonly previewGaps = computed(() => ({ 12: this.gapPx(12), 16: this.gapPx(16), 32: this.gapPx(32) }));
 
   protected previewStyle = computed(() => {
     const s = this.settings();

@@ -1,11 +1,8 @@
-import { Component, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, DestroyRef, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { FormsModule } from '@angular/forms';
-import { PatientRepository } from '../../../../core/repositories/patient.repository';
+import { PatientAccessService } from '../../../../core/services/patient-access.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { Patient } from '../../../../core/models/user';
 
@@ -15,57 +12,65 @@ import { Patient } from '../../../../core/models/user';
   styleUrl: './view-otp-dialog.scss',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    MatDialogModule,
-    MatButtonModule,
-    MatIconModule,
-    MatInputModule,
-    MatFormFieldModule,
-    FormsModule,
-  ],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule],
 })
 export class ViewOtpDialog {
-  private patientRepo = inject(PatientRepository);
-  private alert = inject(AlertService);
-  private cdr = inject(ChangeDetectorRef);
-  private dialogRef = inject(MatDialogRef<ViewOtpDialog>);
+  private readonly access = inject(PatientAccessService);
+  private readonly alert = inject(AlertService);
+  private readonly dialogRef = inject(MatDialogRef<ViewOtpDialog>);
+  private readonly destroyRef = inject(DestroyRef);
+  private patientId = '';
+  private requestVersion = 0;
+  private closed = false;
+  protected readonly patientFullName = signal('');
+  protected readonly password = signal('');
+  protected readonly loading = signal(false);
+  protected readonly loadFailed = signal(false);
+  protected readonly copying = signal(false);
 
-  protected patient: Patient | null = null;
-  protected editing = false;
-  protected otpValue = '';
-
-  setPatient(p: Patient) {
-    this.patient = p;
-    this.otpValue = p.otpPassword ?? '';
+  constructor() {
+    this.destroyRef.onDestroy(() => { this.closed = true; this.requestVersion++; this.password.set(''); });
   }
 
-  protected toggleEdit() {
-    if (this.editing) {
-      this.save();
-    } else {
-      this.editing = true;
-      this.cdr.markForCheck();
+  setPatient(patient: Patient): void {
+    this.patientId = patient.id;
+    this.patientFullName.set([patient.name, patient.lastName].join(' ').trim());
+    void this.load();
+  }
+
+  protected async load(): Promise<void> {
+    if (!this.patientId || this.closed) return;
+    const version = ++this.requestVersion;
+    this.password.set('');
+    this.loadFailed.set(false);
+    this.loading.set(true);
+    try {
+      const result = await this.access.read(this.patientId);
+      if (!this.closed && version === this.requestVersion) this.password.set(result.password);
+    } catch {
+      if (!this.closed && version === this.requestVersion) this.loadFailed.set(true);
+    } finally {
+      if (!this.closed && version === this.requestVersion) this.loading.set(false);
     }
   }
 
-  private async save() {
-    if (!this.patient) return;
-    if (!this.otpValue || this.otpValue.length < 4) {
-      this.alert.error({ message: 'La contraseña debe tener al menos 4 caracteres', duration: 3000 });
-      return;
+  protected async copyOtp(): Promise<void> {
+    if (!this.password() || this.copying() || this.closed) return;
+    this.copying.set(true);
+    try {
+      await navigator.clipboard.writeText(this.password());
+      if (!this.closed) this.alert.success({ message: 'Copiado al portapapeles', duration: 2000 });
+    } catch {
+      if (!this.closed) this.alert.error({ message: 'No fue posible copiar la contrase\u00f1a. Intenta nuevamente.', duration: 5000 });
+    } finally {
+      this.copying.set(false);
     }
-    await this.patientRepo.updatePatient(this.patient.id, { otpPassword: this.otpValue });
-    this.alert.success({ message: 'Contraseña actualizada', duration: 3000 });
-    this.editing = false;
-    this.cdr.markForCheck();
   }
 
-  protected copyOtp() {
-    navigator.clipboard.writeText(this.otpValue);
-    this.alert.success({ message: 'Copiado al portapapeles', duration: 2000 });
-  }
-
-  close() {
+  close(): void {
+    this.closed = true;
+    this.requestVersion++;
+    this.password.set('');
     this.dialogRef.close(false);
   }
 }

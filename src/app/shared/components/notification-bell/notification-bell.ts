@@ -6,6 +6,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { NotificationService } from '../../../core/services/notification.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { NotificationsDialog } from '../notifications-dialog/notifications-dialog';
 
 @Component({
@@ -18,6 +19,7 @@ import { NotificationsDialog } from '../notifications-dialog/notifications-dialo
 })
 export class NotificationBell {
   private notifications = inject(NotificationService);
+  private auth = inject(AuthService);
   private dialog = inject(MatDialog);
   private router = inject(Router);
   private location = inject(Location);
@@ -46,21 +48,25 @@ export class NotificationBell {
     );
   }
 
+  /** P38: ruta de notificaciones según el rol (portal del Paciente o personal). */
+  private get notificationsRoute(): string {
+    return this.auth.currentPatient ? '/paciente/notificaciones' : '/app/notificaciones';
+  }
+
   private syncActive() {
-    const url = this.router.url ?? '';
-    const onRoute = url.split('?')[0].startsWith('/app/notificaciones');
-    this.active.set(onRoute || this.dialogOpen);
+    const url = (this.router.url ?? '').split('?')[0];
+    this.active.set(url === this.notificationsRoute || this.dialogOpen);
   }
 
   protected openNotifications() {
     // En mobile Notificaciones es una página completa (ruta).
     // Un segundo click estando ya en la ruta vuelve a la ruta anterior.
     if (this.isMobile) {
-      const onRoute = (this.router.url ?? '').split('?')[0].startsWith('/app/notificaciones');
+      const onRoute = (this.router.url ?? '').split('?')[0] === this.notificationsRoute;
       if (onRoute) {
         this.location.back();
       } else {
-        this.router.navigate(['/app/notificaciones']);
+        this.router.navigate([this.notificationsRoute]);
       }
       return;
     }

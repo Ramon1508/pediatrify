@@ -1,0 +1,4 @@
+.emulator-config/
+*-debug.log
+firebase-debug*.log
+.firebase/

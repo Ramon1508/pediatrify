@@ -1,0 +1,78 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+  color: #49454f;
+}
+
+.patient-profile {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100dvh - var(--app-header-h, 56px) - 24px);
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 16px;
+
+  h1 {
+    margin: 0;
+    font: 500 24px/32px Roboto, sans-serif;
+  }
+}
+
+.profile-body {
+  padding: 0 24px;
+  overflow-y: auto;
+  min-height: 0;
+
+  h2 {
+    margin: 24px 0 8px;
+    font: 500 16px/24px Roboto, sans-serif;
+  }
+}
+
+.access-details {
+  margin: 0;
+  overflow-wrap: anywhere;
+
+  dt { font: 500 14px/20px Roboto, sans-serif; }
+  dd { margin: 8px 0 0; font: 400 16px/24px Roboto, sans-serif; }
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.patient-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-wrap: anywhere;
+
+  li { padding: 12px 0; border-bottom: 1px solid #e0e0e0; }
+}
+
+.empty-state, .error-state, .profile-note, .loading-state, .patient-list {
+  font: 400 14px/20px Roboto, sans-serif;
+}
+
+.profile-note { margin: 24px 0 0; }
+.error-state p { margin: 0 0 8px; }
+
+.profile-footer {
+  padding: 24px;
+  button mat-spinner { display: inline-block; margin-right: 8px; vertical-align: middle; }
+}
+
+.page-mode {
+  max-height: none;
+  .profile-header, .profile-body, .profile-footer { padding-left: 16px; padding-right: 16px; }
+}

@@ -1,14 +1,14 @@
-<h2 class="dialog-title">{{ data.title }}</h2>
+<h2 class="dialog-title">{{ data().title }}</h2>
 
 <div class="dialog-content">
-  <p>{{ data.message }}</p>
+  <p>{{ data().message }}</p>
 </div>
 
 <div class="dialog-actions">
   <button mat-button class="btn-tertiary dialog-btn" [mat-dialog-close]="false">
-    {{ data.cancelText || 'Cerrar' }}
+    {{ data().cancelText || 'Cerrar' }}
   </button>
-  <button mat-unelevated-button [class]="data.confirmClass || 'btn-primary dialog-btn'" [mat-dialog-close]="true">
-    {{ data.confirmText || 'Aceptar' }}
+  <button mat-unelevated-button [class]="data().confirmClass || 'btn-primary dialog-btn'" [mat-dialog-close]="true">
+    {{ data().confirmText || 'Aceptar' }}
   </button>
 </div>

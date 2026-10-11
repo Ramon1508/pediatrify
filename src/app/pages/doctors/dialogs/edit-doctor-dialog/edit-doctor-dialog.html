@@ -1,60 +1,33 @@
-<div class="dialog-title-container">
-  <h2 class="dialog-title">{{ title }}</h2>
-  <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
+<div class="dialog-header">
+  <h2 mat-dialog-title>{{ title() }}</h2>
+  <button mat-icon-button class="btn-close-dialog" (click)="close()" [disabled]="saving()" aria-label="Cerrar">
     <mat-icon>close</mat-icon>
   </button>
 </div>
-
 <mat-dialog-content>
-  <form [formGroup]="form">
+  <form [formGroup]="form()" (ngSubmit)="save()" id="edit-staff-form">
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Nombre completo</mat-label>
-      <input matInput formControlName="name" />
-      @if (form.get('name')?.invalid && (form.get('name')?.touched || submitted)) {
-        <mat-error>Ingresa el nombre completo</mat-error>
-      }
+      <input matInput formControlName="name" [readonly]="saving()" />
+      @if (nameError()) { <mat-error>Ingresa un nombre completo de hasta 200 caracteres.</mat-error> }
     </mat-form-field>
-
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Correo electrónico</mat-label>
-      <input matInput type="email" formControlName="email" (input)="onEmailChange()" />
-      @if (form.get('email')?.invalid && (form.get('email')?.touched || submitted)) {
-        <mat-error>Ingresa un correo electrónico válido</mat-error>
-      }
+      <input matInput formControlName="email" type="email" [readonly]="saving()" />
+      @if (emailError()) { <mat-error>Ingresa un correo electrónico válido de hasta 254 caracteres.</mat-error> }
     </mat-form-field>
-
-    @if (showPasswordSection) {
-      <div class="password-section">
-        <span class="password-hint">Al cambiar el correo, ingresa una nueva contraseña para el {{ subjectLabel }}.</span>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Nueva contraseña</mat-label>
-          <input matInput type="password" formControlName="newPassword" />
-          @if (passwordForm.get('newPassword')?.invalid && (passwordForm.get('newPassword')?.touched || submitted)) {
-            <mat-error>Ingresa una contraseña de al menos 8 caracteres.</mat-error>
-          }
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Confirmar contraseña</mat-label>
-          <input matInput type="password" formControlName="confirmPassword" />
-          @if (passwordForm.get('confirmPassword')?.invalid && (passwordForm.get('confirmPassword')?.touched || submitted)) {
-            <mat-error>Confirma la contraseña.</mat-error>
-          }
-        </mat-form-field>
-      </div>
+    @if (emailChanged()) {
+      @if (pendingInvitation()) {
+        <p>Después de guardar, reenvía la invitación al nuevo correo.</p>
+      } @else {
+        <p>El acceso se conservará con el nuevo correo y la contraseña actual.</p>
+      }
     }
-
-    @if (error) {
-      <mat-error class="dialog-error">{{ error }}</mat-error>
-    }
+    @if (error()) { <p class="dialog-error" role="alert">{{ error() }}</p> }
   </form>
 </mat-dialog-content>
-
 <mat-dialog-actions align="end">
-  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="saving">
-    @if (saving) {
-      <mat-spinner diameter="18" />
-    } @else {
-      Guardar cambios
-    }
+  <button mat-unelevated-button class="btn-primary" type="submit" form="edit-staff-form" [disabled]="saveDisabled()">
+    @if (saving()) { <mat-spinner diameter="18" /> } @else { Guardar cambios }
   </button>
 </mat-dialog-actions>

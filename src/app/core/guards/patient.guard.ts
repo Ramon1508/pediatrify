@@ -6,9 +6,9 @@ export const patientGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  if (authService.isPatient) return true;
-
-  // Un doctor (o un visitante sin sesión de paciente) no puede entrar al portal del paciente.
-  router.navigate(authService.isDoctor ? ['/app/calendar'] : ['/login']);
-  return false;
+  const check = () => {
+    if (authService.isPatient) return true;
+    router.navigate(authService.isDoctor ? ['/app'] : ['/patient-login']); return false;
+  };
+  return authService.ready ? authService.ready.then(check) : check();
 };

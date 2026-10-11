@@ -1,0 +1,183 @@
+// PROTOTYPE ONLY. Not referenced by the application's firebase.json.
+// Requires authenticated sessions for ALL roles and trusted server projections.
+// All authority documents are written only by a trusted server, never clients.
+// securityPrincipals/{authUid}: active bool, authUid string, role enum,
+//   userId string (staff), doctorId string, loginEmail/patientId (patient),
+//   sessionVersion int (patient, matches signed token patientSessionVersion).
+// familyAccess/{authUid}/patients/{patientId}: trusted membership, server-only.
+// users/{legacyId}: current private staff schema; self read, server writes.
+// staffDirectory/{legacyId}: management-only name/email/role/createdBy/pending.
+// patients/{patientId}: current private clinical schema; owner Doctor read only.
+// patientDirectory/{patientId}: bounded basic registration fields, no clinical
+//   fields and NO password/OTP; team read, server writes.
+// patientPortal/{patientId}: minimal child summary; family read, server writes.
+// schedules/{doctorId}: duration, availability and allowPatientScheduling;
+//   team/associated-family read; validated writes through the server policy.
+// appointmentSlots/{doctorId}/days/{date}: only occupied times, no patient IDs.
+// appointments/{id}: current reservation schema, doctorId is ALWAYS owner
+//   Doctor's legacy ID (not assistant ID); team/family read, server writes.
+// clinicalRecords/{id}: current full clinical schema; Doctor read, server writes.
+// patientDocuments/{id}: doctorId, patientId, recordId, kind, content,
+//   expiresAt/sourceUpdatedAt timestamps; projection of ONE published document,
+//   no clinical data. Source changes automatically invalidate old projections.
+// notifications/{id}: current fan-out model plus canonical doctorId;
+//   authenticated recipient reads, only read:false->true client updates.
+// patientCredentials, invitations, auditLog, emailCounter: server-only.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function principalPath() {
+      return /databases/$(database)/documents/securityPrincipals/$(request.auth.uid);
+    }
+    function principal() { return get(principalPath()).data; }
+    function staffBinding() {
+      let user = /databases/$(database)/documents/users/$(principal().userId);
+      return exists(user) && get(user).data.role == principal().role
+        && get(user).data.firebaseUid == request.auth.uid
+        && get(user).data.get('pending', false) == false
+        && get(user).data.get('profileComplete', false) == true;
+    }
+    function active() {
+      return signedIn() && exists(principalPath())
+        && principal().active == true && principal().authUid == request.auth.uid
+        && principal().role in ['admin', 'doctor', 'assistant', 'patient']
+        && ((principal().role == 'patient'
+          && request.auth.token.get('patientSessionVersion', -1) == principal().sessionVersion)
+          || (principal().role != 'patient' && staffBinding()));
+    }
+    function doctorExists(doctorId) {
+      let user = /databases/$(database)/documents/users/$(doctorId);
+      return exists(user) && get(user).data.role == 'doctor'
+        && get(user).data.get('pending', false) == false
+        && get(user).data.get('profileComplete', false) == true;
+    }
+    function team(doctorId) {
+      return active() && principal().role in ['doctor', 'assistant']
+        && principal().doctorId == doctorId && doctorExists(doctorId)
+        && ((principal().role == 'doctor' && principal().userId == doctorId)
+          || (principal().role == 'assistant'
+            && get(/databases/$(database)/documents/users/$(principal().userId)).data.createdBy == doctorId
+            && get(/databases/$(database)/documents/users/$(principal().userId)).data.get('pending', false) == false
+            && get(/databases/$(database)/documents/users/$(principal().userId)).data.get('profileComplete', false) == true));
+    }
+    function owningDoctor(doctorId) {
+      return team(doctorId) && principal().role == 'doctor'
+        && principal().userId == doctorId;
+    }
+    function patientOfDoctor(patientId) {
+      let patient = /databases/$(database)/documents/patients/$(patientId);
+      return active() && exists(patient) && owningDoctor(get(patient).data.doctorId);
+    }
+    function family(patientId) {
+      let patient = /databases/$(database)/documents/patients/$(patientId);
+      let membership = /databases/$(database)/documents/familyAccess/$(request.auth.uid)/patients/$(patientId);
+      return active() && principal().role == 'patient' && exists(membership)
+        && exists(patient) && get(patient).data.doctorId == principal().doctorId
+        && doctorExists(principal().doctorId)
+        && (get(patient).data.email == principal().loginEmail
+          || get(patient).data.get('secondaryEmail', '') == principal().loginEmail);
+    }
+    function associatedFamily(doctorId) {
+      return active() && principal().role == 'patient'
+        && principal().doctorId == doctorId && family(principal().patientId);
+    }
+    function ownNotification(data) {
+      return active() && (
+        (principal().role in ['doctor', 'assistant']
+          && data.recipientId == principal().userId && team(data.doctorId))
+        || (principal().role == 'patient' && family(data.recipientId)
+          && data.doctorId == principal().doctorId)
+      );
+    }
+    function boundedString(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+    function isValidNotification(data, notificationId) {
+      return data.keys().hasAll(['id', 'type', 'title', 'description', 'createdAt',
+        'originatorId', 'originatorName', 'recipientId', 'recipientType', 'read', 'doctorId'])
+        && data.keys().hasOnly(['id', 'type', 'title', 'description', 'createdAt',
+        'originatorId', 'originatorName', 'recipientId', 'recipientType', 'read', 'doctorId', 'appointmentId'])
+        && data.id == notificationId && boundedString(data.id, 1, 128)
+        && data.type in ['appointment-created', 'appointment-cancelled', 'appointment-rescheduled']
+        && boundedString(data.title, 1, 200) && boundedString(data.description, 0, 2000)
+        && data.createdAt is timestamp
+        && boundedString(data.originatorId, 1, 128) && boundedString(data.originatorName, 0, 200)
+        && boundedString(data.recipientId, 1, 128)
+        && data.recipientType in ['doctor', 'assistant', 'patient']
+        && data.read is bool && boundedString(data.doctorId, 1, 128)
+        && (!('appointmentId' in data) || boundedString(data.appointmentId, 1, 128));
+    }
+
+    match /securityPrincipals/{authUid} {
+      allow read: if active() && request.auth.uid == authUid;
+      allow write: if false;
+    }
+    match /users/{userId} {
+      allow read: if active() && principal().role in ['admin', 'doctor', 'assistant']
+        && principal().userId == userId;
+      allow write: if false;
+    }
+    match /staffDirectory/{userId} {
+      allow read: if active() && (
+        (principal().role == 'admin' && resource.data.role in ['admin', 'doctor'])
+        || (principal().role == 'doctor' && resource.data.role == 'assistant'
+          && resource.data.createdBy == principal().userId)
+      );
+      allow write: if false;
+    }
+    match /patients/{patientId} {
+      allow read: if active() && owningDoctor(resource.data.doctorId);
+      allow write: if false;
+    }
+    match /patientDirectory/{patientId} {
+      allow read: if active() && team(resource.data.doctorId);
+      allow write: if false;
+    }
+    match /patientPortal/{patientId} {
+      allow read: if family(patientId);
+      allow write: if false;
+    }
+    match /schedules/{doctorId} {
+      allow read: if team(doctorId) || associatedFamily(doctorId);
+      allow write: if false;
+    }
+    match /appointmentSlots/{doctorId}/days/{date} {
+      allow read: if team(doctorId) || associatedFamily(doctorId);
+      allow write: if false;
+    }
+    match /appointments/{appointmentId} {
+      allow read: if active() && (team(resource.data.doctorId)
+        || (family(resource.data.patientId) && resource.data.doctorId == principal().doctorId));
+      allow write: if false;
+    }
+    match /clinicalRecords/{recordId} {
+      allow read: if patientOfDoctor(resource.data.patientId);
+      allow write: if false;
+    }
+    match /patientDocuments/{documentId} {
+      allow read: if active() && (
+        owningDoctor(resource.data.doctorId)
+        || (family(resource.data.patientId) && resource.data.doctorId == principal().doctorId
+          && resource.data.expiresAt is timestamp && request.time < resource.data.expiresAt
+          && exists(/databases/$(database)/documents/clinicalRecords/$(resource.data.recordId))
+          && get(/databases/$(database)/documents/clinicalRecords/$(resource.data.recordId)).data.patientId == resource.data.patientId
+          && get(/databases/$(database)/documents/clinicalRecords/$(resource.data.recordId)).data.updatedAt == resource.data.sourceUpdatedAt)
+      );
+      allow write: if false;
+    }
+    match /notifications/{notificationId} {
+      allow read: if ownNotification(resource.data);
+      // Notification generation is server-only; client creation is always denied.
+      allow create: if false && isValidNotification(request.resource.data, notificationId);
+      allow update: if ownNotification(resource.data)
+        && isValidNotification(request.resource.data, notificationId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read == true;
+      allow delete: if false;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

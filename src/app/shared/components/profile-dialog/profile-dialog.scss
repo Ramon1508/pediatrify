@@ -84,7 +84,7 @@
   margin-bottom: 16px;
 }
 
-:host ::ng-deep .profile-form-field .mat-mdc-form-field-subscript-wrapper {
+:host ::ng-deep .profile-form-field:not(.profile-name-field):not(.profile-email-field) .mat-mdc-form-field-subscript-wrapper {
   display: none;
 }
 

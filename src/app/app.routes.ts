@@ -1,7 +1,9 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { patientGuard } from './core/guards/patient.guard';
+import { AuthService } from './core/services/auth.service';
 
 export const routes: Routes = [
   {
@@ -28,17 +30,21 @@ export const routes: Routes = [
   },
   {
     path: 'app/secret/housekeeping/initialize_if_errors/approve',
-    loadComponent: () =>
-      import('./pages/housekeeping/admin-initialize/admin-initialize').then(
-        (m) => m.AdminInitialize,
-      ),
+    pathMatch: 'full',
+    redirectTo: 'login',
   },
   {
     path: 'app',
     loadComponent: () => import('./pages/doctor-layout/doctor-layout').then((m) => m.DoctorLayout),
     canActivate: [authGuard, roleGuard(['admin', 'doctor', 'assistant'])],
     children: [
-      { path: '', redirectTo: 'calendar', pathMatch: 'full' },
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: () => inject(AuthService).currentDoctor?.role === 'admin'
+          ? '/app/doctors'
+          : '/app/calendar',
+      },
       {
         path: 'calendar',
         loadComponent: () => import('./pages/calendar/calendar').then((m) => m.Calendar),
@@ -61,6 +67,12 @@ export const routes: Routes = [
         canActivate: [roleGuard(['admin', 'doctor'])],
       },
       {
+        path: 'admins',
+        loadComponent: () => import('./pages/doctors/doctors').then((m) => m.Doctors),
+        data: { directory: 'admin' },
+        canActivate: [roleGuard(['admin'])],
+      },
+      {
         path: 'impresion',
         loadComponent: () => import('./pages/impresion/impresion').then((m) => m.Impresion),
         canActivate: [roleGuard(['doctor'])],
@@ -76,6 +88,11 @@ export const routes: Routes = [
           import('./pages/notifications-page/notifications-page').then((m) => m.NotificationsPage),
         canActivate: [roleGuard(['admin', 'doctor', 'assistant'])],
       },
+      {
+        path: 'audit-log',
+        loadComponent: () => import('./pages/audit-log/audit-log').then((m) => m.AuditLog),
+        canActivate: [roleGuard(['admin'])],
+      },
     ],
   },
   {
@@ -85,6 +102,16 @@ export const routes: Routes = [
     canActivate: [authGuard, patientGuard],
     children: [
       { path: '', redirectTo: 'calendario', pathMatch: 'full' },
+      {
+        path: 'perfil',
+        loadComponent: () =>
+          import('./pages/patient-profile-page/patient-profile-page').then((m) => m.PatientProfilePage),
+      },
+      {
+        path: 'notificaciones',
+        loadComponent: () =>
+          import('./pages/notifications-page/notifications-page').then((m) => m.NotificationsPage),
+      },
       {
         path: 'calendario',
         loadComponent: () => import('./pages/calendar/calendar').then((m) => m.Calendar),
@@ -106,10 +133,8 @@ export const routes: Routes = [
   {
     path: 'print/:recordId',
     loadComponent: () => import('./pages/print-preview/print-preview').then((m) => m.PrintPreview),
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard(['doctor'])],
   },
-  { path: 'dashboard', redirectTo: '/app/calendar', pathMatch: 'full' },
-  { path: 'appointments', redirectTo: '/app/calendar', pathMatch: 'full' },
   { path: 'patients', redirectTo: '/app/patients', pathMatch: 'full' },
   { path: 'doctors', redirectTo: '/app/doctors', pathMatch: 'full' },
   { path: '', redirectTo: '/login', pathMatch: 'full' },

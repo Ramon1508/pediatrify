@@ -17,33 +17,38 @@
         <mat-option [value]="60">1 hora</mat-option>
         <mat-option [value]="120">2 horas</mat-option>
       </mat-select>
+      @if (durationInvalid()) {
+        <mat-error>Selecciona una duración de consulta válida.</mat-error>
+      }
     </mat-form-field>
 
-    <div class="scheduling-row">
-      <mat-slide-toggle formControlName="allowPatientScheduling" color="primary" />
-      <span class="scheduling-label">Permitir que los pacientes agenden citas</span>
-    </div>
+    @if (canManagePatientScheduling()) {
+      <div class="scheduling-row">
+        <mat-slide-toggle formControlName="allowPatientScheduling" color="primary" />
+        <span class="scheduling-label">Permitir que los pacientes agenden citas</span>
+      </div>
+    }
 
     <div class="availability-section">
       <div class="availability-title">Horarios disponibles</div>
       <div class="availability-subtitle">Selecciona un día y configura los horarios en los que tus pacientes podrán agendar sus consultas. Cada día puede tener horarios diferentes.</div>
       <div class="day-chips">
-        @for (day of dayNamesShort; track day) {
-          <button type="button" class="chip-day" [class.active]="selectedDay === day" [class.configured]="isConfigured(day) && selectedDay !== day" (click)="toggleDay(day)">
-            @if (isConfigured(day)) {
+        @for (chip of dayChips(); track chip.day) {
+          <button type="button" class="chip-day" [class.active]="chip.active" [class.configured]="chip.configured && !chip.active" (click)="toggleDay(chip.day)">
+            @if (chip.configured) {
               <mat-icon class="day-check">check</mat-icon>
             }
-            {{ day }}
+            {{ chip.day }}
           </button>
         }
       </div>
       <div class="segments-header">
-        <span class="segments-title">Segmentos de horario — {{ selectedDay }}</span>
+        <span class="segments-title">Segmentos de horario — {{ selectedDay() }}</span>
       </div>
-      @if (timeSegments.length > 0) {
+      @if (segmentRows().length > 0) {
         <div formArrayName="timeSegments" class="segments-list">
-          @for (seg of timeSegments.controls; track seg) {
-            @if (timeSegments.length > 1) {
+          @for (row of segmentRows(); track row.control) {
+            @if (segmentRows().length > 1) {
               @if ($index > 0) {
                 <hr class="segment-divider" />
               }
@@ -57,13 +62,19 @@
                 <mat-form-field appearance="outline" class="time-field">
                   <mat-label>Inicio</mat-label>
                   <input matInput type="time" formControlName="startTime" />
+                  @if (row.start) {
+                    <mat-error>{{ row.start }}</mat-error>
+                  }
                 </mat-form-field>
                 <mat-form-field appearance="outline" class="time-field">
                   <mat-label>Fin</mat-label>
                   <input matInput type="time" formControlName="endTime" />
+                  @if (row.end) {
+                    <mat-error>{{ row.end }}</mat-error>
+                  }
                 </mat-form-field>
               </div>
-              @if (timeSegments.length <= 1) {
+              @if (segmentRows().length <= 1) {
                 <button type="button" mat-icon-button class="segment-remove" (click)="removeSegment($index)" aria-label="Eliminar segmento">
                   <mat-icon>close</mat-icon>
                 </button>
@@ -73,14 +84,24 @@
         </div>
       }
       <button type="button" class="btn-add-segment" (click)="addSegment()">+ Añadir nuevo segmento</button>
+      @if (weekErrors().length > 0) {
+        <div class="schedule-validation" role="alert">
+          <p>Corrige los horarios indicados antes de guardar.</p>
+          <ul>
+            @for (issue of weekErrors(); track issue.key) {
+              <li>{{ issue.message }}</li>
+            }
+          </ul>
+        </div>
+      }
     </div>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button class="btn-tertiary dialog-btn desktop-dialog-action" [mat-dialog-close]="false">Cancelar</button>
-  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()"       [disabled]="saving">
-    @if (saving) {
+  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="saveDisabled()">
+    @if (saving()) {
       <mat-spinner diameter="18" />
     } @else {
       Guardar configuración

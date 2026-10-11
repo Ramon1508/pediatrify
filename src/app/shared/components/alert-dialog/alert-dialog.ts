@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, signal, computed } from '@angular/core';
 import { MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { ConfirmOptions } from '../../../core/models/alert';
@@ -12,5 +12,5 @@ import { ConfirmOptions } from '../../../core/models/alert';
   imports: [MatDialogModule, MatButtonModule],
 })
 export class AlertDialog {
-  protected data: ConfirmOptions = inject(MAT_DIALOG_DATA);
+  protected data = signal<ConfirmOptions>(inject(MAT_DIALOG_DATA));
 }

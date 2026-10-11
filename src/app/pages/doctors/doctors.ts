@@ -1,5 +1,8 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,7 +16,6 @@ import { UserRepository } from '../../core/repositories/user.repository';
 import { AppUser } from '../../core/models/user';
 import { AlertService } from '../../core/services/alert.service';
 import { AuthService } from '../../core/services/auth.service';
-import { EmailService } from '../../core/services/email.service';
 import { InviteDoctorDialog } from './dialogs/invite-doctor-dialog/invite-doctor-dialog';
 import { EditDoctorDialog } from './dialogs/edit-doctor-dialog/edit-doctor-dialog';
 import { DeleteDoctorDialog } from './dialogs/delete-doctor-dialog/delete-doctor-dialog';
@@ -42,36 +44,36 @@ export class Doctors implements OnInit, OnDestroy {
   private alert = inject(AlertService);
   private dialog = inject(MatDialog);
   private authService = inject(AuthService);
-  private email = inject(EmailService);
+  private route = inject(ActivatedRoute);
+  private readonly currentUser = toSignal(this.authService.session$.pipe(map(() => this.authService.currentDoctor)),
+    { initialValue: this.authService.currentDoctor });
 
-  protected doctors = signal<AppUser[]>([]);
+  /** P45: 'admin' cuando la ruta es el directorio de Administradores. */
+  private readonly directory = signal(this.route.snapshot.data['directory'] as 'admin' | undefined);
+
+  private readonly users = signal<AppUser[]>([]);
+  protected readonly doctors = computed(() => {
+    const current = this.currentUser();
+    if (this.isAdminDirectory()) return current?.role === 'admin' ? this.users().filter(u => u.role === 'admin') : [];
+    return current?.role === 'admin' ? this.users().filter(u => u.role === 'doctor') : current?.role === 'doctor'
+      ? this.users().filter(u => u.role === 'assistant' && u.createdBy === current.uid) : [];
+  });
   protected loading = signal(true);
-  protected searchControl = new FormControl('');
+  protected readonly searchForm = inject(FormBuilder).group({ search: [''] });
+  protected readonly searchControl = this.searchForm.controls.search;
   protected searchTerm = signal('');
 
-  protected get isAdmin(): boolean {
-    return this.authService.currentDoctor?.role === 'admin';
-  }
-
-  protected get pageTitle(): string {
-    return this.isAdmin ? 'Doctores' : 'Asistentes';
-  }
-
-  protected get addLabel(): string {
-    return this.isAdmin ? 'Agregar doctor' : 'Agregar asistente';
-  }
-
-  protected get emptyLabel(): string {
-    return this.isAdmin ? 'No has agregado ningún doctor' : 'No has agregado ningún asistente';
-  }
-
-  protected get editLabel(): string {
-    return this.isAdmin ? 'Editar doctor' : 'Editar asistente';
-  }
-
-  protected get deleteLabel(): string {
-    return this.isAdmin ? 'Eliminar doctor' : 'Eliminar asistente';
-  }
+  protected readonly isAdmin = computed(() => this.currentUser()?.role === 'admin');
+  protected readonly isAdminDirectory = computed(() => this.directory() === 'admin');
+  protected readonly pageTitle = computed(() => this.isAdminDirectory() ? 'Administradores' : this.isAdmin() ? 'Doctores' : 'Asistentes');
+  protected readonly addLabel = computed(() => this.isAdminDirectory() ? 'Agregar administrador' : this.isAdmin() ? 'Agregar doctor' : 'Agregar asistente');
+  protected readonly emptyLabel = computed(() => this.isAdminDirectory() ? 'No has agregado ningún administrador'
+    : this.isAdmin() ? 'No has agregado ningún doctor' : 'No has agregado ningún asistente');
+  protected readonly editLabel = computed(() => this.isAdminDirectory() ? 'Editar administrador' : this.isAdmin() ? 'Editar doctor' : 'Editar asistente');
+  protected readonly deleteLabel = computed(() => this.isAdminDirectory() ? 'Eliminar administrador' : this.isAdmin() ? 'Eliminar doctor' : 'Eliminar asistente');
+  protected readonly directoryRows = computed(() => this.filteredDoctors().map(user => ({ user,
+    ownAdmin: this.isAdminDirectory() && user.uid === this.currentUser()?.uid,
+  })));
 
   protected filteredDoctors = computed(() => {
     const term = this.searchTerm().toLowerCase();
@@ -84,21 +86,16 @@ export class Doctors implements OnInit, OnDestroy {
   private subs: any[] = [];
 
   async ngOnInit() {
+    if (!this.canOpenDirectory()) { this.loading.set(false); return; }
     this.subs.push(
       this.searchControl.valueChanges.subscribe((val) => {
         this.searchTerm.set(val || '');
       })
     );
-    this.userRepo.watchAllUsers().subscribe((users) => {
-      const current = this.authService.currentDoctor;
-      const isAdmin = current?.role === 'admin';
-      this.doctors.set(
-        isAdmin
-          ? users.filter(u => u.role === 'doctor')
-          : users.filter(u => u.role === 'assistant' && u.createdBy === current?.uid)
-      );
+    this.subs.push(this.userRepo.watchAllUsers().subscribe((users) => {
+      this.users.set(users);
       this.loading.set(false);
-    });
+    }));
   }
 
   ngOnDestroy() {
@@ -106,14 +103,17 @@ export class Doctors implements OnInit, OnDestroy {
   }
 
   openNewDoctor() {
-    this.dialog.open(InviteDoctorDialog, {
+    if (!this.canOpenDirectory()) return;
+    const dialogRef = this.dialog.open(InviteDoctorDialog, {
       width: '400px',
       disableClose: false,
       panelClass: 'right-panel',
     });
+    if (this.isAdminDirectory()) dialogRef.componentInstance.setTargetRole('admin');
   }
 
   openEditDoctor(doctor: AppUser) {
+    if (!this.canManageTarget(doctor) || doctor.uid === this.authService.currentDoctor?.uid) return;
     const dialogRef = this.dialog.open(EditDoctorDialog, {
       width: '400px',
       disableClose: false,
@@ -122,34 +122,40 @@ export class Doctors implements OnInit, OnDestroy {
     dialogRef.componentInstance.setDoctor(doctor);
   }
 
-  async resendInvitation(doctor: AppUser) {
-    const origin = window.location.origin;
-    const link = `${origin}/setup-profile?email=${encodeURIComponent(doctor.email)}`;
-    try {
-      await this.email.sendInvitationEmail({
-        email: doctor.email,
-        inviteeName: doctor.name,
-        doctorName: this.authService.currentDoctor?.name ?? '',
-        link,
-      });
-      this.alert.success({
-        message: `Reenviamos el enlace de invitación por correo a ${doctor.name}`,
-        duration: 4000,
-      });
-    } catch (e: any) {
-      this.alert.error({
-        message: `No se pudo reenviar el correo. Copia el enlace manualmente.`,
-        duration: 5000,
-      });
-    }
+  resendInvitation(doctor: AppUser) {
+    if (doctor.pending !== true || !this.canManageTarget(doctor)) return;
+    const ref = this.dialog.open(InviteDoctorDialog, { width: '400px', disableClose: false, panelClass: 'right-panel' });
+    ref.componentInstance.setResendTarget(doctor);
   }
 
   deleteDoctor(doctor: AppUser) {
+    if (!this.canManageTarget(doctor)) return;
+    if (this.isAdminDirectory()) {
+      if (doctor.uid === this.authService.currentDoctor?.uid) {
+        this.alert.error({ message: 'No puedes eliminar tu propia cuenta de administrador.', duration: 5000 });
+        return;
+      }
+      if (this.doctors().filter((d) => d.role === 'admin').length <= 1) {
+        this.alert.error({ message: 'Debe existir al menos un administrador.', duration: 5000 });
+        return;
+      }
+    }
     const dialogRef = this.dialog.open(DeleteDoctorDialog, {
       width: '552px',
       disableClose: false,
       panelClass: 'context-card-panel',
     });
     dialogRef.componentInstance.setDoctor(doctor);
+  }
+
+  private canOpenDirectory(): boolean {
+    const role = this.authService.currentDoctor?.role;
+    return this.isAdminDirectory() ? role === 'admin' : role === 'admin' || role === 'doctor';
+  }
+
+  private canManageTarget(target: AppUser): boolean {
+    const actor = this.authService.currentDoctor;
+    return this.canOpenDirectory() && !!actor && (this.isAdminDirectory() ? target.role === 'admin' :
+      actor.role === 'admin' ? target.role === 'doctor' : target.role === 'assistant' && target.createdBy === actor.uid);
   }
 }

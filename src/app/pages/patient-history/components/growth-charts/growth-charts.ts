@@ -1,6 +1,4 @@
-import {
-  Component, input, signal, computed, effect, inject, ChangeDetectionStrategy, ViewEncapsulation,
-} from '@angular/core';
+import { Component, input, signal, computed, effect, inject, ChangeDetectionStrategy, ViewEncapsulation } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { MatIconModule } from '@angular/material/icon';
 import { line, curveMonotoneX } from 'd3-shape';
@@ -40,11 +38,11 @@ export class GrowthCharts {
   readonly birthDate = input<string>('');
 
   protected zoomedIn = signal(true);
-  protected activeTab: ChartTab = 'weightHeight';
-  protected hasData = false;
-  protected calibrationEnabled = environment.calibration_enabled;
-  protected imgSrc = '';
-  protected overlaySvg: SafeHtml = '';
+  protected activeTab = signal<ChartTab>('weightHeight');
+  protected hasData = signal(false);
+  protected calibrationEnabled = signal(environment.calibration_enabled);
+  protected imgSrc = signal('');
+  protected overlaySvg = signal<SafeHtml>('');
   protected bmiSvg: SafeHtml = '';
 
   protected calibrating = signal(false);
@@ -62,7 +60,7 @@ export class GrowthCharts {
     };
   });
 
-  protected readonly CAL_CONFIG: Record<CalMode, { refs: number[]; label: string; unit: string }> = {
+  protected CAL_CONFIG = signal<Record<CalMode, { refs: number[]; label: string; unit: string }>>({
     x: { refs: [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36], label: 'Edad', unit: 'meses' },
     length: { refs: [40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100], label: 'Talla', unit: 'cm' },
     weight: { refs: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], label: 'Peso', unit: 'kg' },
@@ -75,7 +73,7 @@ export class GrowthCharts {
     y2w: { refs: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110], label: 'Peso', unit: 'kg' },
     bmiX: { refs: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], label: 'Edad (IMC)', unit: 'años' },
     bmiY: { refs: [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 37], label: 'IMC', unit: '' },
-  };
+  });
 
   private sanitizer = inject(DomSanitizer);
   private auth = inject(AuthService);
@@ -84,9 +82,9 @@ export class GrowthCharts {
   constructor() {
     effect(() => {
       this.records(); this.selectedRecord(); this.patientSex();
-      const currentTabs = this.tabs;
-      if (currentTabs.length && !currentTabs.some(t => t.id === this.activeTab)) {
-        this.activeTab = currentTabs[0].id;
+      const currentTabs = this.tabs();
+      if (currentTabs.length && !currentTabs.some(t => t.id === this.activeTab())) {
+        this.activeTab.set(currentTabs[0].id);
         this.cancelCalMode();
       }
       this.renderActiveChart();
@@ -111,7 +109,7 @@ export class GrowthCharts {
 
   /* ── Tab logic ─────────────────────────────────── */
 
-  protected get tabs(): { id: ChartTab; label: string }[] {
+  protected readonly tabs = computed(() => {
     const set = this.chartSet;
     const age = this.selectedAgeMonths;
     const result: { id: ChartTab; label: string }[] = [];
@@ -126,10 +124,10 @@ export class GrowthCharts {
     }
 
     return result;
-  }
+  });
 
   protected switchTab(tab: ChartTab) {
-    this.activeTab = tab;
+    this.activeTab.set(tab);
     this.cancelCalMode();
     this.renderActiveChart();
   }
@@ -162,7 +160,7 @@ export class GrowthCharts {
     const mT = settings.marginTop, mR = settings.marginRight, mB = settings.marginBottom, mL = settings.marginLeft;
 
     w.document.write(`<html><head>
-      <title>${this.sexLabel} ${this.tabs.find(t => t.id === this.activeTab)?.label ?? ''}</title>
+      <title>${this.sexLabel} ${this.tabs().find(t => t.id === this.activeTab())?.label ?? ''}</title>
       <style>
         @page{size:${dim.width}cm ${dim.height}cm;margin:0}
         body{margin:0;padding:0}
@@ -188,13 +186,13 @@ export class GrowthCharts {
     if (!this.calibrating()) this.resetCalibration();
   }
 
-  protected get calModes(): CalMode[] {
-    const tab = this.activeTab;
+  protected readonly calModes = computed<CalMode[]>(() => {
+    const tab = this.activeTab();
     if (tab === 'headCircumference') return ['hcx', 'hc', 'hclx', 'hclw'];
     if (tab === 'bmi') return ['bmiX', 'bmiY'];
     if (this.chartSet === 'y2') return ['y2x', 'y2h', 'y2w'];
     return ['x', 'length', 'weight'];
-  }
+  });
 
   protected startCalMode(mode: CalMode) {
     this.calMode.set(mode);
@@ -214,7 +212,7 @@ export class GrowthCharts {
     const svgY = sy * vbH;
 
     const mode = this.calMode()!;
-    const refs = this.CAL_CONFIG[mode].refs;
+    const refs = this.CAL_CONFIG()[mode].refs;
     const ref = refs[this.calStep()];
     this.calRecorded.update(pts => [...pts, { ref, x: Math.round(svgX * 100) / 100, y: Math.round(svgY * 100) / 100 }]);
 
@@ -227,7 +225,7 @@ export class GrowthCharts {
   }
 
   private get currentViewBox(): string {
-    const tab = this.activeTab;
+    const tab = this.activeTab();
     if (tab === 'headCircumference') return getHcViewBox();
     if (tab === 'bmi') return getBmiViewBox();
     if (this.chartSet === 'y2') return getY2ViewBox();
@@ -271,8 +269,8 @@ export class GrowthCharts {
     if (!r) return;
     const sex = this.sexLabel;
     const date = new Date().toLocaleDateString();
-    const chart = this.activeTab === 'headCircumference' ? 'HC'
-      : this.activeTab === 'bmi' ? 'BMI'
+    const chart = this.activeTab() === 'headCircumference' ? 'HC'
+      : this.activeTab() === 'bmi' ? 'BMI'
       : this.chartSet === 'y2' ? '2-20y' : 'CDC';
     const lines = [
       `// ${sex} ${chart} calibration — generated ${date}`,
@@ -287,7 +285,7 @@ export class GrowthCharts {
     const pts = this.calRecorded();
     const mode = this.calMode();
     if (!pts.length || !mode) return;
-    const cfg = this.CAL_CONFIG[mode];
+    const cfg = this.CAL_CONFIG()[mode];
     const sex = this.sexLabel;
     const isX = ['x', 'hcx', 'hclx', 'y2x', 'bmiX'].includes(mode);
     const lines = [
@@ -298,29 +296,29 @@ export class GrowthCharts {
     navigator.clipboard.writeText(lines.join('\n'));
   }
 
-  protected get currentRefLabel(): string {
+  protected readonly currentRefLabel = computed(() => {
     const mode = this.calMode();
     const step = this.calStep();
     if (!mode || step < 0) return '';
-    const cfg = this.CAL_CONFIG[mode];
+    const cfg = this.CAL_CONFIG()[mode];
     const ref = cfg.refs[step];
     return ref === 0 ? 'Birth' : `${ref} ${cfg.unit}`;
-  }
+  });
 
   protected get calProgress(): string {
     const mode = this.calMode();
     if (!mode) return '';
-    const total = this.CAL_CONFIG[mode].refs.length;
+    const total = this.CAL_CONFIG()[mode].refs.length;
     const done = this.calRecorded().length;
     return `${done} / ${total}`;
   }
 
-  protected get calPct(): number {
+  protected readonly calPct = computed(() => {
     const mode = this.calMode();
     if (!mode) return 0;
-    const total = this.CAL_CONFIG[mode].refs.length;
+    const total = this.CAL_CONFIG()[mode].refs.length;
     return (this.calRecorded().length / total) * 100;
-  }
+  });
 
   private linearRegression(pts: { ref: number; coord: number }[]): CalResult {
     const n = pts.length;
@@ -411,10 +409,10 @@ export class GrowthCharts {
   /* ── rendering ────────────────────────────────── */
 
   private renderActiveChart() {
-    if (this.activeTab === 'weightHeight') {
+    if (this.activeTab() === 'weightHeight') {
       if (this.chartSet === 'y2') this.renderY2();
       else this.renderCdc();
-    } else if (this.activeTab === 'headCircumference') {
+    } else if (this.activeTab() === 'headCircumference') {
       this.renderHc();
     } else {
       this.renderBmi();
@@ -425,7 +423,7 @@ export class GrowthCharts {
    *  CDC 0–36m — SVG background + single SVG overlay
    * ========================================================== */
   private renderCdc() {
-    this.imgSrc = getCdcImageSrc(this.sexKey);
+    this.imgSrc.set(getCdcImageSrc(this.sexKey));
 
     const filtered = this.getFilteredRecords();
     const lengthPts: { m: number; v: number }[] = [];
@@ -439,8 +437,8 @@ export class GrowthCharts {
       if (!isNaN(m) && !isNaN(wgt)) weightPts.push({ m, v: wgt });
     }
 
-    this.hasData = lengthPts.length > 0 || weightPts.length > 0;
-    this.overlaySvg = this.buildCdcSvg(lengthPts, weightPts);
+    this.hasData.set(lengthPts.length > 0 || weightPts.length > 0);
+    this.overlaySvg.set(this.buildCdcSvg(lengthPts, weightPts));
   }
 
   private buildCdcSvg(
@@ -471,7 +469,7 @@ export class GrowthCharts {
    *  HEAD CIRCUMFERENCE — SVG background + overlay
    * ========================================================== */
   private renderHc() {
-    this.imgSrc = getHcImageSrc(this.sexKey);
+    this.imgSrc.set(getHcImageSrc(this.sexKey));
 
     const filtered = this.getFilteredRecords();
     const hcPts: { m: number; v: number }[] = [];
@@ -487,8 +485,8 @@ export class GrowthCharts {
       if (!isNaN(h) && !isNaN(w)) wflPts.push({ cm: h, kg: w });
     }
 
-    this.hasData = hcPts.length > 0 || wflPts.length > 0;
-    this.overlaySvg = this.buildHcSvg(hcPts, wflPts);
+    this.hasData.set(hcPts.length > 0 || wflPts.length > 0);
+    this.overlaySvg.set(this.buildHcSvg(hcPts, wflPts));
   }
 
   private buildHcSvg(
@@ -519,7 +517,7 @@ export class GrowthCharts {
    *  2–20 AÑOS — Estatura y peso por edad
    * ========================================================== */
   private renderY2() {
-    this.imgSrc = getY2ImageSrc(this.sexKey);
+    this.imgSrc.set(getY2ImageSrc(this.sexKey));
 
     const filtered = this.anchorPreMin(this.getFilteredRecords(), 2);
     const heightPts: { y: number; v: number }[] = [];
@@ -533,8 +531,8 @@ export class GrowthCharts {
       if (!isNaN(y) && !isNaN(w)) weightPts.push({ y, v: w });
     }
 
-    this.hasData = heightPts.length > 0 || weightPts.length > 0;
-    this.overlaySvg = this.buildY2Svg(heightPts, weightPts);
+    this.hasData.set(heightPts.length > 0 || weightPts.length > 0);
+    this.overlaySvg.set(this.buildY2Svg(heightPts, weightPts));
   }
 
   private buildY2Svg(
@@ -565,7 +563,7 @@ export class GrowthCharts {
    *  BMI — SVG background + overlay
    * ========================================================== */
   private renderBmi() {
-    this.imgSrc = getBmiImageSrc(this.sexKey);
+    this.imgSrc.set(getBmiImageSrc(this.sexKey));
 
     const filtered = this.anchorPreMin(this.getFilteredRecords(), 2);
     const pts: { y: number; v: number }[] = [];
@@ -576,8 +574,8 @@ export class GrowthCharts {
       if (!isNaN(years) && !isNaN(val)) pts.push({ y: years, v: val });
     }
 
-    this.hasData = pts.length > 0;
-    this.overlaySvg = this.buildBmiSvg(pts);
+    this.hasData.set(pts.length > 0);
+    this.overlaySvg.set(this.buildBmiSvg(pts));
   }
 
   private buildBmiSvg(pts: { y: number; v: number }[]): SafeHtml {

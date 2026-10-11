@@ -1,10 +1,10 @@
 <div class="dialog-title-container">
-  @if (embedded) {
+  @if (embeddedMode()) {
     <button mat-icon-button type="button" class="btn-back-dialog" (click)="close()" aria-label="Regresar">
       <mat-icon>arrow_back</mat-icon>
     </button>
   }
-  <h2 class="dialog-title">{{ editingPatient ? 'Editar paciente' : 'Añadir nuevo paciente' }}</h2>
+  <h2 class="dialog-title">{{ title() }}</h2>
   <button mat-icon-button class="btn-close-dialog" (click)="closeDialog()" aria-label="Cerrar">
     <mat-icon>close</mat-icon>
   </button>
@@ -16,30 +16,41 @@
     los padres o tutores.</span
   >
 
-  @if (alertMsg) {
-    <div class="new-patient-alert">
-      {{ alertMsg }}
-      <button type="button" class="alert-continue-btn" (click)="continueWithExisting()">
+  @if (alertMsg()) {
+    <div class="new-patient-alert" role="alert">
+      {{ alertMsg() }}
+      <button type="button" class="alert-continue-btn" (click)="continueWithExisting()" [disabled]="continueDisabled()">
         Continuar
       </button>
     </div>
+  }
+
+  @if (saveError()) {
+    <mat-error role="alert">{{ saveError() }}</mat-error>
+  }
+
+  @if (deliveryMessage()) {
+    <p role="status">{{ deliveryMessage() }}</p>
   }
 
   <form class="patient-form" [formGroup]="form">
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Nombre completo</mat-label>
       <input matInput formControlName="fullName" />
-      @if (form.get('fullName')?.invalid && (form.get('fullName')?.touched || submitted)) {
+      @if (fieldErrors()['fullName']) {
         <mat-error>Ingresa el nombre completo del paciente</mat-error>
       }
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Fecha de nacimiento</mat-label>
-      <input matInput [matDatepicker]="dp" formControlName="birthDate" (click)="dp.open()" />
+      <input matInput [matDatepicker]="dp" formControlName="birthDate" [max]="maxBirthDate()" (click)="dp.open()" />
       <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
       <mat-datepicker #dp></mat-datepicker>
-      @if (form.get('birthDate')?.invalid && (form.get('birthDate')?.touched || submitted)) {
+      @if (birthDateMaxError()) {
+        <mat-error>La fecha de nacimiento no puede ser futura</mat-error>
+      }
+      @if (fieldErrors()['birthDate'] && !birthDateMaxError()) {
         <mat-error>Selecciona la fecha de nacimiento</mat-error>
       }
     </mat-form-field>
@@ -47,7 +58,7 @@
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Correo electrónico</mat-label>
       <input matInput type="email" formControlName="email" />
-      @if (form.get('email')?.invalid && (form.get('email')?.touched || submitted)) {
+      @if (fieldErrors()['email']) {
         <mat-error>Ingresa un correo electrónico válido</mat-error>
       }
     </mat-form-field>
@@ -61,11 +72,11 @@
       <mat-label>Nombre del padre</mat-label>
       <input matInput formControlName="fatherName" [matAutocomplete]="fatherAuto" (input)="filterFathers()" />
       <mat-autocomplete #fatherAuto="matAutocomplete" (optionSelected)="onFatherSelected($event.option.value)">
-        @for (name of filteredFatherNames; track name) {
+        @for (name of filteredFatherNames(); track name) {
           <mat-option [value]="name">{{ name }}</mat-option>
         }
       </mat-autocomplete>
-      @if (form.get('fatherName')?.invalid && (form.get('fatherName')?.touched || submitted)) {
+      @if (fieldErrors()['fatherName']) {
         <mat-error>Ingresa el nombre del padre</mat-error>
       }
     </mat-form-field>
@@ -74,11 +85,11 @@
       <mat-label>Nombre de la madre</mat-label>
       <input matInput formControlName="motherName" [matAutocomplete]="motherAuto" (input)="filterMothers()" />
       <mat-autocomplete #motherAuto="matAutocomplete" (optionSelected)="onMotherSelected($event.option.value)">
-        @for (name of filteredMotherNames; track name) {
+        @for (name of filteredMotherNames(); track name) {
           <mat-option [value]="name">{{ name }}</mat-option>
         }
       </mat-autocomplete>
-      @if (form.get('motherName')?.invalid && (form.get('motherName')?.touched || submitted)) {
+      @if (fieldErrors()['motherName']) {
         <mat-error>Ingresa el nombre de la madre</mat-error>
       }
     </mat-form-field>
@@ -86,7 +97,7 @@
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Teléfono</mat-label>
       <input matInput type="tel" formControlName="phone" />
-      @if (form.get('phone')?.invalid && (form.get('phone')?.touched || submitted)) {
+      @if (fieldErrors()['phone']) {
         <mat-error>Ingresa el teléfono del paciente</mat-error>
       }
     </mat-form-field>
@@ -94,19 +105,19 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-stroked-button class="btn-secondary dialog-btn desktop-dialog-action" (click)="close()">
-    Cancelar
-  </button>
-  <button
-    mat-unelevated-button
-    class="btn-primary dialog-btn"
-    (click)="save()"
-    [disabled]="saving"
-  >
-    @if (saving) {
-      <mat-spinner diameter="18" />
-    } @else {
-      {{ editingPatient ? 'Actualizar' : 'Añadir paciente' }}
-    }
-  </button>
+  @if (createdPatient()) {
+    <button mat-stroked-button class="btn-secondary dialog-btn" type="button" (click)="continueAfterCreation()" [disabled]="saving()">
+      Continuar con el paciente creado
+    </button>
+    <button mat-unelevated-button class="btn-primary dialog-btn" type="button" (click)="retryEmail()" [disabled]="saving()">
+      @if (saving()) { <mat-spinner diameter="18" /> } @else { Reintentar envío }
+    </button>
+  } @else {
+    <button mat-stroked-button class="btn-secondary dialog-btn desktop-dialog-action" type="button" (click)="close()" [disabled]="saving()">
+      Cancelar
+    </button>
+    <button mat-unelevated-button class="btn-primary dialog-btn" type="button" (click)="save()" [disabled]="saveDisabled()">
+      @if (saving()) { <mat-spinner diameter="18" /> } @else { {{ saveLabel() }} }
+    </button>
+  }
 </mat-dialog-actions>

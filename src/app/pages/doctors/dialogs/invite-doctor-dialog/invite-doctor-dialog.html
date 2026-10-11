@@ -1,58 +1,52 @@
 <div class="dialog-title-container">
-  <h2 class="dialog-title">{{ title }}</h2>
-  <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
+  <h2 class="dialog-title">{{ title() }}</h2>
+  <button mat-icon-button class="btn-close-dialog" (click)="close()" [disabled]="saving()" aria-label="Cerrar">
     <mat-icon>close</mat-icon>
   </button>
 </div>
 
 <mat-dialog-content>
-  <form [formGroup]="form">
+  <p>Reenviar una invitación pendiente invalida el enlace anterior y conserva la misma cuenta.</p>
+  <form [formGroup]="form()" (ngSubmit)="save()" id="invite-staff-form">
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Nombre completo</mat-label>
-      <input matInput formControlName="name" />
-      @if (form.get('name')?.invalid && (form.get('name')?.touched || submitted)) {
-        <mat-error>Ingresa el nombre completo</mat-error>
-      }
+      <input matInput formControlName="name" [readonly]="fieldsReadOnly()" />
+      @if (nameError()) { <mat-error>Ingresa un nombre completo de hasta 200 caracteres.</mat-error> }
     </mat-form-field>
-
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Correo electrónico</mat-label>
-      <input matInput type="email" formControlName="email" />
-      @if (form.get('email')?.invalid && (form.get('email')?.touched || submitted)) {
-        <mat-error>Ingresa un correo electrónico válido</mat-error>
-      }
+      <input matInput type="email" formControlName="email" [readonly]="fieldsReadOnly()" />
+      @if (emailError()) { <mat-error>Ingresa un correo electrónico válido de hasta 254 caracteres.</mat-error> }
     </mat-form-field>
-
-    @if (error) {
-      <mat-error class="dialog-error">{{ error }}</mat-error>
-    }
+    @if (error()) { <p class="dialog-error" role="alert">{{ error() }}</p> }
   </form>
 
-  @if (invitationLink) {
+  @if (invitationLink()) {
     <mat-divider />
     <div class="invitation-box">
-      <p class="invitation-label">Enlace de invitación (un solo uso):</p>
+      <p class="invitation-label">Enlace de invitación (un solo uso, válido durante 7 días):</p>
       <div class="invitation-row">
-        <code class="invitation-link">{{ invitationLink }}</code>
-        <button mat-icon-button (click)="copyLink()" matTooltip="Copiar">
+        <code class="invitation-link">{{ invitationLink() }}</code>
+        <button mat-icon-button (click)="copyLink()" matTooltip="Copiar" aria-label="Copiar enlace de invitación">
           <mat-icon>content_copy</mat-icon>
         </button>
       </div>
-      <p class="invitation-hint">Se envi&oacute; el enlace por correo a {{ form.value.name }}. Si no le lleg&oacute;, comp&aacute;rtelo desde aqu&iacute;.</p>
+      <p class="invitation-hint" role="status" aria-live="polite">{{ deliveryMessage() }}</p>
     </div>
   }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (!invitationLink) {
-    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="saving">
-      @if (saving) {
-        <mat-spinner diameter="18" />
-      } @else {
-        Crear invitación
-      }
+  @if (!invitationLink()) {
+    <button mat-unelevated-button class="btn-primary dialog-btn w-100-mobile" type="submit" form="invite-staff-form" [disabled]="saveDisabled()">
+      @if (saving()) { <mat-spinner diameter="18" /> } @else { Crear invitación }
     </button>
   } @else {
-    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="close()">Cerrar</button>
+    @if (showSendButton()) {
+      <button mat-stroked-button class="btn-secondary dialog-btn w-100-mobile" (click)="retryEmail()" [disabled]="saving()">
+        @if (saving()) { <mat-spinner diameter="18" /> Enviando… } @else { Reintentar envío }
+      </button>
+    }
+    <button mat-unelevated-button class="btn-primary dialog-btn w-100-mobile" (click)="close()" [disabled]="saving()">Cerrar</button>
   }
 </mat-dialog-actions>

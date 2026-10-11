@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -13,7 +13,7 @@ import { Patient } from '../../../../core/models/user';
   imports: [MatButtonModule, MatIconModule, MatMenuModule],
 })
 export class PatientHistoryCard {
-  @Input({ required: true }) patient!: Patient & { ageDisplay: string };
+  readonly patient = input.required<Patient & { ageDisplay: string }>();
 
   @Output() completeProfile = new EventEmitter<Patient>();
   @Output() viewProfile = new EventEmitter<Patient>();

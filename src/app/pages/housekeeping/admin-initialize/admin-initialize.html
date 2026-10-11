@@ -4,8 +4,8 @@
       <mat-spinner diameter="32"></mat-spinner>
       <h1>Inicializando</h1>
     } @else {
-      <mat-icon class="status-icon" [class.error]="result() === 'error'">{{ icon }}</mat-icon>
-      <h1>{{ message }}</h1>
+      <mat-icon class="status-icon" [class.error]="result() === 'error'">{{ icon() }}</mat-icon>
+      <h1>{{ message() }}</h1>
       <a mat-unelevated-button class="btn-primary" routerLink="/login">
         Ir al inicio
       </a>

@@ -1,19 +1,20 @@
 <h2 class="dialog-title">Contrase&ntilde;a de acceso</h2>
 
 <div class="dialog-content">
-  <div class="otp-patient-name">{{ patient?.name }} {{ patient?.lastName }}</div>
+  <div class="otp-patient-name">{{ patientFullName() }}</div>
 
-  @if (editing) {
-    <mat-form-field appearance="outline" class="otp-field">
-      <mat-label>Nueva contrase&ntilde;a de acceso</mat-label>
-      <input matInput [(ngModel)]="otpValue" minlength="4" />
-    </mat-form-field>
+  @if (loading()) {
+    <p role="status">Consultando el acceso del paciente…</p>
+  } @else if (loadFailed()) {
+    <p role="alert">No fue posible consultar el acceso del paciente.</p>
+    <button mat-button class="btn-tertiary" (click)="load()">Reintentar</button>
   } @else {
     <div class="otp-display">
       <span class="otp-label">Contrase&ntilde;a actual:</span>
       <div class="otp-value-row">
-        <span class="otp-value">{{ otpValue }}</span>
-        <button mat-icon-button class="otp-copy-btn" (click)="copyOtp()">
+        <span class="otp-value">{{ password() }}</span>
+        <button mat-icon-button class="otp-copy-btn" aria-label="Copiar contraseña de acceso"
+                [disabled]="!password() || copying()" (click)="copyOtp()">
           <mat-icon>content_copy</mat-icon>
         </button>
       </div>
@@ -23,11 +24,4 @@
 
 <div class="dialog-actions">
   <button mat-button class="btn-tertiary dialog-btn" (click)="close()">Cerrar</button>
-  <button mat-unelevated-button class="btn-primary dialog-btn" (click)="toggleEdit()">
-    @if (editing) {
-      Guardar cambios
-    } @else {
-      Editar
-    }
-  </button>
 </div>

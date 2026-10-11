@@ -6,8 +6,8 @@ import { AuthService } from '../services/auth.service';
 describe('authGuard', () => {
   let isAuthenticated = false;
 
-  function runGuard() {
-    return TestBed.runInInjectionContext(() => authGuard({} as any, {} as any));
+  function runGuard(url = '/app/calendar') {
+    return TestBed.runInInjectionContext(() => authGuard({} as any, { url } as any));
   }
 
   beforeEach(() => {
@@ -35,5 +35,15 @@ describe('authGuard', () => {
     const router = TestBed.inject(Router);
     expect(runGuard()).toBe(false);
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
+  });
+
+  it.each(['/paciente', '/paciente/perfil', '/paciente/pacientes/history/synthetic?test=true'])('requires patient login for %s without an active session', url => {
+    expect(runGuard(url)).toBe(false);
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/patient-login']);
+  });
+
+  it('does not treat another path with the same prefix as the patient portal', () => {
+    expect(runGuard('/pacientes-other')).toBe(false);
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/login']);
   });
 });

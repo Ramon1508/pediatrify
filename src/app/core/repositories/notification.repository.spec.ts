@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { NotificationRepository } from './notification.repository';
 import { FirebaseService } from '../firebase/firebase.service';
+import { ClinicGatewayService } from '../services/clinic-gateway.service';
 import { AppNotification } from '../models/notification';
 
 // ---- In-memory fake de firebase/firestore ----
@@ -121,6 +122,7 @@ function notif(id: string, overrides: Partial<AppNotification> = {}): AppNotific
     recipientId: 'doc1',
     recipientType: 'doctor',
     read: false,
+    doctorId: 'doc1',
     ...overrides,
   };
 }
@@ -141,28 +143,15 @@ describe('NotificationRepository', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [NotificationRepository, { provide: FirebaseService, useValue: { firestore: {} } }],
+      providers: [NotificationRepository, { provide: FirebaseService, useValue: { firestore: {} } },
+        { provide: ClinicGatewayService, useValue: { principal: () => ({ role: 'doctor', userId: 'doc1', doctorId: 'doc1' }) } }],
     });
     repo = TestBed.inject(NotificationRepository);
   });
 
   afterEach(() => store.clear());
 
-  it('createMany crea un doc por destinatario con read=false', async () => {
-    store.clear();
-    await repo.createMany(
-      { type: 'appointment-created', title: 'Consulta agendada', description: 'Nueva consulta.', appointmentId: 'apt1', originatorId: 'doc2', originatorName: 'Otro' },
-      [{ recipientId: 'doc1', recipientType: 'doctor' }, { recipientId: 'a1', recipientType: 'assistant' }]
-    );
 
-    expect(store.size).toBe(2);
-    const docs = [...store.values()];
-    for (const d of docs) {
-      expect(d.read).toBe(false);
-      expect(d.recipientType).toBeDefined();
-    }
-    expect(docs.map((d) => d.recipientId)).toEqual(expect.arrayContaining(['doc1', 'a1']));
-  });
 
   it('getPage("all") pagina por recipientId con orden createdAt desc', async () => {
     const n3 = notif('n3', { createdAt: new Date('2026-08-12T10:00:00') });

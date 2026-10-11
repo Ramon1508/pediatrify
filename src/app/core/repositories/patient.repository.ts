@@ -1,40 +1,26 @@
 import { Injectable, inject } from '@angular/core';
-import {
-  Firestore,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-  onSnapshot,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, onSnapshot } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
 import { Patient, VaccineDose } from '../models/user';
 import { normalizeEmail } from '../utils/normalize-email';
 import { dateToString } from '../utils/date-utils';
-import { Observable } from 'rxjs';
+import { Observable, of, switchMap } from 'rxjs';
+import { ClinicGatewayService, ClinicPatientCreation, clinicFields } from '../services/clinic-gateway.service';
 
-@Injectable({
-  providedIn: 'root',
-})
+const BASIC_FIELDS = ['name', 'lastName', 'birthDate', 'email', 'secondaryEmail', 'fatherName', 'motherName', 'phone', 'secondaryPhone', 'referredBy'];
+const PATIENT_FIELDS = [...BASIC_FIELDS, 'bloodType', 'birthWeight', 'birthHeight', 'headCircumference', 'sex', 'birthMethod', 'hasAllergies', 'allergies', 'hasBeenHospitalized', 'hospitalizationReason', 'hasDisease', 'diseaseDescription', 'takesMedication', 'medicationDescription', 'vaccinationRecord', 'profileComplete'];
+
+@Injectable({ providedIn: 'root' })
 export class PatientRepository {
   private firebase = inject(FirebaseService);
-
-  private get db(): Firestore {
-    return this.firebase.firestore;
-  }
-
-  private get patientRef() {
-    return collection(this.db, 'patients');
-  }
-
-  private docRef(id: string) {
-    return doc(this.db, 'patients', id);
+  private gateway = inject(ClinicGatewayService);
+  private get db() { return this.firebase.firestore; }
+  private get collectionName() {
+    const role = this.gateway.principal()?.role;
+    if (role === 'doctor') return 'patients';
+    if (role === 'assistant') return 'patientDirectory';
+    if (role === 'patient') return 'patientPortal';
+    throw new Error('Esta cuenta no puede consultar pacientes.');
   }
 
   private normalizeVaccinationRecord(record: Patient['vaccinationRecord']): Patient['vaccinationRecord'] {
@@ -44,9 +30,7 @@ export class PatientRepository {
       normalized[vaccine] = {};
       for (const [age, dose] of Object.entries(doses ?? {})) {
         const applicationDate = dose.applicationDate ? dateToString(dose.applicationDate) : '';
-        normalized[vaccine][age] = {
-          ...dose,
-        };
+        normalized[vaccine][age] = { ...dose };
         if (applicationDate) normalized[vaccine][age].applicationDate = applicationDate;
         else delete normalized[vaccine][age].applicationDate;
       }
@@ -54,124 +38,85 @@ export class PatientRepository {
     return normalized;
   }
 
-  private mapPatient(data: any): Patient {
-    return {
-      ...data,
-      birthDate: dateToString(data.birthDate),
-      vaccinationRecord: this.normalizeVaccinationRecord(data.vaccinationRecord),
-    } as Patient;
+  private mapPatient(snapshot: { id: string; data(): unknown }): Patient {
+    const data = snapshot.data() as Patient;
+    return { ...data, id: snapshot.id, birthDate: dateToString(data.birthDate),
+      vaccinationRecord: this.normalizeVaccinationRecord(data.vaccinationRecord) };
   }
 
-  private normalizePatientDates<T extends Partial<Patient>>(data: T): T {
-    const normalized: any = { ...data };
-    if ('birthDate' in normalized) normalized.birthDate = dateToString(normalized.birthDate);
-    if ('vaccinationRecord' in normalized) {
-      normalized.vaccinationRecord = this.normalizeVaccinationRecord(normalized.vaccinationRecord);
-    }
-    return normalized as T;
+  private normalizePatientDates(data: Partial<Patient>): Partial<Patient> {
+    const normalized = { ...data };
+    if ('birthDate' in data) normalized.birthDate = dateToString(data.birthDate);
+    if ('vaccinationRecord' in data) normalized.vaccinationRecord = this.normalizeVaccinationRecord(data.vaccinationRecord);
+    return normalized;
   }
 
   async getPatient(id: string): Promise<Patient | null> {
-    const snapshot = await getDoc(this.docRef(id));
-    return snapshot.exists() ? this.mapPatient(snapshot.data()) : null;
+    if (this.gateway.principal()?.role === 'patient') return this.gateway.patientRead('patient', { id });
+    const snapshot = await getDoc(doc(this.db, this.collectionName, id));
+    return snapshot.exists() ? this.mapPatient(snapshot) : null;
   }
 
   async getPatientByEmail(email: string): Promise<Patient | null> {
-    const all = await this.getAllPatients();
-    return all.find((p) => p.email === email) || null;
+    return (await this.getAllPatients()).find(patient => normalizeEmail(patient.email) === normalizeEmail(email)) ?? null;
   }
 
-  async createPatient(id: string, data: Patient): Promise<void> {
-    if (!data.doctorId) {
-      throw new Error('createPatient: doctorId es obligatorio para crear un paciente');
-    }
-    await setDoc(this.docRef(id), {
-      ...this.normalizePatientDates(data),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+  async createPatient(operationId: string, data: Partial<Patient>, confirmedDuplicates: ('email' | 'name')[] = []): Promise<ClinicPatientCreation> {
+    if ('otpPassword' in data) throw new Error('La contraseña se genera únicamente en el servidor.');
+    return this.gateway.call<ClinicPatientCreation>('createClinicPatient', {
+      operationId, patient: clinicFields(this.normalizePatientDates(data), BASIC_FIELDS), confirmedDuplicates,
     });
   }
 
   async updatePatient(id: string, data: Partial<Patient>): Promise<void> {
-    // Nunca permitir que un update sobrescriba/borre el doctorId del paciente.
-    const clean = { ...data };
-    if (clean.doctorId === undefined) {
-      delete clean.doctorId;
-    }
-    await updateDoc(this.docRef(id), {
-      ...this.normalizePatientDates(clean),
-      updatedAt: serverTimestamp(),
-    });
+    if ('otpPassword' in data) throw new Error('Usa la renovación autorizada de contraseña.');
+    await this.gateway.mutate('patient.update', id, clinicFields(this.normalizePatientDates(data), PATIENT_FIELDS));
   }
 
-  async deletePatient(id: string): Promise<void> {
-    await deleteDoc(this.docRef(id));
-  }
-
-  async deletePatients(ids: string[]): Promise<void> {
-    await Promise.all(ids.map((id) => deleteDoc(this.docRef(id))));
-  }
+  async deletePatient(id: string): Promise<void> { await this.gateway.mutate('patient.delete', id); }
+  async deletePatients(ids: string[]): Promise<void> { for (const id of ids) await this.deletePatient(id); }
 
   async getAllPatients(): Promise<Patient[]> {
-    const docsSnap = await getDocs(this.patientRef);
-    return docsSnap.docs.map((d) => this.mapPatient(d.data()));
+    const doctorId = this.gateway.principal()?.doctorId;
+    return doctorId ? this.getPatientsByDoctor(doctorId) : [];
   }
 
   async getPatientsByDoctor(doctorId: string): Promise<Patient[]> {
-    const q = query(this.patientRef, where('doctorId', '==', doctorId));
-    const docsSnap = await getDocs(q);
-    return docsSnap.docs.map((d) => this.mapPatient(d.data()));
+    const principal = this.gateway.principal();
+    if (!doctorId || principal?.doctorId !== doctorId) return [];
+    if (principal.role === 'patient') return this.gateway.getFamily();
+    const source = query(collection(this.db, this.collectionName), where('doctorId', '==', doctorId));
+    return (await getDocs(source)).docs.map(item => this.mapPatient(item));
   }
 
   async findPatientsByLoginEmail(email: string): Promise<Patient[]> {
-    const q1 = query(this.patientRef, where('email', '==', email));
-    const q2 = query(this.patientRef, where('secondaryEmail', '==', email));
-    const [s1, s2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-    const map = new Map<string, Patient>();
-    for (const snap of [s1, s2]) {
-      for (const d of snap.docs) {
-        map.set(d.id, this.mapPatient(d.data()));
-      }
-    }
-    return [...map.values()];
+    const normalized = normalizeEmail(email);
+    return (await this.getAllPatients()).filter(patient =>
+      normalizeEmail(patient.email ?? '') === normalized || normalizeEmail(patient.secondaryEmail ?? '') === normalized);
   }
 
-  /**
-   * Todos los hijos que un tutor (padre) puede ver tras iniciar sesión con su correo + el OTP
-   * de cualquiera de sus hijos: el correo del padre aparece como email PRIMARIO o SECUNDARIO
-   * del hijo Y el hijo está registrado por el MISMO doctor al que entró.
-   * La comparación se hace en cliente (normalizada) sobre los pacientes del doctor para ser
-   * robusta a emails con mayúsculas/espacios en la BD.
-   * El `otpPassword` es POR NIÑO y solo sirve para autenticar el login; NO filtra la familia
-   * (el padre puede entrar con el OTP de cualquiera de sus hijos y ver a todos).
-   */
-  async getChildrenGroup(email: string, doctorId: string): Promise<Patient[]> {
-    const normalizedEmail = normalizeEmail(email);
-    const byDoc = await this.getPatientsByDoctor(doctorId);
-    const group = byDoc.filter((p) => {
-      const primary = normalizeEmail(p.email || '');
-      const secondary = p.secondaryEmail ? normalizeEmail(p.secondaryEmail) : '';
-      return (primary && primary === normalizedEmail) || (secondary && secondary === normalizedEmail);
-    });
-    return group;
+  async getChildrenGroup(_email: string, doctorId: string): Promise<Patient[]> {
+    const principal = this.gateway.principal();
+    return principal?.role === 'patient' && principal.doctorId === doctorId ? this.gateway.getFamily() : [];
   }
 
   watchPatient(id: string): Observable<Patient | null> {
-    return new Observable((subscriber) => {
-      const unsubscribe = onSnapshot(this.docRef(id), (snapshot) => {
-        subscriber.next(snapshot.exists() ? this.mapPatient(snapshot.data()) : null);
-      });
-      return { unsubscribe };
-    });
+    return this.gateway.scope$.pipe(switchMap(principal => !principal ? of(null) : principal.role === 'patient' ? this.gateway.watchPatient<Patient | null>('patient', {id}) :
+      new Observable<Patient | null>(subscriber => onSnapshot(doc(this.db, this.collectionName, id),
+        snapshot => subscriber.next(snapshot.exists() ? this.mapPatient(snapshot) : null), error => subscriber.error(error)))));
+  }
+
+  watchPatientsByDoctor(doctorId: string): Observable<Patient[]> {
+    return this.gateway.scope$.pipe(switchMap(principal => {
+      if (!doctorId || principal?.doctorId !== doctorId || !['doctor', 'assistant'].includes(principal.role)) return of([]);
+      const source = query(collection(this.db, this.collectionName), where('doctorId', '==', doctorId));
+      return new Observable<Patient[]>(subscriber => onSnapshot(source,
+        snapshot => subscriber.next(snapshot.docs.map(item => this.mapPatient(item))), error => subscriber.error(error)));
+    }));
   }
 
   watchAllPatients(): Observable<Patient[]> {
-    return new Observable((subscriber) => {
-      const unsubscribe = onSnapshot(this.patientRef, (snapshot) => {
-        const patients = snapshot.docs.map((doc) => this.mapPatient(doc.data()));
-        subscriber.next(patients);
-      });
-      return { unsubscribe };
-    });
+    return this.gateway.scope$.pipe(switchMap(principal => principal?.doctorId ?
+      this.watchPatientsByDoctor(principal.doctorId) : of([])));
   }
 }

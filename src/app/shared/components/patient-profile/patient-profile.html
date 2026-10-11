@@ -1,0 +1,53 @@
+<section class="patient-profile" [class.page-mode]="asPage()" aria-labelledby="patient-profile-title">
+  <header class="profile-header">
+    <h1 id="patient-profile-title">Perfil</h1>
+    @if (!asPage()) {
+      <button mat-icon-button (click)="close()" [disabled]="loggingOut()" aria-label="Cerrar perfil">
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </header>
+
+  <div class="profile-body">
+    @if (patientSession()) {
+      <dl class="access-details">
+        <dt>Correo de acceso</dt>
+        <dd>{{ email() }}</dd>
+      </dl>
+      <h2>Pacientes asociados</h2>
+      @if (loading()) {
+        <div class="loading-state" role="status">
+          <mat-spinner diameter="24" aria-label="Cargando pacientes asociados" />
+          <span>Cargando pacientes asociados…</span>
+        </div>
+      } @else if (error()) {
+        <div role="alert" class="error-state">
+          <p>{{ error() }}</p>
+          <button mat-button class="btn-tertiary" (click)="retry()" [disabled]="loggingOut()">Reintentar</button>
+        </div>
+      } @else if (patients().length === 0) {
+        <p class="empty-state">No hay pacientes asociados a este acceso.</p>
+      } @else {
+        <ul class="patient-list">
+          @for (patient of patients(); track patient.id) {
+            <li>{{ patient.name }}</li>
+          }
+        </ul>
+      }
+      <p class="profile-note">Para actualizar tus datos o los de los pacientes, contacta al consultorio.</p>
+    } @else {
+      <p class="empty-state">No hay una sesión de Paciente activa.</p>
+    }
+  </div>
+
+  @if (patientSession() || loggingOut()) {
+    <footer class="profile-footer">
+      <button mat-stroked-button class="btn-secondary w-100-mobile" (click)="logout()" [disabled]="loggingOut()">
+        @if (loggingOut()) {
+          <mat-spinner diameter="20" aria-label="Cerrando sesión" />
+        }
+        Cerrar sesión
+      </button>
+    </footer>
+  }
+</section>

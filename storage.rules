@@ -1,0 +1,25 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function owner(doctorId) {
+      let principal = firestore.get(/databases/(default)/documents/securityPrincipals/$(request.auth.uid)).data;
+      let lease = firestore.get(/databases/(default)/documents/clinicSessions/$(request.auth.token.clinicSessionId)).data;
+      return principal.active == true && principal.authUid == request.auth.uid
+        && principal.role == 'doctor' && principal.userId == doctorId && principal.doctorId == doctorId
+        && lease.active == true && lease.authUid == request.auth.uid && lease.role == 'doctor'
+        && lease.expiresAt is timestamp && lease.expiresAt > request.time;
+    }
+    match /logos/{doctorId}/{fileName} {
+      // D06: logos are public by URL; listing objects remains restricted.
+      allow get: if true;
+      allow create, update: if request.auth != null && owner(doctorId)
+        && fileName.size() <= 512 && !fileName.matches('.*\\.\\..*')
+        && request.resource.size > 0 && request.resource.size <= 1048576
+        && request.resource.contentType.matches('image/(png|jpeg|svg\\+xml)');
+      allow delete: if request.auth != null && owner(doctorId);
+    }
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

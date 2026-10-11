@@ -6,7 +6,7 @@
     <div class="carousel-track-wrapper" #trackWrapper>
       <div class="carousel-track">
         @for (item of paginatedItems(); track $index) {
-          <ng-container [ngTemplateOutlet]="itemTemplate || null" [ngTemplateOutletContext]="{ $implicit: item }" />
+          <ng-container [ngTemplateOutlet]="itemTemplate() || null" [ngTemplateOutletContext]="{ $implicit: item }" />
         }
       </div>
     </div>
@@ -16,7 +16,7 @@
   </div>
   @if (totalPages() > 1) {
     <div class="carousel-dots">
-      @for (p of [].constructor(totalPages()); track $index) {
+      @for (p of pageIndices(); track $index) {
         <button type="button" class="carousel-dot" [class.dot-active]="$index === page()" [attr.aria-label]="'Ir a la página ' + ($index + 1)" [attr.aria-current]="$index === page() ? 'page' : null" (click)="goTo($index)"></button>
       }
     </div>

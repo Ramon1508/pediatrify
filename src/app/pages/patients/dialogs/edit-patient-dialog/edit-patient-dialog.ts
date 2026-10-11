@@ -1,4 +1,6 @@
 import { Component, inject, signal, computed, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { merge } from 'rxjs';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,8 +18,11 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Patient, VaccineDose } from '../../../../core/models/user';
 import { Sexo, SexoLabel } from '../../../../core/models/sexo';
 import { dateStringToLocalDate, dateToString, formatLocalDate } from '../../../../core/utils/date-utils';
+import { clinicTodayDate } from '../../../../core/utils/clinic-time';
+import { atLeastOneParent, greaterThanZero } from '../../../../core/utils/validators';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 const VACCINES = [
   'BCG',
@@ -103,13 +108,14 @@ function hasDoseAt(vaccine: string, age: string): boolean {
 export class EditPatientDialog {
   private fb = inject(FormBuilder);
   private patientRepo = inject(PatientRepository);
+  private authService = inject(AuthService);
   private alert = inject(AlertService);
   private cdr = inject(ChangeDetectorRef);
   private dialogRef = inject(MatDialogRef<EditPatientDialog>);
   private snackBar = inject(MatSnackBar);
 
   protected SexoLabel = SexoLabel;
-  protected bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  protected bloodTypes = signal(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']);
 
   private tabControls = [
     ['fullName', 'birthDate', 'bloodType', 'birthWeight', 'birthHeight', 'headCircumference', 'sex', 'birthMethod', 'hasAllergies', 'allergies', 'hasBeenHospitalized', 'hospitalizationReason', 'hasDisease', 'diseaseDescription', 'takesMedication', 'medicationDescription'],
@@ -128,7 +134,7 @@ export class EditPatientDialog {
   }
 
   protected onTabChange(index: number): void {
-    if (this.readOnly) {
+    if (this.readOnly()) {
       this.selectedTabIndex.set(index);
       return;
     }
@@ -151,13 +157,13 @@ export class EditPatientDialog {
   }
 
   protected vaccines = VACCINES;
-  protected ages = AGES;
-  protected submitting = false;
-  protected saveSuccess = '';
+  protected ages = signal(AGES);
+  protected submitting = signal(false);
+  protected saveSuccess = signal('');
   protected referredBySearchControl = new FormControl('');
-  protected filteredPatients: Patient[] = [];
+  protected filteredPatients = signal<Patient[]>([]);
   private allPatients: Patient[] = [];
-  protected patient: Patient | null = null;
+  protected patient = signal<Patient | null>(null);
   protected vaccinationMap = new Map<VaccineKey, VaccineDose>();
   protected vaccinationVersion = signal(0);
   protected vaccineRows = computed(() =>
@@ -179,29 +185,29 @@ export class EditPatientDialog {
     return { name: trimmed.substring(0, lastSpace), lastName: trimmed.substring(lastSpace + 1) };
   }
 
-  protected readOnly = true;
+  protected readOnly = signal(true);
   private initialReadOnly = true;
   private initialModeSet = false;
 
-  protected get sexoLabel(): string {
-    return this.patient?.sex ? SexoLabel[this.patient.sex] : '';
-  }
+  protected readonly sexoLabel = computed(() => {
+    const patient = this.patient();
+    return patient?.sex ? SexoLabel[patient.sex] : '';
+  });
 
-  protected formatCivilDate(value: unknown): string {
-    return formatLocalDate(value);
-  }
+  protected readonly birthDateLabel = computed(() => formatLocalDate(this.patient()?.birthDate));
 
   setMode(mode: 'view' | 'edit') {
     if (!this.initialModeSet) {
       this.initialModeSet = true;
       this.initialReadOnly = mode === 'view';
     }
-    this.readOnly = mode === 'view';
-    if (this.readOnly) {
+    this.readOnly.set(mode === 'view');
+    if (this.readOnly()) {
       this.form.disable();
     } else {
       this.form.enable();
-      if (this.patient) this.syncConditionalValidators(this.patient);
+      const patient = this.patient();
+      if (patient) this.syncConditionalValidators(patient);
     }
     this.cdr.markForCheck();
   }
@@ -210,13 +216,16 @@ export class EditPatientDialog {
     this.setMode('edit');
   }
 
+  /** Máximo del datepicker de nacimiento: el día de hoy del consultorio. */
+  protected maxBirthDate = signal(clinicTodayDate());
+
   protected form = this.fb.group({
     fullName: ['', Validators.required],
     birthDate: [null as unknown as string | Date, Validators.required],
     bloodType: ['', Validators.required],
-    birthWeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
-    birthHeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
-    headCircumference: [null as number | null, [Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
+    birthWeight: [null as number | null, [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
+    birthHeight: [null as number | null, [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
+    headCircumference: [null as number | null, [Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
     sex: [null as Sexo | null, Validators.required],
     birthMethod: ['', Validators.required],
     hasAllergies: [null as boolean | null, Validators.required],
@@ -227,17 +236,29 @@ export class EditPatientDialog {
     diseaseDescription: [''],
     takesMedication: [null as boolean | null, Validators.required],
     medicationDescription: [''],
-    email: ['', [Validators.email]],
+    email: ['', [Validators.required, Validators.email]],
     secondaryEmail: ['', [Validators.email]],
-    phone: [''],
+    phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
     secondaryPhone: [''],
     fatherName: [''],
     motherName: [''],
     referredBy: [''],
+  }, { validators: atLeastOneParent });
+
+  private readonly contactEvents = toSignal(merge(this.form.events, this.form.controls.email.events, this.form.controls.phone.events));
+  protected readonly contactErrors = computed(() => {
+    this.contactEvents();
+    const submitted = this.saved();
+    const email = this.form.controls.email;
+    const phone = this.form.controls.phone;
+    return {
+      email: email.invalid && (submitted || email.touched) ? 'Ingresa un correo electrónico válido para conservar el acceso del paciente.' : '',
+      phone: phone.invalid && (submitted || phone.touched) ? 'Ingresa un teléfono de 10 dígitos.' : '',
+    };
   });
 
   setPatient(patient: Patient): void {
-    this.patient = patient;
+    this.patient.set(patient);
     const p = patient;
     const dateStr = dateToString(p.birthDate);
     this.form.patchValue({
@@ -267,10 +288,21 @@ export class EditPatientDialog {
     });
 
     this.referredBySearchControl.setValue(p.referredBy ?? '');
-    this.patientRepo.getAllPatients().then((patients) => {
-      this.allPatients = patients;
-      this.filteredPatients = patients;
+    this.allPatients = [];
+    this.filteredPatients.set([]);
+    const doctor = this.authService.currentDoctor;
+    const patientsRequest = doctor?.role === 'doctor' && p.doctorId === doctor.uid
+      ? this.patientRepo.getPatientsByDoctor(doctor.uid)
+      : Promise.resolve([]);
+    patientsRequest.then((patients) => {
+      const current = this.authService.currentDoctor;
+      this.allPatients = current?.role === 'doctor' && current.uid === doctor?.uid && this.patient()?.doctorId === current.uid
+        ? patients.filter((patient) => patient.doctorId === current.uid)
+        : [];
+      this.filteredPatients.set(this.allPatients);
       this.cdr.markForCheck();
+    }).catch(() => {
+      this.alert.error({ message: 'No fue posible cargar los pacientes para seleccionar quién lo recomendó.', duration: 5000 });
     });
 
     this.syncConditionalValidators(p);
@@ -297,9 +329,9 @@ export class EditPatientDialog {
 
   protected filterReferredBy(search: string): void {
     const term = search.toLowerCase();
-    this.filteredPatients = this.allPatients.filter(
+    this.filteredPatients.set(this.allPatients.filter(
       (p) => (p.name + ' ' + p.lastName).toLowerCase().includes(term)
-    );
+    ));
   }
 
   protected onReferredBySelected(p: Patient): void {
@@ -308,9 +340,9 @@ export class EditPatientDialog {
     this.referredBySearchControl.setValue(name);
   }
 
-  protected displayReferredBy(p: Patient): string {
+  protected readonly displayReferredBy = signal((p: Patient): string => {
     return p ? p.name + ' ' + p.lastName : '';
-  }
+  });
 
   protected onReferredByBlur(): void {
     const control = this.referredBySearchControl;
@@ -344,7 +376,7 @@ export class EditPatientDialog {
   }
 
   protected toggleDose(vaccine: string, age: string): void {
-    if (this.readOnly) return;
+    if (this.readOnly()) return;
     if (!hasDoseAt(vaccine, age)) return;
     const key = makeKey(vaccine, age);
     const current = this.vaccinationMap.get(key) ?? { applied: false };
@@ -418,7 +450,7 @@ export class EditPatientDialog {
       this.warnPendingFields();
       return;
     }
-    const p = this.patient;
+    const p = this.patient();
     if (!p) return;
 
     const hasFormChanged = this.initialFormValue && JSON.stringify(this.form.value) !== JSON.stringify(this.initialFormValue);
@@ -431,7 +463,7 @@ export class EditPatientDialog {
       return;
     }
 
-    this.submitting = true;
+    this.submitting.set(true);
     const v = this.form.value;
     const { name, lastName } = this.splitFullName(v.fullName!);
 
@@ -445,7 +477,7 @@ export class EditPatientDialog {
         bloodType: v.bloodType ?? '',
         birthWeight: v.birthWeight ?? 0,
         birthHeight: v.birthHeight ?? 0,
-        headCircumference: v.headCircumference ?? 0,
+        headCircumference: v.headCircumference ?? null,
         sex: v.sex ?? undefined,
         birthMethod: (v.birthMethod ?? '') as 'vaginal' | 'cesarean',
         hasAllergies: v.hasAllergies ?? false,
@@ -466,12 +498,12 @@ export class EditPatientDialog {
         vaccinationRecord: this.buildVaccinationRecord(),
       });
       this.setMode('view');
-      this.saveSuccess = 'Cambios del perfil guardados.';
-      setTimeout(() => { this.saveSuccess = ''; this.cdr.markForCheck(); }, 3000);
+      this.saveSuccess.set('Cambios del perfil guardados.');
+      setTimeout(() => { this.saveSuccess.set(''); this.cdr.markForCheck(); }, 3000);
     } catch {
       this.alert.error({ message: 'Error al actualizar el paciente', duration: 5000 });
     } finally {
-      this.submitting = false;
+      this.submitting.set(false);
       this.cdr.markForCheck();
     }
   }
@@ -486,7 +518,8 @@ export class EditPatientDialog {
    */
   cancel(): void {
     if (this.initialReadOnly) {
-      if (this.patient) this.setPatient(this.patient);
+      const patient = this.patient();
+      if (patient) this.setPatient(patient);
       this.setMode('view');
     } else {
       this.close();

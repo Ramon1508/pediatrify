@@ -1,0 +1,18 @@
+{
+  "score": 2,
+  "summary": "Auditoría local del alcance P45 en el prototipo P01, no del entorno desplegado. La nueva lectura del directorio administrativo se limita a principales Admin activos; clientes no pueden crear/actualizar roles, autoridad o control de bajas. Las 46 pruebas de reglas/transacciones emuladas pasan. La integración funcional sigue incompleta: aplicar este prototipo directamente bloquearía el directorio actual basado en users. No habilitar servicios sobre reglas abiertas ni tratar esta puntuación como certificación de producción.",
+  "findings": [
+    {
+      "check": "Business Logic vs. Rules",
+      "severity": "major",
+      "issue": "La UI continúa consultando users globalmente mediante watchAllUsers, mientras el prototipo permite únicamente el perfil propio y proyecciones staffDirectory. Los escritores preparados todavía no implementan/sincronizan ese directorio mínimo. El prototipo no se puede desplegar como configuración funcional sin completar P01.",
+      "recommendation": "Integrar consultas y escritores de proyecciones mínimas con P01; probar directorios por rol y errores de permisos antes de desplegar/activar los servicios de personal."
+    },
+    {
+      "check": "Authority Source / Admin Bootstrapping",
+      "severity": "major",
+      "issue": "La autoridad del servidor depende de securityPrincipals y vínculos Auth/perfil protegidos; dar un rol manual al perfil no aprovisiona ese vínculo. La protección de producción y el aprovisionamiento inicial continúan pendientes de integración, independientes de la correcta restricción local del directorio.",
+      "recommendation": "Conservar deshabilitados los servicios hasta proteger autoridad y jobs y aprovisionar un primer Admin operativo coherente; mantener cualquier prueba manual de rol/propietario sincronizada con el principal de servidor."
+    }
+  ]
+}

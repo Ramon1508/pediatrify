@@ -1,5 +1,5 @@
 <div class="dialog-title-container">
-  <h2 class="dialog-title">{{ readOnly ? 'Perfil del paciente' : 'Editar perfil del paciente' }}</h2>
+  <h2 class="dialog-title">{{ readOnly() ? 'Perfil del paciente' : 'Editar perfil del paciente' }}</h2>
   <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
     <mat-icon>close</mat-icon>
   </button>
@@ -11,97 +11,97 @@
       <ng-template mat-tab-label>
         Datos generales
       </ng-template>
-      @if (readOnly) {
+      @if (readOnly()) {
         <div class="tab-content">
           <div class="form-row desktop-2col form-gap-40">
             <div class="view-field">
               <span class="view-label">Nombre del paciente</span>
-              <span class="view-value">{{ patient?.name }} {{ patient?.lastName }}</span>
+              <span class="view-value">{{ patient()?.name }} {{ patient()?.lastName }}</span>
             </div>
             <div class="view-field">
               <span class="view-label">Fecha de nacimiento</span>
-              <span class="view-value">{{ formatCivilDate(patient?.birthDate) }}</span>
+              <span class="view-value">{{ birthDateLabel() }}</span>
             </div>
           </div>
 
           <div class="form-row desktop-2col form-gap-40">
             <div class="view-field">
               <span class="view-label">Grupo sangu&iacute;neo</span>
-              <span class="view-value">{{ patient?.bloodType }}</span>
+              <span class="view-value">{{ patient()?.bloodType }}</span>
             </div>
             <div class="view-field">
               <span class="view-label">Peso al nacer</span>
-              <span class="view-value">{{ patient?.birthWeight }} kg</span>
+              <span class="view-value">{{ patient()?.birthWeight }} kg</span>
             </div>
           </div>
 
           <div class="form-row desktop-2col form-gap-40">
             <div class="view-field">
               <span class="view-label">Talla al nacer</span>
-              <span class="view-value">{{ patient?.birthHeight }} cm</span>
+              <span class="view-value">{{ patient()?.birthHeight }} cm</span>
             </div>
             <div class="view-field">
               <span class="view-label">Per&iacute;metro cef&aacute;lico al nacer</span>
-              <span class="view-value">{{ patient?.headCircumference }} cm</span>
+              <span class="view-value">{{ patient()?.headCircumference }} cm</span>
             </div>
           </div>
 
           <div class="form-row desktop-2col form-gap-40">
             <div class="view-field">
               <span class="view-label">Sexo</span>
-              <span class="view-value">{{ sexoLabel }}</span>
+              <span class="view-value">{{ sexoLabel() }}</span>
             </div>
             <div class="view-field">
               <span class="view-label">M&eacute;todo de nacimiento</span>
-              <span class="view-value">{{ patient?.birthMethod === 'vaginal' ? 'Parto' : patient?.birthMethod === 'cesarean' ? 'Ces&aacute;rea' : '' }}</span>
+              <span class="view-value">{{ patient()?.birthMethod === 'vaginal' ? 'Parto' : patient()?.birthMethod === 'cesarean' ? 'Ces&aacute;rea' : '' }}</span>
             </div>
           </div>
 
           <div class="view-field">
             <span class="view-label">¿El paciente tiene alguna alergia?</span>
-            <span class="view-value">{{ patient?.hasAllergies ? 'S&iacute;' : 'No' }}</span>
+            <span class="view-value">{{ patient()?.hasAllergies ? 'S&iacute;' : 'No' }}</span>
           </div>
 
-          @if (patient?.hasAllergies) {
+          @if (patient()?.hasAllergies) {
             <div class="view-field">
               <span class="view-label">Alergias del paciente</span>
-              <span class="view-value">{{ patient?.allergies }}</span>
+              <span class="view-value">{{ patient()?.allergies }}</span>
             </div>
           }
 
           <div class="view-field">
             <span class="view-label">¿El paciente ha sido hospitalizado?</span>
-            <span class="view-value">{{ patient?.hasBeenHospitalized ? 'S&iacute;' : 'No' }}</span>
+            <span class="view-value">{{ patient()?.hasBeenHospitalized ? 'S&iacute;' : 'No' }}</span>
           </div>
 
-          @if (patient?.hasBeenHospitalized) {
+          @if (patient()?.hasBeenHospitalized) {
             <div class="view-field">
               <span class="view-label">Motivo de hospitalizaci&oacute;n</span>
-              <span class="view-value">{{ patient?.hospitalizationReason }}</span>
+              <span class="view-value">{{ patient()?.hospitalizationReason }}</span>
             </div>
           }
 
           <div class="view-field">
             <span class="view-label">¿El paciente tiene alguna enfermedad?</span>
-            <span class="view-value">{{ patient?.hasDisease ? 'S&iacute;' : 'No' }}</span>
+            <span class="view-value">{{ patient()?.hasDisease ? 'S&iacute;' : 'No' }}</span>
           </div>
 
-          @if (patient?.hasDisease) {
+          @if (patient()?.hasDisease) {
             <div class="view-field">
               <span class="view-label">Enfermedad que padece el paciente</span>
-              <span class="view-value">{{ patient?.diseaseDescription }}</span>
+              <span class="view-value">{{ patient()?.diseaseDescription }}</span>
             </div>
           }
 
           <div class="view-field">
             <span class="view-label">¿El paciente toma alg&uacute;n medicamento?</span>
-            <span class="view-value">{{ patient?.takesMedication ? 'S&iacute;' : 'No' }}</span>
+            <span class="view-value">{{ patient()?.takesMedication ? 'S&iacute;' : 'No' }}</span>
           </div>
 
-          @if (patient?.takesMedication) {
+          @if (patient()?.takesMedication) {
             <div class="view-field">
               <span class="view-label">Medicamentos que toma el paciente</span>
-              <span class="view-value">{{ patient?.medicationDescription }}</span>
+              <span class="view-value">{{ patient()?.medicationDescription }}</span>
             </div>
           }
         </div>
@@ -111,17 +111,20 @@
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Nombre completo</mat-label>
               <input matInput formControlName="fullName" />
-              @if (form.get('fullName')?.invalid && saved()) {
+              @if (form.controls['fullName']?.invalid && saved()) {
                 <mat-error>Ingresa el nombre completo del paciente</mat-error>
               }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Fecha de nacimiento</mat-label>
-              <input matInput [matDatepicker]="dp" formControlName="birthDate" (click)="dp.open()" />
+              <input matInput [matDatepicker]="dp" formControlName="birthDate" [max]="maxBirthDate()" (click)="dp.open()" />
               <mat-datepicker #dp></mat-datepicker>
               <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
-              @if (form.get('birthDate')?.invalid && saved()) {
+              @if (form.controls['birthDate']?.errors?.['matDatepickerMax'] && saved()) {
+                <mat-error>La fecha de nacimiento no puede ser futura</mat-error>
+              }
+              @if (form.controls['birthDate']?.invalid && !form.controls['birthDate']?.errors?.['matDatepickerMax'] && saved()) {
                 <mat-error>Selecciona la fecha de nacimiento</mat-error>
               }
             </mat-form-field>
@@ -131,11 +134,11 @@
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Grupo sangu&iacute;neo</mat-label>
               <mat-select formControlName="bloodType">
-                @for (bt of bloodTypes; track bt) {
+                @for (bt of bloodTypes(); track bt) {
                   <mat-option [value]="bt">{{ bt }}</mat-option>
                 }
               </mat-select>
-              @if (form.get('bloodType')?.invalid && saved()) {
+              @if (form.controls['bloodType']?.invalid && saved()) {
                 <mat-error>Selecciona el grupo sangu&iacute;neo</mat-error>
               }
             </mat-form-field>
@@ -144,7 +147,7 @@
               <mat-label>Peso al nacer</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="birthWeight" />
               <mat-hint>En kilogramos</mat-hint>
-              @if (form.get('birthWeight')?.invalid && saved()) {
+              @if (form.controls['birthWeight']?.invalid && saved()) {
                 <mat-error>Ingresa un peso v&aacute;lido (n&uacute;mero positivo)</mat-error>
               }
             </mat-form-field>
@@ -155,7 +158,7 @@
               <mat-label>Talla al nacer</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="birthHeight" />
               <mat-hint>En cent&iacute;metros</mat-hint>
-              @if (form.get('birthHeight')?.invalid && saved()) {
+              @if (form.controls['birthHeight']?.invalid && saved()) {
                 <mat-error>Ingresa una talla v&aacute;lida (n&uacute;mero positivo)</mat-error>
               }
             </mat-form-field>
@@ -164,6 +167,9 @@
               <mat-label>Per&iacute;metro cef&aacute;lico al nacer</mat-label>
               <input matInput type="text" inputmode="decimal" formControlName="headCircumference" />
               <mat-hint>En cent&iacute;metros</mat-hint>
+              @if (form.controls['headCircumference']?.invalid && saved()) {
+                <mat-error>Ingresa un per&iacute;metro cef&aacute;lico v&aacute;lido (n&uacute;mero positivo)</mat-error>
+              }
             </mat-form-field>
           </div>
 
@@ -174,7 +180,7 @@
                 <mat-radio-button [value]="1">Masculino</mat-radio-button>
                 <mat-radio-button [value]="2">Femenino</mat-radio-button>
               </mat-radio-group>
-              @if (form.get('sex')?.invalid && saved()) {
+              @if (form.controls['sex']?.invalid && saved()) {
                 <span class="radio-error">Selecciona el sexo del paciente</span>
               }
             </div>
@@ -185,7 +191,7 @@
                 <mat-radio-button value="vaginal">Parto</mat-radio-button>
                 <mat-radio-button value="cesarean">Ces&aacute;rea</mat-radio-button>
               </mat-radio-group>
-              @if (form.get('birthMethod')?.invalid && saved()) {
+              @if (form.controls['birthMethod']?.invalid && saved()) {
                 <span class="radio-error">Selecciona el m&eacute;todo de nacimiento</span>
               }
             </div>
@@ -197,17 +203,17 @@
               <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
               <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
-            @if (form.get('hasAllergies')?.invalid && saved()) {
+            @if (form.controls['hasAllergies']?.invalid && saved()) {
               <span class="radio-error">Selecciona si el paciente tiene alergias</span>
             }
           </div>
 
-          @if (form.get('hasAllergies')?.value) {
+          @if (form.controls['hasAllergies']?.value) {
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Alergias del paciente</mat-label>
               <textarea matInput formControlName="allergies" rows="3"></textarea>
               <mat-hint>Ej. Penicilina, Polen, Lactosa</mat-hint>
-              @if (form.get('allergies')?.invalid && saved()) {
+              @if (form.controls['allergies']?.invalid && saved()) {
                 <mat-error>Describe las alergias del paciente</mat-error>
               }
             </mat-form-field>
@@ -219,16 +225,16 @@
               <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
               <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
-            @if (form.get('hasBeenHospitalized')?.invalid && saved()) {
+            @if (form.controls['hasBeenHospitalized']?.invalid && saved()) {
               <span class="radio-error">Selecciona si el paciente ha sido hospitalizado</span>
             }
           </div>
 
-          @if (form.get('hasBeenHospitalized')?.value) {
+          @if (form.controls['hasBeenHospitalized']?.value) {
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Motivo de hospitalizaci&oacute;n</mat-label>
               <textarea matInput formControlName="hospitalizationReason" rows="3"></textarea>
-              @if (form.get('hospitalizationReason')?.invalid && saved()) {
+              @if (form.controls['hospitalizationReason']?.invalid && saved()) {
                 <mat-error>Describe el motivo de hospitalizaci&oacute;n</mat-error>
               }
             </mat-form-field>
@@ -240,16 +246,16 @@
               <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
               <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
-            @if (form.get('hasDisease')?.invalid && saved()) {
+            @if (form.controls['hasDisease']?.invalid && saved()) {
               <span class="radio-error">Selecciona si el paciente tiene alguna enfermedad</span>
             }
           </div>
 
-          @if (form.get('hasDisease')?.value) {
+          @if (form.controls['hasDisease']?.value) {
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Enfermedad que padece el paciente</mat-label>
               <textarea matInput formControlName="diseaseDescription" rows="3"></textarea>
-              @if (form.get('diseaseDescription')?.invalid && saved()) {
+              @if (form.controls['diseaseDescription']?.invalid && saved()) {
                 <mat-error>Describe la enfermedad del paciente</mat-error>
               }
             </mat-form-field>
@@ -261,16 +267,16 @@
               <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
               <mat-radio-button [value]="false">No</mat-radio-button>
             </mat-radio-group>
-            @if (form.get('takesMedication')?.invalid && saved()) {
+            @if (form.controls['takesMedication']?.invalid && saved()) {
               <span class="radio-error">Selecciona si el paciente toma medicamentos</span>
             }
           </div>
 
-          @if (form.get('takesMedication')?.value) {
+          @if (form.controls['takesMedication']?.value) {
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Medicamentos que toma el paciente</mat-label>
               <textarea matInput formControlName="medicationDescription" rows="3"></textarea>
-              @if (form.get('medicationDescription')?.invalid && saved()) {
+              @if (form.controls['medicationDescription']?.invalid && saved()) {
                 <mat-error>Describe los medicamentos del paciente</mat-error>
               }
             </mat-form-field>
@@ -283,45 +289,45 @@
       <ng-template mat-tab-label>
         Datos de contacto
       </ng-template>
-      @if (readOnly) {
+      @if (readOnly()) {
         <div class="tab-content">
           <div class="form-row desktop-2col form-gap-40">
             <div class="view-field">
               <span class="view-label">Correo electr&oacute;nico</span>
-              <span class="view-value">{{ patient?.email }}</span>
+              <span class="view-value">{{ patient()?.email }}</span>
             </div>
             <div class="view-field">
               <span class="view-label">Correo secundario</span>
-              <span class="view-value">{{ patient?.secondaryEmail || '—' }}</span>
+              <span class="view-value">{{ patient()?.secondaryEmail || '—' }}</span>
             </div>
           </div>
 
           <div class="form-row desktop-2col form-gap-40">
             <div class="view-field">
               <span class="view-label">Tel&eacute;fono</span>
-              <span class="view-value">{{ patient?.phone || '—' }}</span>
+              <span class="view-value">{{ patient()?.phone || '—' }}</span>
             </div>
             <div class="view-field">
               <span class="view-label">Tel&eacute;fono secundario</span>
-              <span class="view-value">{{ patient?.secondaryPhone || '—' }}</span>
+              <span class="view-value">{{ patient()?.secondaryPhone || '—' }}</span>
             </div>
           </div>
 
           <div class="form-row desktop-2col form-gap-40">
             <div class="view-field">
               <span class="view-label">Nombre del padre</span>
-              <span class="view-value">{{ patient?.fatherName || '—' }}</span>
+              <span class="view-value">{{ patient()?.fatherName || '—' }}</span>
             </div>
             <div class="view-field">
               <span class="view-label">Nombre de la madre</span>
-              <span class="view-value">{{ patient?.motherName || '—' }}</span>
+              <span class="view-value">{{ patient()?.motherName || '—' }}</span>
             </div>
           </div>
 
           <div class="form-row desktop-2col form-gap-40">
             <div class="view-field">
               <span class="view-label">Recomendado por</span>
-              <span class="view-value">{{ patient?.referredBy || '—' }}</span>
+              <span class="view-value">{{ patient()?.referredBy || '—' }}</span>
             </div>
           </div>
         </div>
@@ -331,15 +337,15 @@
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Correo electr&oacute;nico</mat-label>
               <input matInput type="email" formControlName="email" />
-              @if (form.get('email')?.invalid && saved()) {
-                <mat-error>Ingresa un correo electr&oacute;nico v&aacute;lido</mat-error>
+              @if (contactErrors().email) {
+                <mat-error>{{ contactErrors().email }}</mat-error>
               }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Correo secundario (opcional)</mat-label>
               <input matInput type="email" formControlName="secondaryEmail" />
-              @if (form.get('secondaryEmail')?.invalid && saved()) {
+              @if (form.controls['secondaryEmail']?.invalid && saved()) {
                 <mat-error>Ingresa un correo electr&oacute;nico v&aacute;lido</mat-error>
               }
             </mat-form-field>
@@ -349,6 +355,9 @@
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Tel&eacute;fono</mat-label>
               <input matInput type="tel" formControlName="phone" />
+              @if (contactErrors().phone) {
+                <mat-error>{{ contactErrors().phone }}</mat-error>
+              }
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="flex-field">
@@ -368,13 +377,16 @@
               <input matInput formControlName="motherName" />
             </mat-form-field>
           </div>
+          @if (form.errors?.['atLeastOneParent'] && saved()) {
+            <span class="parent-error">Ingresa el nombre del padre o de la madre</span>
+          }
 
           <div class="form-row desktop-2col form-gap-40">
             <mat-form-field appearance="outline" class="flex-field">
               <mat-label>Recomendado por (opcional)</mat-label>
               <input matInput [matAutocomplete]="referredByAuto" [formControl]="referredBySearchControl" (input)="filterReferredBy($any($event.target).value)" (blur)="onReferredByBlur()" />
-              <mat-autocomplete #referredByAuto="matAutocomplete" [displayWith]="displayReferredBy" (optionSelected)="onReferredBySelected($event.option.value)">
-                @for (p of filteredPatients; track p.id) {
+              <mat-autocomplete #referredByAuto="matAutocomplete" [displayWith]="displayReferredBy()" (optionSelected)="onReferredBySelected($event.option.value)">
+                @for (p of filteredPatients(); track p.id) {
                   <mat-option [value]="p">{{ p.name }} {{ p.lastName }}</mat-option>
                 }
               </mat-autocomplete>
@@ -403,7 +415,7 @@
                       <mat-checkbox
                         [checked]="dose.applied"
                         (change)="toggleDose(row.vaccine, dose.age)"
-                        [disabled]="readOnly"
+                        [disabled]="readOnly()"
                       />
                       <span class="vac-mobile-age">{{ dose.age }}</span>
                     </div>
@@ -423,7 +435,7 @@
             <thead>
               <tr>
                 <th class="vac-th vac-th-name">Vacuna</th>
-                @for (age of ages; track age) {
+                @for (age of ages(); track age) {
                   <th class="vac-th">{{ age }}</th>
                 }
               </tr>
@@ -438,7 +450,7 @@
                         <mat-checkbox
                           [checked]="dose.applied"
                           (change)="toggleDose(row.vaccine, dose.age)"
-                          [disabled]="readOnly"
+                          [disabled]="readOnly()"
                         />
                       </td>
                     } @else {
@@ -447,7 +459,7 @@
                   }
                 </tr>
                 @if (!last) {
-                  <tr class="vac-sep-row"><td [attr.colspan]="ages.length + 1" class="vac-sep-td"><div class="vac-sep"></div></td></tr>
+                  <tr class="vac-sep-row"><td [attr.colspan]="ages().length + 1" class="vac-sep-td"><div class="vac-sep"></div></td></tr>
                 }
               }
             </tbody>
@@ -457,20 +469,20 @@
     </mat-tab>
   </mat-tab-group>
 
-  @if (saveSuccess) {
-    <div class="save-success">{{ saveSuccess }}</div>
+  @if (saveSuccess()) {
+    <div class="save-success">{{ saveSuccess() }}</div>
   }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (readOnly) {
+  @if (readOnly()) {
     <button mat-unelevated-button class="btn-primary dialog-btn" (click)="switchToEdit()">
       Editar perfil
     </button>
   } @else {
     <button mat-stroked-button class="btn-tertiary dialog-btn desktop-dialog-action" (click)="cancel()">Cancelar</button>
-    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="submitting">
-      @if (submitting) {
+    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="submitting()">
+      @if (submitting()) {
         <mat-spinner diameter="18" />
       } @else {
         Guardar cambios

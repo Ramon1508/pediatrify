@@ -1,11 +1,11 @@
 <mat-toolbar class="app-navbar">
   <a class="nav-center" [routerLink]="homeRoute()" aria-label="Ir al inicio">
-    <img [src]="logoUrl()" [alt]="'Logo de ' + brandName" class="nav-logo" width="40" height="40" />
-    <span class="nav-brand">{{ brandName }}</span>
+    <img [src]="logoUrl()" [alt]="logoAlt()" class="nav-logo" width="40" height="40" />
+    <span class="nav-brand">{{ brandName() }}</span>
   </a>
 
   <div class="nav-right">
-    @if (authService.isAuthenticated) {
+    @if (isAuthenticated()) {
       <div class="notification-actions">
         <app-notification-bell />
         <button mat-icon-button [class.active]="profileActive()" (click)="openProfileDialog()" aria-label="Perfil">

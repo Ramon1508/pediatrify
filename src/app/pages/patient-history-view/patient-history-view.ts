@@ -1,17 +1,22 @@
 import { Component, inject, signal, computed, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer } from '@angular/platform-browser';
+import { SecurityContext } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatButtonModule } from '@angular/material/button';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
 import { PatientRepository } from '../../core/repositories/patient.repository';
 import { ClinicalRecordRepository } from '../../core/repositories/clinical-record.repository';
 import { AuthService } from '../../core/services/auth.service';
+import { AlertService } from '../../core/services/alert.service';
 import { Patient } from '../../core/models/user';
 import { ClinicalRecord } from '../../core/models/clinical-record';
 import { calcAge } from '../../core/utils/calc-age';
-import { formatLocalDate, todayLocalDateString } from '../../core/utils/date-utils';
+import { formatLocalDate } from '../../core/utils/date-utils';
+import { ClinicClockService } from '../../core/services/clinic-clock.service';
+import { compareClinicalRecordsNewestFirst } from '../../core/utils/clinical-record-order';
 
 @Component({
   selector: 'app-patient-history-view',
@@ -19,7 +24,7 @@ import { formatLocalDate, todayLocalDateString } from '../../core/utils/date-uti
   styleUrl: './patient-history-view.scss',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterLink, MatProgressBarModule, MatTabsModule, MatIconModule],
+  imports: [CommonModule, RouterLink, MatProgressBarModule, MatButtonModule, MatTabsModule, MatIconModule],
 })
 export class PatientHistoryView implements OnInit {
   private route = inject(ActivatedRoute);
@@ -27,105 +32,114 @@ export class PatientHistoryView implements OnInit {
   private patientRepo = inject(PatientRepository);
   private clinicalRepo = inject(ClinicalRecordRepository);
   private auth = inject(AuthService);
+  private alert = inject(AlertService);
   private sanitizer = inject(DomSanitizer);
+  private readonly clock = inject(ClinicClockService);
 
   protected patient = signal<Patient | null>(null);
   protected loading = signal(true);
-  protected record = signal<ClinicalRecord | null>(null);
-
-  private today(): string {
-    return todayLocalDateString();
-  }
+  protected error = signal(false);
+  private readonly sortedRecords = signal<ClinicalRecord[]>([]);
 
   private isVisible(value?: string): boolean {
     if (!value) return true;
-    return value >= this.today();
+    return value >= this.clock.now().date;
   }
 
-  protected get hasConsultable(): boolean {
-    const r = this.record();
-    if (!r) return false;
-    return (!!r.recommendations && this.isVisible(r.visibleUntil)) ||
-      (!!r.prescription && this.isVisible(r.visibleUntilRx));
-  }
+  /** P48: todos los documentos vigentes; editar no altera el orden de creación. */
+  protected readonly recommendationRecords = computed(() =>
+    this.sortedRecords().filter((r) => !!r.recommendations && this.isVisible(r.visibleUntil))
+  );
+  protected readonly prescriptionRecords = computed(() =>
+    this.sortedRecords().filter((r) => !!r.prescription && this.isVisible(r.visibleUntilRx))
+  );
+  protected readonly recommendationRecord = computed<ClinicalRecord | null>(() =>
+    this.recommendationRecords()[0] ?? null
+  );
 
-  protected get hasRecommendations(): boolean {
-    const r = this.record();
-    return !!r?.recommendations && this.isVisible(r.visibleUntil);
-  }
+  protected readonly prescriptionRecord = computed<ClinicalRecord | null>(() =>
+    this.prescriptionRecords()[0] ?? null
+  );
 
-  protected get hasPrescription(): boolean {
-    const r = this.record();
-    return !!r?.prescription && this.isVisible(r.visibleUntilRx);
-  }
+  protected readonly hasRecommendations = computed(() => this.recommendationRecord() !== null);
+  protected readonly hasPrescription = computed(() => this.prescriptionRecord() !== null);
+  protected readonly hasConsultable = computed(() => this.hasRecommendations() || this.hasPrescription());
 
-  protected recommendationsHtml = computed<SafeHtml | ''>(() => {
-    const r = this.record();
-    return r?.recommendations ? this.sanitizer.bypassSecurityTrustHtml(r.recommendations) : '';
-  });
+  protected readonly recommendationEntries = computed(() => this.recommendationRecords().map((record) => ({
+    id: record.id, dateLabel: formatLocalDate(record.date),
+    expiryLabel: record.visibleUntil ? formatLocalDate(record.visibleUntil) : '',
+    content: record.recommendations ?? '',
+  })));
+  protected readonly prescriptionEntries = computed(() => this.prescriptionRecords().map((record) => ({
+    id: record.id, dateLabel: formatLocalDate(record.date),
+    expiryLabel: record.visibleUntilRx ? formatLocalDate(record.visibleUntilRx) : '',
+    content: record.prescription ?? '',
+  })));
+  protected readonly patientAge = computed(() => calcAge(this.patient()?.birthDate));
+  protected readonly patientParents = computed(() =>
+    [this.patient()?.fatherName ?? '', this.patient()?.motherName ?? '']
+      .filter((name) => name.trim()).join(' · ')
+  );
 
-  protected prescriptionHtml = computed<SafeHtml | ''>(() => {
-    const r = this.record();
-    return r?.prescription ? this.sanitizer.bypassSecurityTrustHtml(r.prescription) : '';
-  });
-
-  protected age(p: Patient | null): string {
-    return calcAge(p?.birthDate);
-  }
-
-  protected parentsDisplay(p: Patient | null): string {
-    const father = p?.fatherName || '';
-    const mother = p?.motherName || '';
-    return [father, mother].filter((n) => n.trim()).join(' · ');
-  }
-
-  protected formatCivilDate(value: unknown): string {
-    return formatLocalDate(value);
-  }
+  private initialized = false;
 
   async ngOnInit() {
+    if (this.initialized) return;
+    this.initialized = true;
+    await this.load();
+  }
+
+  async load() {
     const patientId = this.route.snapshot.paramMap.get('patientId');
-    if (!patientId) return;
+    this.loading.set(true);
+    this.error.set(false);
+    try {
+      if (!patientId) {
+        this.error.set(true);
+        return;
+      }
 
-    const me = this.auth.currentPatient;
-    if (!me) {
-      this.router.navigate(['/paciente/pacientes']);
+      const me = this.auth.currentPatient;
+      if (!me) {
+        this.router.navigate(['/paciente/pacientes']);
+        return;
+      }
+
+      const loginEmail = this.auth.currentPatientLoginEmail ?? me.email;
+      const children = await this.patientRepo.getChildrenGroup(loginEmail, me.doctorId ?? '');
+      const belongs = children.some((c) => c.id === patientId);
+      if (!belongs) {
+        this.router.navigate(['/paciente/pacientes']);
+        return;
+      }
+
+      const p = await this.patientRepo.getPatient(patientId);
+      this.patient.set(p);
+
+      const records = await this.clinicalRepo.getByPatient(patientId);
+      this.sortedRecords.set([...records].sort(compareClinicalRecordsNewestFirst));
+    } catch {
+      this.error.set(true);
+    } finally {
       this.loading.set(false);
-      return;
     }
-
-    const loginEmail = this.auth.currentPatientLoginEmail ?? me.email;
-    const children = await this.patientRepo.getChildrenGroup(loginEmail, me.doctorId ?? '');
-    const belongs = children.some((c) => c.id === patientId);
-    if (!belongs) {
-      this.router.navigate(['/paciente/pacientes']);
-      return;
-    }
-
-    const p = await this.patientRepo.getPatient(patientId);
-    this.patient.set(p);
-
-    const records = await this.clinicalRepo.getByPatient(patientId);
-    const sorted = [...records].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    const consultable = sorted.find(
-      (r) =>
-        (r.recommendations && this.isVisible(r.visibleUntil)) ||
-        (r.prescription && this.isVisible(r.visibleUntilRx))
-    );
-    this.record.set(consultable ?? null);
-    this.loading.set(false);
   }
 
   /** Imprime Recomendaciones o Receta (si existen) en carta vertical, márgenes 2.5cm, sin logos. */
-  protected print(type: 'recommendations' | 'prescription') {
-    const r = this.record();
+  protected print(type: 'recommendations' | 'prescription', recordId?: string) {
+    const records = type === 'recommendations' ? this.recommendationRecords() : this.prescriptionRecords();
+    const r = recordId ? records.find((record) => record.id === recordId) : records[0];
     if (!r) return;
-    const content = type === 'recommendations' ? r.recommendations : r.prescription;
+    const content = this.sanitizer.sanitize(SecurityContext.HTML,
+      (type === 'recommendations' ? r.recommendations : r.prescription) ?? '');
     if (!content) return;
     const title = type === 'recommendations' ? 'Recomendaciones' : 'Receta';
 
     const w = window.open('', '_blank');
-    if (!w) return;
+    if (!w) {
+      this.alert.error({ message: 'Permite ventanas emergentes para imprimir', duration: 5000 });
+      return;
+    }
     w.document.write(`<!DOCTYPE html>
 <html>
 <head>

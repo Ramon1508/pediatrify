@@ -14,8 +14,11 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { Patient, VaccineDose } from '../../../../core/models/user';
 import { Sexo } from '../../../../core/models/sexo';
 import { dateStringToLocalDate, dateToString } from '../../../../core/utils/date-utils';
+import { clinicTodayDate } from '../../../../core/utils/clinic-time';
+import { greaterThanZero } from '../../../../core/utils/validators';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 const VACCINES = [
   'BCG',
@@ -93,14 +96,15 @@ function hasDoseAt(vaccine: string, age: string): boolean {
 export class CompleteProfileDialog {
   private fb = inject(FormBuilder);
   private patientRepo = inject(PatientRepository);
+  private authService = inject(AuthService);
   private alert = inject(AlertService);
   private cdr = inject(ChangeDetectorRef);
   private dialogRef = inject(MatDialogRef<CompleteProfileDialog>);
 
-  protected bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  protected bloodTypes = signal(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']);
   protected vaccines = VACCINES;
-  protected ages = AGES;
-  protected submitting = false;
+  protected ages = signal(AGES);
+  protected submitting = signal(false);
   protected patient: Patient | null = null;
   protected vaccinationMap = new Map<string, VaccineDose>();
   protected vaccinationVersion = signal(0);
@@ -114,20 +118,22 @@ export class CompleteProfileDialog {
       })),
     }))
   );
-  protected step = 1;
-  protected submittedSteps: [boolean, boolean, boolean] = [false, false, false];
+  protected step = signal(1);
+  protected submittedSteps = signal<[boolean, boolean, boolean]>([false, false, false]);
+  /** Máximo del datepicker de nacimiento: el día de hoy del consultorio. */
+  protected maxBirthDate = signal(clinicTodayDate());
 
   protected referredBySearchControl = new FormControl('');
-  protected filteredPatients: Patient[] = [];
+  protected filteredPatients = signal<Patient[]>([]);
   private allPatients: Patient[] = [];
 
   protected form = this.fb.group({
     fullName: ['', Validators.required],
     birthDate: [null as unknown as string | Date, Validators.required],
     bloodType: ['', Validators.required],
-    birthWeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
-    birthHeight: [null as number | null, [Validators.required, Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
-    headCircumference: [null as number | null, [Validators.min(0), Validators.pattern(/^\d+(\.\d+)?$/)]],
+    birthWeight: [null as number | null, [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
+    birthHeight: [null as number | null, [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
+    headCircumference: [null as number | null, [Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
     sex: [null as Sexo | null, Validators.required],
     birthMethod: ['', Validators.required],
     hasAllergies: [null as boolean | null, Validators.required],
@@ -185,10 +191,21 @@ export class CompleteProfileDialog {
     });
 
     this.referredBySearchControl.setValue(p.referredBy ?? '');
-    this.patientRepo.getAllPatients().then((patients) => {
-      this.allPatients = patients;
-      this.filteredPatients = patients;
+    this.allPatients = [];
+    this.filteredPatients.set([]);
+    const doctor = this.authService.currentDoctor;
+    const patientsRequest = doctor?.role === 'doctor' && p.doctorId === doctor.uid
+      ? this.patientRepo.getPatientsByDoctor(doctor.uid)
+      : Promise.resolve([]);
+    patientsRequest.then((patients) => {
+      const current = this.authService.currentDoctor;
+      this.allPatients = current?.role === 'doctor' && current.uid === doctor?.uid && this.patient?.doctorId === current.uid
+        ? patients.filter((patient) => patient.doctorId === current.uid)
+        : [];
+      this.filteredPatients.set(this.allPatients);
       this.cdr.markForCheck();
+    }).catch(() => {
+      this.alert.error({ message: 'No fue posible cargar los pacientes para seleccionar quién lo recomendó.', duration: 5000 });
     });
 
     this.syncConditionalValidators(p);
@@ -198,9 +215,9 @@ export class CompleteProfileDialog {
 
   protected filterReferredBy(search: string): void {
     const term = search.toLowerCase();
-    this.filteredPatients = this.allPatients.filter(
+    this.filteredPatients.set(this.allPatients.filter(
       (p) => (p.name + ' ' + p.lastName).toLowerCase().includes(term)
-    );
+    ));
   }
 
   protected onReferredBySelected(p: Patient): void {
@@ -209,9 +226,9 @@ export class CompleteProfileDialog {
     this.referredBySearchControl.setValue(name);
   }
 
-  protected displayReferredBy(p: Patient): string {
+  protected readonly displayReferredBy = signal((p: Patient): string => {
     return p ? p.name + ' ' + p.lastName : '';
-  }
+  });
 
   protected onReferredByBlur(): void {
     const control = this.referredBySearchControl;
@@ -319,9 +336,9 @@ export class CompleteProfileDialog {
   };
 
   protected nextStep(): void {
-    const idx = this.step === 1 ? 0 : 1;
-    const fields = this.stepFields[this.step];
-    this.submittedSteps[idx] = true;
+    const idx = this.step() === 1 ? 0 : 1;
+    const fields = this.stepFields[this.step()];
+    this.submittedSteps.update(steps => steps.map((submitted, index) => index === idx || submitted) as [boolean, boolean, boolean]);
     for (const f of fields) {
       const ctrl = this.form.get(f);
       if (!ctrl?.valid) {
@@ -334,13 +351,13 @@ export class CompleteProfileDialog {
       this.cdr.markForCheck();
       return;
     }
-    this.step++;
+    this.step.update(value => value + 1);
     window.scrollTo(0, 0);
     this.cdr.markForCheck();
   }
 
   protected prevStep(): void {
-    this.step--;
+    this.step.update(value => value - 1);
     window.scrollTo(0, 0);
     this.cdr.markForCheck();
   }
@@ -361,13 +378,13 @@ export class CompleteProfileDialog {
   }
 
   async save(): Promise<void> {
-    this.submittedSteps[2] = true;
+    this.submittedSteps.update(([first, second]) => [first, second, true]);
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
     const p = this.patient;
     if (!p) return;
 
-    this.submitting = true;
+    this.submitting.set(true);
     const v = this.form.value;
     const { name, lastName } = this.splitFullName(v.fullName!);
 
@@ -381,7 +398,7 @@ export class CompleteProfileDialog {
         bloodType: v.bloodType ?? '',
         birthWeight: v.birthWeight ?? 0,
         birthHeight: v.birthHeight ?? 0,
-        headCircumference: v.headCircumference ?? 0,
+        headCircumference: v.headCircumference ?? null,
         sex: v.sex ?? undefined,
         birthMethod: (v.birthMethod ?? '') as 'vaginal' | 'cesarean',
         hasAllergies: v.hasAllergies ?? false,
@@ -407,7 +424,7 @@ export class CompleteProfileDialog {
     } catch {
       this.alert.error({ message: 'Error al guardar el perfil del paciente', duration: 5000 });
     } finally {
-      this.submitting = false;
+      this.submitting.set(false);
       this.cdr.markForCheck();
     }
   }

@@ -1,4 +1,4 @@
-import { Component, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,7 +15,10 @@ import { ClinicalRecordRepository } from '../../../../core/repositories/clinical
 import { AuthService } from '../../../../core/services/auth.service';
 import { AlertService } from '../../../../core/services/alert.service';
 import { ClinicalRecord } from '../../../../core/models/clinical-record';
-import { dateStringToLocalDate, dateToString, formatLocalDate, todayLocalDateString } from '../../../../core/utils/date-utils';
+import { dateStringToLocalDate, dateToString, formatLocalDate } from '../../../../core/utils/date-utils';
+import { todayClinicDateString } from '../../../../core/utils/clinic-time';
+import { ClinicClockService } from '../../../../core/services/clinic-clock.service';
+import { greaterThanZero } from '../../../../core/utils/validators';
 import { RichTextEditor } from '../../../../shared/components/rich-text-editor/rich-text-editor';
 
 @Component({
@@ -48,24 +51,21 @@ export class ClinicalEntryDialog implements OnDestroy {
   private dialogRef = inject(MatDialogRef<ClinicalEntryDialog>);
   private cdr = inject(ChangeDetectorRef);
   private statusSub: Subscription | null = null;
+  private readonly clock = inject(ClinicClockService);
+  private readonly recordDate = signal<string | null>(null);
+  protected readonly entryDateLabel = computed(() => formatLocalDate(this.recordDate() ?? this.clock.now().date));
 
   protected record: ClinicalRecord | null = null;
   protected patientId = '';
-  protected ageDisplay = '';
-  protected today = new Date();
-  protected step = 1;
-  protected selectedTab = 0;
-  protected saving = false;
-  protected submitted = false;
-  protected editContext: 'general' | 'recommendations' | 'prescription' = 'general';
+  protected ageDisplay = signal('');
+  protected step = signal(1);
+  protected selectedTab = signal(0);
+  protected saving = signal(false);
+  protected submitted = signal(false);
+  protected editContext = signal<'general' | 'recommendations' | 'prescription'>('general');
 
-  protected get isEdit(): boolean {
-    return this.record !== null;
-  }
-
-  protected get editTitle(): string {
-    return this.isEdit ? 'Editar datos de la consulta' : 'Nueva entrada';
-  }
+  protected readonly isEdit = computed(() => this.recordDate() !== null);
+  protected readonly editTitle = computed(() => this.isEdit() ? 'Editar datos de la consulta' : 'Nueva entrada');
 
   protected tabsInvalid = signal<boolean[]>([false, false, false]);
 
@@ -86,7 +86,7 @@ export class ClinicalEntryDialog implements OnDestroy {
       this.step3Form,
     ].reduce((acc, form) => {
       if (form) acc.add(form.statusChanges.subscribe(() => {
-        if (this.submitted) this.refreshTabsInvalid();
+        if (this.submitted()) this.refreshTabsInvalid();
       }));
       return acc;
     }, new Subscription());
@@ -96,22 +96,19 @@ export class ClinicalEntryDialog implements OnDestroy {
     this.statusSub?.unsubscribe();
   }
 
-  protected noPastDates = (date: Date | null): boolean => {
-    if (this.isEdit) return true;
-    return date ? date >= new Date(new Date().toDateString()) : true;
-  };
-
-  protected formatCivilDate(value: unknown): string {
-    return formatLocalDate(value);
-  }
+  protected readonly noPastDates = computed(() => {
+    const editing = this.recordDate() !== null;
+    const today = this.clock.now().date;
+    return (date: Date | null): boolean => editing || !date || dateToString(date) >= today;
+  });
 
   protected step1Form = this.fb.group({
-    headCircumference: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
-    weight: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
-    height: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
+    headCircumference: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
+    weight: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
+    height: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
     bmi: [''],
-    saturation: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
-    temperature: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/)]],
+    saturation: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
+    temperature: ['', [Validators.required, Validators.pattern(/^\d+(\.\d+)?$/), greaterThanZero]],
     motivoConsulta: ['', Validators.required],
     diagnosis: ['', Validators.required],
     notas: [''],
@@ -127,14 +124,7 @@ export class ClinicalEntryDialog implements OnDestroy {
     prescription: [''],
   });
 
-  get stepLabel(): string {
-    switch (this.step) {
-      case 1: return 'Datos y diagnóstico';
-      case 2: return 'Recomendaciones';
-      case 3: return 'Receta';
-      default: return '';
-    }
-  }
+  protected readonly stepLabel = computed(() => ['', 'Datos y diagnóstico', 'Recomendaciones', 'Receta'][this.step()] ?? '');
 
   setPatientId(id: string) {
     this.patientId = id;
@@ -142,6 +132,7 @@ export class ClinicalEntryDialog implements OnDestroy {
 
   setRecord(record: ClinicalRecord) {
     this.record = record;
+    this.recordDate.set(record.date);
     this.step1Form.patchValue({
       headCircumference: record.headCircumference != null ? String(record.headCircumference) : '',
       weight: record.weight != null ? String(record.weight) : '',
@@ -165,11 +156,11 @@ export class ClinicalEntryDialog implements OnDestroy {
   }
 
   setEditContext(context: 'general' | 'recommendations' | 'prescription') {
-    this.editContext = context;
+    this.editContext.set(context);
   }
 
   setAge(age: string) {
-    this.ageDisplay = age;
+    this.ageDisplay.set(age);
   }
 
   close() {
@@ -187,22 +178,22 @@ export class ClinicalEntryDialog implements OnDestroy {
   }
 
   nextStep() {
-    this.submitted = true;
+    this.submitted.set(true);
     this.refreshTabsInvalid();
     this.cdr.markForCheck();
-    if (this.step === 1 && this.step1Form.invalid) return;
-    if (this.step === 2 && this.step2Form.invalid) return;
-    if (this.step === 3 && this.step3Form.invalid) return;
-    if (this.step < 3) {
-      this.step++;
-      this.submitted = false;
+    if (this.step() === 1 && this.step1Form.invalid) return;
+    if (this.step() === 2 && this.step2Form.invalid) return;
+    if (this.step() === 3 && this.step3Form.invalid) return;
+    if (this.step() < 3) {
+      this.step.update((step) => step + 1);
+      this.submitted.set(false);
       this.refreshTabsInvalid();
       this.cdr.markForCheck();
     }
   }
 
   prevStep() {
-    if (this.step > 1) this.step--;
+    if (this.step() > 1) this.step.update((step) => step - 1);
   }
 
   private parseDate(value: unknown): Date | string {
@@ -212,16 +203,17 @@ export class ClinicalEntryDialog implements OnDestroy {
   }
 
   async save() {
-    this.submitted = true;
+    if (this.saving() || !this.validatePublicationDates()) return;
+    this.submitted.set(true);
     this.refreshTabsInvalid();
     this.cdr.markForCheck();
-    if (this.isEdit) {
-      if (this.editContext === 'recommendations') {
+    if (this.isEdit()) {
+      if (this.editContext() === 'recommendations') {
         if (this.step2Form.invalid) {
           this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
           return;
         }
-      } else if (this.editContext === 'prescription') {
+      } else if (this.editContext() === 'prescription') {
         if (this.step3Form.invalid) {
           this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
           return;
@@ -242,7 +234,7 @@ export class ClinicalEntryDialog implements OnDestroy {
         throw new Error('No hay paciente seleccionado');
       }
     }
-    this.saving = true;
+    this.saving.set(true);
     this.cdr.markForCheck();
     try {
       const s1 = this.step1Form.getRawValue();
@@ -269,7 +261,7 @@ export class ClinicalEntryDialog implements OnDestroy {
         visibleUntilRx: dateToString(s3.visibleUntilRx),
       };
 
-      if (this.isEdit) {
+      if (this.isEdit()) {
         await this.repo.update(this.record!.id, {
           ...data,
           updatedBy: doctor.email,
@@ -280,7 +272,7 @@ export class ClinicalEntryDialog implements OnDestroy {
           id,
           ...data,
           patientId: this.patientId,
-          date: todayLocalDateString(),
+          date: todayClinicDateString(),
           createdBy: doctor.email,
         });
       }
@@ -291,22 +283,23 @@ export class ClinicalEntryDialog implements OnDestroy {
       const msg = e instanceof Error ? e.message : 'Error al guardar la entrada';
       this.alert.error({ message: msg, duration: 5000 });
     } finally {
-      this.saving = false;
+      this.saving.set(false);
       this.cdr.markForCheck();
     }
   }
 
   async saveAndPrint() {
-    this.submitted = true;
+    if (this.saving() || !this.validatePublicationDates()) return;
+    this.submitted.set(true);
     this.refreshTabsInvalid();
     this.cdr.markForCheck();
-    if (this.isEdit) {
-      if (this.editContext === 'recommendations') {
+    if (this.isEdit()) {
+      if (this.editContext() === 'recommendations') {
         if (this.step2Form.invalid) {
           this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
           return;
         }
-      } else if (this.editContext === 'prescription') {
+      } else if (this.editContext() === 'prescription') {
         if (this.step3Form.invalid) {
           this.alert.error({ message: 'Completa todos los campos requeridos', duration: 5000 });
           return;
@@ -333,7 +326,7 @@ export class ClinicalEntryDialog implements OnDestroy {
       this.alert.error({ message: 'Permite ventanas emergentes para imprimir', duration: 5000 });
       return;
     }
-    this.saving = true;
+    this.saving.set(true);
     this.cdr.markForCheck();
     try {
       const s1 = this.step1Form.getRawValue();
@@ -362,7 +355,7 @@ export class ClinicalEntryDialog implements OnDestroy {
 
       let recordId: string;
 
-      if (this.isEdit) {
+      if (this.isEdit()) {
         recordId = this.record!.id;
         await this.repo.update(recordId, {
           ...data,
@@ -374,7 +367,7 @@ export class ClinicalEntryDialog implements OnDestroy {
           id: recordId,
           ...data,
           patientId: this.patientId,
-          date: todayLocalDateString(),
+          date: todayClinicDateString(),
           createdBy: doctor.email,
         });
       }
@@ -388,7 +381,7 @@ export class ClinicalEntryDialog implements OnDestroy {
       printWindow.close();
       this.alert.error({ message: msg, duration: 5000 });
     } finally {
-      this.saving = false;
+      this.saving.set(false);
       this.cdr.markForCheck();
     }
   }
@@ -402,5 +395,27 @@ export class ClinicalEntryDialog implements OnDestroy {
     }
     printWindow.focus();
     this.dialogRef.close();
+  }
+
+  private validatePublicationDates(): boolean {
+    // Capture the current clinic day even before Material can render a new filter.
+    this.clock.refresh();
+    if (this.isEdit()) return true;
+    const today = this.clock.now().date;
+    let valid = true;
+    for (const control of [this.step2Form.controls.visibleUntil, this.step3Form.controls.visibleUntilRx]) {
+      const date = dateToString(control.value);
+      if (date && date < today) {
+        control.setErrors({ ...control.errors, matDatepickerFilter: true });
+        control.markAsTouched();
+        valid = false;
+      }
+    }
+    if (!valid) {
+      this.submitted.set(true);
+      this.refreshTabsInvalid();
+      this.alert.error({ message: 'Selecciona una fecha límite de visualización de hoy o posterior.', duration: 5000 });
+    }
+    return valid;
   }
 }

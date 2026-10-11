@@ -116,6 +116,7 @@ export class ResetPassword implements OnInit {
 
       const result = await response.json();
       if (result.error) throw new Error(result.error.message);
+      if (!response.ok || result.result?.success !== true) throw new Error('No fue posible confirmar la solicitud. Intenta nuevamente.');
 
       this.alert.success({
         message: 'Correo de recuperación enviado. Revisa tu bandeja de entrada.',

@@ -1,5 +1,11 @@
 import { getDownloadURL, ref, FirebaseStorage } from 'firebase/storage';
 
+/** Every selection has its own object; a failed profile save cannot overwrite the previous logo. */
+export function createLogoObjectPath(ownerId: string | null, fileName: string): string {
+  const prefix = ownerId ? `${ownerId}/` : '';
+  return `logos/${prefix}${crypto.randomUUID()}_${fileName}`;
+}
+
 export function isRemoteUrl(value: string): boolean {
   return /^(https?:\/\/|gs:\/\/|blob:|data:)/.test(value);
 }

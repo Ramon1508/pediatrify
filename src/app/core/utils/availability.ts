@@ -1,4 +1,6 @@
 import { AppUser, TimeSegment } from '../models/user';
+import { clinicTimeAt } from './clinic-time';
+import { dateToString } from './date-utils';
 
 const DEFAULT_DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const DEFAULT_SEGMENT: TimeSegment = { startTime: '06:00', endTime: '00:00' };
@@ -75,15 +77,7 @@ export function buildSlots(segments: TimeSegment[], duration: number): string[] 
   return slots;
 }
 
-function isSameDate(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-/** Horas agendables de una fecha: si es HOY, solo las posteriores a la hora actual. */
+/** La fecha seleccionada es civil; HOY y el minuto actual corresponden al consultorio. */
 export function futureSlotsForDate(
   byDay: Record<string, TimeSegment[]>,
   date: Date,
@@ -91,11 +85,13 @@ export function futureSlotsForDate(
   now: Date = new Date()
 ): string[] {
   const slots = buildSlots(segmentsForDate(byDay, date), duration);
-  if (!isSameDate(date, now)) return slots;
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const selectedDate = dateToString(date);
+  const clinic = clinicTimeAt(now);
+  if (!selectedDate || selectedDate < clinic.date) return [];
+  if (selectedDate !== clinic.date) return slots;
   return slots.filter((slot) => {
     const [h, m] = slot.split(':').map(Number);
-    return h * 60 + m > nowMinutes;
+    return h * 60 + m > clinic.minutes;
   });
 }
 
@@ -109,11 +105,11 @@ export function isDateSelectable(
   duration: number,
   now: Date = new Date()
 ): boolean {
-  const dayTime = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-  const todayTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  if (dayTime < todayTime) return false;
+  const selectedDate = dateToString(date);
+  const today = clinicTimeAt(now).date;
+  if (!selectedDate || selectedDate < today) return false;
   if (!segmentsForDate(byDay, date).length) return false;
-  if (isSameDate(date, now)) {
+  if (selectedDate === today) {
     return futureSlotsForDate(byDay, date, duration, now).length > 0;
   }
   return true;

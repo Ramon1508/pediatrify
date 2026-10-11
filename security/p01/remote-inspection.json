@@ -1,0 +1,35 @@
+{
+  "inspectedAt": "2026-10-04T22:47:48.713Z",
+  "project": "configured default alias (identifier omitted)",
+  "database": "(default)",
+  "edition": "STANDARD",
+  "location": "nam5",
+  "businessDataRead": false,
+  "remoteChanges": false,
+  "releases": [
+    {
+      "service": "storage",
+      "updatedAt": "2026-08-26T07:43:20.147094Z",
+      "files": [
+        {
+          "sha256": "1f99c677c2824f90d43dc52b611a44a2a67f30b70139e582f08dab5c3283d1c1",
+          "matchesLocalIgnoringWhitespace": null,
+          "unconditionalRecursiveReadWrite": false,
+          "allowsAnySignedInUser": false
+        }
+      ]
+    },
+    {
+      "service": "firestore",
+      "updatedAt": "2026-10-02T20:17:22.691796Z",
+      "files": [
+        {
+          "sha256": "3f3fc52c09dd5ef538ba60a2bf29d492e18e960adb37c0b25047730bcbb1c3a5",
+          "matchesLocalIgnoringWhitespace": true,
+          "unconditionalRecursiveReadWrite": true,
+          "allowsAnySignedInUser": false
+        }
+      ]
+    }
+  ]
+}

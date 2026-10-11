@@ -13,6 +13,8 @@ export type NotificationFilter = 'all' | 'unread';
 export interface NotificationRecipient {
   recipientId: string;
   recipientType: NotificationRecipientType;
+  /** Estado inicial de lectura; por defecto `false`. El actor recibe su copia como leída (P41). */
+  read?: boolean;
 }
 
 /**
@@ -20,6 +22,7 @@ export interface NotificationRecipient {
  * `read` es el estado de lectura de ESTE destinatario (única fuente de verdad).
  */
 export interface AppNotification {
+  doctorId?: string;
   id: string;
   type: NotificationType;
   title: string;

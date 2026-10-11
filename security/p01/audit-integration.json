@@ -1,0 +1,139 @@
+{
+  "score": 4,
+  "summary": "Evaluacion de reglas y contratos con pruebas locales; publicacion y configuracion efectivas verificadas por componente en D10. Personal con autoridad/lease Firebase; Paciente solo con sesion opaca de servidor en memoria, sin cuenta Firebase Auth ni acceso SDK. Ensayo funcional externo con cuentas/SMTP omitido por D09.",
+  "findings": [
+    {
+      "check": "Storage abuse / resource exhaustion",
+      "severity": "minor",
+      "issue": "POSIBLE / REQUIERE INVESTIGACION: el fanout de avisos de cita reúne asistentes y expedientes familiares del Doctor mediante consultas sin techo explícito de destinatarios. Las transacciones están probadas con el volumen sintético actual, no con poblaciones que excedan los límites del servicio.",
+      "recommendation": "Medir volumen máximo y comprobar límites de transacción/documentos antes de ampliar la escala; si hace falta, diseñar entrega acotada sin omitir destinatarios. Registro de seguimiento en PENDIENTES.md.",
+      "status": "closed-by-user-acceptance",
+      "disposition": {
+        "date": "2026-10-10",
+        "source": "User reports notifications were working and requests no further action.",
+        "implementationChanged": false,
+        "largeVolumeTestPerformed": false
+      }
+    }
+  ],
+  "scope": {
+    "date": "2026-10-10",
+    "files": [
+      "firestore.rules",
+      "storage.rules",
+      "firestore.indexes.json"
+    ],
+    "environment": "Local synthetic emulators; D10 deployment metadata and effective rules comparison recorded separately.",
+    "deployed": true,
+    "business_writers": "Trusted callable transactions, not Firestore client SDK"
+  },
+  "checks": {
+    "update_bypass": "Client creates/deletes denied; only own notification read=true can change, all other fields immutable and typed/bounded.",
+    "authority_source": "Personal: principal protegido, perfil y lease firmado. Paciente: bearer aleatorio con digest privado, lease, revision/contactos/Doctor/familia vigentes; una identidad Firebase patient no autoriza datos.",
+    "business_logic": "Queries SDK legitimas solo personal. patientPortal autoriza lecturas/escrituras minimas y streaming desde listeners de servidor; publicaciones validan fuente/vigencia. Cuenta del Paciente no se crea en Firebase Auth.",
+    "size_and_types": "Notification fields have explicit schema/type/length checks; server payload whitelists/size bounds; Storage MIME/nonempty/1MiB limits cover create and update.",
+    "identity_and_fields": "Solo personal actualiza read=true propio por SDK. Paciente marca avisos de su bandeja mediante servidor; no elige Doctor, identidad, familia ni destinatario ajeno.",
+    "storage": "Public logo gets by explicit path, listing denied, owner Doctor and active device lease for mutations; exactly two Firestore reads, no broad catch-all grant.",
+    "access_limits": "Local Firestore/Storage limits validated with synthetic tests. D10 verified effective rules content and runtime secret/signing configuration. Large notification fanout remains conditional follow-up before scaling; no external account/SMTP test performed."
+  },
+  "evidence": [
+    {
+      "suite": "firestore.integration.rules.spec.mjs",
+      "passed": 19
+    },
+    {
+      "suite": "storage.integration.rules.spec.mjs",
+      "passed": 5
+    },
+    {
+      "suite": "clinic-operations.emulator.spec.mjs",
+      "passed": 23
+    },
+    {
+      "suite": "patient-credentials.emulator.spec.mjs",
+      "passed": 22
+    },
+    {
+      "suite": "patient-portal.emulator.spec.mjs",
+      "passed": 9
+    }
+  ],
+  "follow_up": "No open items in the current pending list. D09 closed by user acceptance; notification volume observation retained as accepted history; P37/D11 closed by Doctor confirmation communicated by the user. Original technical observation and score preserved; no new external or clinical test performed by the agent.",
+  "staffIdentifierReview": {
+    "status": "verified-locally-and-activated-D10",
+    "contract": "Staff document segments are bounded and preserve supported legacy IDs; Auth binding/role/owner/device lease remain mandatory. Operation/patient/appointment/session/Auth IDs keep strict validation.",
+    "authorization": "Preserve documents/accounts/passwords/relationships; normalize only reviewed Doctor uid during coordinated activation.",
+    "remoteApplied": true,
+    "nodeTests": {
+      "passed": 269,
+      "total": 269
+    },
+    "sources": [
+      "functions/src/clinic-identifiers.ts",
+      "functions/src/clinic-auth.ts",
+      "functions/src/clinic-operations.ts",
+      "security/p01/operator-policy.mjs"
+    ],
+    "regressions": [
+      "Staff Auth binding and profile/schedule permissions",
+      "New Patient credential and memory portal on preserved Doctor ID",
+      "Firestore ownership and no SDK writes",
+      "Storage ownership and separate Auth identity",
+      "Invitations/email/deletion preserve existing Auth binding"
+    ],
+    "angularTests": {
+      "passed": 886,
+      "total": 886
+    },
+    "operationsEmulator": {
+      "passed": 23,
+      "total": 23
+    },
+    "otherEmulatorGroups": {
+      "authorityLogin": 11,
+      "rules": 19,
+      "credentials": 22,
+      "patientPortal": 9,
+      "storage": 5,
+      "adminDeletion": 3,
+      "keyRotation": 3,
+      "maintenance": 2
+    },
+    "note": "Initial combined run had one incorrect synthetic portal call signature; fixed fixture and repeated all 23 operations successfully. Other eight groups passed in combined run. Tests unchanged in scope. D10 subsequently applied and verified the five reviewed staff bindings, preserving accounts/documents/passwords."
+  },
+  "deploymentVerification": {
+    "date": "2026-10-10",
+    "clinicTimeZone": "America/Mexico_City",
+    "authorizedWindow": true,
+    "functionsActive": 22,
+    "parametersEnabled": 4,
+    "indexesReady": 16,
+    "effectiveRulesMatch": true,
+    "preservedStaffAccounts": 5,
+    "patientFirebaseAuth": false,
+    "patientBrowserPersistence": false,
+    "hostingExactArtifactPages": 6,
+    "externalAccountSmtpTest": "omitted-by-D09",
+    "privateEvidence": "security/p01/review-plans/"
+  },
+  "userConfirmations": {
+    "date": "2026-10-10",
+    "D09": {
+      "status": "closed-by-user-confirmation",
+      "reportedEmailWorking": true,
+      "agentExternalAccountSmtpTest": "not-performed"
+    },
+    "notifications": {
+      "status": "closed-by-user-acceptance",
+      "reportedWorking": true,
+      "agentLargeVolumeTest": "not-performed"
+    },
+    "P37_D11": {
+      "status": "closed-by-doctor-confirmation-reported-by-user",
+      "growthCurvesConfirmed": true,
+      "vaccinationScheduleConfirmed": true,
+      "namedClinicalReferenceProvided": false,
+      "agentIndependentClinicalValidation": false
+    }
+  }
+}

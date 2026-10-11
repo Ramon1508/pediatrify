@@ -1,0 +1,9 @@
+{
+  "score": 1,
+  "summary": "La publicación Firestore inspeccionada permite lectura y escritura recursivas sin restricciones. Evidencia de reglas y metadatos, sin ejecutar lecturas de datos de negocio ni ataques contra producción.",
+  "findings": [
+    { "check": "Unauthorized read/write", "severity": "critical", "issue": "Las reglas activas coinciden con las locales y permiten read, write: if true.", "recommendation": "Integrar permisos de servidor, identidad Firebase de todos los roles, consultas con alcance y reglas restrictivas; desplegar un conjunto compatible después de pruebas." },
+    { "check": "Authority source", "severity": "critical", "issue": "La publicación no protege campos que podrían otorgar identidad, rol o propiedad frente a escrituras de cliente.", "recommendation": "Autoridad mantenida exclusivamente por servicios confiables; no asignar permisos desde caché, UI ni contenido de solicitud." },
+    { "check": "Business logic vs. Rules", "severity": "major", "issue": "Cerrar reglas solo por Firebase Auth bloquearía el acceso actual del Paciente, que se valida localmente.", "recommendation": "Validar credenciales en servidor y emitir identidad Firebase vinculada al Doctor y familia antes de cerrar reglas." }
+  ]
+}

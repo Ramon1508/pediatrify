@@ -1,9 +1,14 @@
 import { Injectable } from '@angular/core';
 import { NativeDateAdapter } from '@angular/material/core';
 import { dateStringToLocalDate } from '../utils/date-utils';
+import { clinicTodayDate } from '../utils/clinic-time';
 
 @Injectable()
 export class SpanishDateAdapter extends NativeDateAdapter {
+  override today(): Date {
+    return clinicTodayDate();
+  }
+
   override getFirstDayOfWeek(): number {
     return 0;
   }

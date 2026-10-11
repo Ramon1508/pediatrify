@@ -1,0 +1,10 @@
+{
+  "score": 2,
+  "summary": "Prototipo aislado con autorización por rol/Doctor/familia y pruebas adversariales. No es un conjunto desplegable compatible con la aplicación actual: la integración de servidor, cliente, identidades y migración aún no está implementada.",
+  "findings": [
+    { "check": "Business logic vs. Rules", "severity": "major", "issue": "El prototipo exige proyecciones, consultas e identidad que el cliente actual todavía no usa y niega sus escrituras directas.", "recommendation": "Completar y probar la integración enumerada en ANALISIS_Y_PROPUESTA.md antes de enlazarlo a firebase.json o desplegarlo." },
+    { "check": "Authority source", "severity": "major", "issue": "Las reglas no limitan al Admin SDK; los módulos de servidor preparados no incluyen adaptadores/endpoints y transacciones de producción.", "recommendation": "Implementar verificación de tokens, carga de autoridad confiable y commit transaccional con validación; cubrir abuso de endpoints, cuotas, revocación e IAM." },
+    { "check": "Data migration", "severity": "moderate", "issue": "No se verificó integridad histórica de vínculos ni se migraron pacientes/citas/credenciales/publicaciones reales.", "recommendation": "Diagnóstico y migración revisables con datos de ensayo, respaldo autorizado y pruebas de compatibilidad de los cuatro roles." },
+    { "check": "Rendered content", "severity": "moderate", "issue": "La publicación requiere sanitización de HTML y conversión confiable de vigencias civiles, aún no integrada.", "recommendation": "Preservar formato permitido, sanear contenido y fijar semántica de tiempo antes de servir publicaciones al portal." }
+  ]
+}

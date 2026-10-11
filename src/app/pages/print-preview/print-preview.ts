@@ -10,7 +10,9 @@ import {
   ViewChild,
   ElementRef,
   ViewEncapsulation,
+  DestroyRef,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet, UpperCasePipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
@@ -35,7 +37,8 @@ interface PrintPage {
   html: SafeHtml;
 }
 
-function calcAge(birthDate: unknown): string {
+/** P36: edad a la fecha de la consulta (no a la fecha actual), igual que en pantalla. */
+function calcAgeAtDate(birthDate: unknown, targetDate: string): string {
   let d: Date | null = null;
   if (typeof birthDate === 'string') {
     const parts = birthDate.split('-');
@@ -44,10 +47,13 @@ function calcAge(birthDate: unknown): string {
     d = (birthDate as any).toDate();
   }
   if (!d || isNaN(d.getTime())) return '';
-  const now = new Date();
-  let months = (now.getFullYear() - d.getFullYear()) * 12;
-  months += now.getMonth() - d.getMonth();
-  if (now.getDate() < d.getDate()) months--;
+  const parts = targetDate.split('-');
+  if (parts.length !== 3) return '';
+  const target = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+  if (isNaN(target.getTime())) return '';
+  let months = (target.getFullYear() - d.getFullYear()) * 12;
+  months += target.getMonth() - d.getMonth();
+  if (target.getDate() < d.getDate()) months--;
   if (months < 0) return '0 meses';
   if (months < 24) return `${months} meses`;
   const years = Math.floor(months / 12);
@@ -81,17 +87,30 @@ export class PrintPreview implements OnInit {
   private firebase = inject(FirebaseService);
   private cdr = inject(ChangeDetectorRef);
   private appRef = inject(ApplicationRef);
+  private destroyRef = inject(DestroyRef);
+  private session = toSignal(this.auth.session$, { initialValue: null });
+  private printTimer?: ReturnType<typeof setTimeout>;
 
-  protected readonly Sexo = Sexo;
   protected readonly paperSizes = PAPER_SIZES;
   protected loading = signal(true);
   protected debugInfo = signal('');
+  protected errorMessage = signal('El registro no está disponible para esta cuenta.');
 
-  protected record: ClinicalRecord | null = null;
-  protected patient: Patient | null = null;
-  protected doctor: AppUser | null = null;
+  protected record = signal<ClinicalRecord | null>(null);
+  protected patient = signal<Patient | null>(null);
+  protected doctor = signal<AppUser | null>(null);
   protected settings = signal<PrintSettings>(getDefaultSettings());
-  protected patientAge = '';
+  protected patientAge = computed(() => calcAgeAtDate(this.patient()?.birthDate, this.record()?.date ?? ''));
+  protected consultationDate = computed(() => formatLocalDate(this.record()?.date));
+  protected doctorTitle = computed(() => this.doctor()?.sexo === Sexo.Femenino ? 'DRA.' : 'DR.');
+  protected canViewRecord = computed(() => {
+    const session = this.session();
+    const patient = this.patient();
+    const record = this.record();
+    return session?.type === 'doctor' && session.user.role === 'doctor' &&
+      !!session.user.uid && patient?.doctorId === session.user.uid &&
+      !!record && record.patientId === patient.id;
+  });
 
   protected sanitizedRecommendations: SafeHtml = '';
   protected sanitizedPrescription: SafeHtml = '';
@@ -102,14 +121,18 @@ export class PrintPreview implements OnInit {
     return found ? found.label : value === 'custom' ? 'Personalizado' : value;
   }
 
-  protected formatCivilDate(value: unknown): string {
-    return formatLocalDate(value);
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.printTimer !== undefined) clearTimeout(this.printTimer);
+    });
   }
 
   protected logoUrl = signal(this.defaultLogo);
 
   private logoSource(): string {
-    return this.doctor?.logoPath || this.defaultLogo;
+    // P34: "logo precargado" (Lilcare) vs logo propio del Doctor.
+    if (this.settings().usePreloadedLogo) return this.defaultLogo;
+    return this.doctor()?.logoPath || this.defaultLogo;
   }
 
   private async refreshLogoUrl() {
@@ -181,42 +204,56 @@ export class PrintPreview implements OnInit {
   }
 
   async ngOnInit() {
-    const recordId = this.route.snapshot.paramMap.get('recordId');
-    if (!recordId) return;
+    try {
+      const session = this.session();
+      const recordId = this.route.snapshot.paramMap.get('recordId');
+      if (!recordId || session?.type !== 'doctor' || session.user.role !== 'doctor' ||
+          !session.user.uid) return;
 
-    this.record = await this.clinicalRepo.get(recordId);
-    if (!this.record) return;
+      // Keep fetched data out of the view until patient ownership is confirmed.
+      // Backend enforcement is tracked separately in P01.
+      const record = await this.clinicalRepo.get(recordId);
+      if (!record?.patientId) return;
+      const patient = await this.patientRepo.getPatient(record.patientId);
+      if (!patient || patient.doctorId !== session.user.uid) return;
 
-    if (this.record.patientId) {
-      this.patient = await this.patientRepo.getPatient(this.record.patientId);
-      if (this.patient) {
-        this.patientAge = calcAge(this.patient.birthDate);
+      const doctor = await this.resolveDoctorForRecord(record);
+      const settings = doctor ? await this.printRepo.getSettings(doctor.uid) : getDefaultSettings();
+      const currentSession = this.session();
+      if (this.destroyRef.destroyed || currentSession?.type !== 'doctor' ||
+          currentSession.user.role !== 'doctor' || currentSession.user.uid !== session.user.uid) return;
+
+      this.record.set(record);
+      this.patient.set(patient);
+      this.doctor.set(doctor);
+      this.settings.set(settings);
+      await this.refreshLogoUrl();
+      if (this.destroyRef.destroyed || !this.canViewRecord()) return;
+
+      if (record.recommendations) {
+        this.sanitizedRecommendations = this.sanitizer.bypassSecurityTrustHtml(record.recommendations);
       }
-    }
+      if (record.prescription) {
+        this.sanitizedPrescription = this.sanitizer.bypassSecurityTrustHtml(record.prescription);
+      }
 
-    this.doctor = await this.resolveDoctorForRecord(this.record);
-    if (this.doctor) {
-      const s = await this.printRepo.getSettings(this.doctor.uid);
-      this.settings.set(s);
-    }
-    await this.refreshLogoUrl();
+      this.loading.set(false);
+      this.appRef.tick();
+      await this.waitForPrintableLayout();
+      if (this.destroyRef.destroyed || !this.canViewRecord()) return;
+      this.paginateContent();
+      this.cdr.markForCheck();
 
-    if (this.record.recommendations) {
-      this.sanitizedRecommendations = this.sanitizer.bypassSecurityTrustHtml(this.record.recommendations);
+      this.printTimer = setTimeout(() => this.printViaNewWindow(), 500);
+    } catch {
+      this.record.set(null);
+      this.patient.set(null);
+      this.doctor.set(null);
+      this.pages.set([]);
+      this.errorMessage.set('No fue posible cargar la impresión. Intenta abrirla nuevamente.');
+    } finally {
+      if (!this.destroyRef.destroyed) this.loading.set(false);
     }
-    if (this.record.prescription) {
-      this.sanitizedPrescription = this.sanitizer.bypassSecurityTrustHtml(this.record.prescription);
-    }
-
-    this.loading.set(false);
-    this.appRef.tick();
-    await this.waitForPrintableLayout();
-    this.paginateContent();
-    this.cdr.markForCheck();
-
-    setTimeout(() => {
-      this.printViaNewWindow();
-    }, 500);
   }
 
   private async resolveDoctorForRecord(record: ClinicalRecord): Promise<AppUser | null> {
@@ -365,8 +402,8 @@ export class PrintPreview implements OnInit {
     const availableHeight = measurePage.getBoundingClientRect().height - verticalPadding - shellHeight;
 
     scratch.innerHTML = '';
-    const recPages = this.buildSectionHtml(this.record?.recommendations, 'RECOMENDACIONES', scratch, availableHeight);
-    const rxPages = this.buildSectionHtml(this.record?.prescription, 'RECETA', scratch, availableHeight);
+    const recPages = this.buildSectionHtml(this.record()?.recommendations, 'RECOMENDACIONES', scratch, availableHeight);
+    const rxPages = this.buildSectionHtml(this.record()?.prescription, 'RECETA', scratch, availableHeight);
 
     const allPageHtml = [...recPages, ...rxPages];
 
@@ -403,6 +440,7 @@ export class PrintPreview implements OnInit {
   }
 
   private printViaNewWindow() {
+    if (this.destroyRef.destroyed || !this.canViewRecord()) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 

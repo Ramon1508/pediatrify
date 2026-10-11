@@ -1,9 +1,9 @@
 <div class="growth-charts">
   <div class="charts-header">
     <div class="charts-tabs">
-      @for (tab of tabs; track tab.id) {
-        <button class="chart-chip" [class.active]="activeTab === tab.id" (click)="switchTab(tab.id)">
-          @if (activeTab === tab.id) { <mat-icon>check</mat-icon> }
+      @for (tab of tabs(); track tab.id) {
+        <button class="chart-chip" [class.active]="activeTab() === tab.id" (click)="switchTab(tab.id)">
+          @if (activeTab() === tab.id) { <mat-icon>check</mat-icon> }
           {{ tab.label }}
         </button>
       }
@@ -12,13 +12,13 @@
       <button class="zoom-btn" (click)="toggleZoom()" [title]="zoomedIn() ? 'Alejar' : 'Acercar'">
         <mat-icon>{{ zoomedIn() ? 'zoom_out' : 'zoom_in' }}</mat-icon>
       </button>
-      @if (calibrationEnabled) {
+      @if (calibrationEnabled()) {
         <button class="zoom-btn" (click)="toggleCalibrate()" [title]="calibrating() ? 'Salir' : 'Calibrar'"
                 [style.background]="calibrating() ? '#0D6E8F' : ''" [style.color]="calibrating() ? '#fff' : ''">
           <mat-icon>{{ calibrating() ? 'close' : 'tune' }}</mat-icon>
         </button>
       }
-      @if (hasData) {
+      @if (hasData()) {
         <button class="btn-tertiary print-btn" (click)="printChart()">
           <mat-icon>print</mat-icon> Imprimir
         </button>
@@ -28,9 +28,9 @@
 
   <div class="chart-body" [class.zoom-out]="!zoomedIn()">
     <div class="cdc-container" (click)="onChartClick($event)">
-      <img [src]="imgSrc" alt="Growth Chart" class="cdc-img" draggable="false">
-      @if (hasData) {
-        <div class="cdc-overlay" [innerHTML]="overlaySvg"></div>
+      <img [src]="imgSrc()" alt="Growth Chart" class="cdc-img" draggable="false">
+      @if (hasData()) {
+        <div class="cdc-overlay" [innerHTML]="overlaySvg()"></div>
       }
     </div>
 
@@ -39,20 +39,20 @@
         @if (calMode() === null) {
           <div class="cal-header">Elige eje a calibrar</div>
           <div class="cal-mode-row">
-            @for (mode of calModes; track mode) {
+            @for (mode of calModes(); track mode) {
               <button class="cal-mode-btn" (click)="startCalMode(mode)">
                 <mat-icon>tune</mat-icon>
-                {{ CAL_CONFIG[mode].label }}
+                {{ CAL_CONFIG()[mode].label }}
               </button>
             }
           </div>
         } @else if (calStep() >= 0) {
-          <div class="cal-header">{{ CAL_CONFIG[calMode()!].label }}: {{ currentRefLabel }}</div>
-          <div class="cal-progress-bar"><div class="cal-progress-fill" [style.width.%]="calPct"></div></div>
-          <div class="cal-hint">Haz clic en <strong>{{ currentRefLabel }}</strong> en la gráfica</div>
+          <div class="cal-header">{{ CAL_CONFIG()[calMode()!].label }}: {{ currentRefLabel() }}</div>
+          <div class="cal-progress-bar"><div class="cal-progress-fill" [style.width.%]="calPct()"></div></div>
+          <div class="cal-hint">Haz clic en <strong>{{ currentRefLabel() }}</strong> en la gráfica</div>
           <div class="cal-recording-list">
             @for (p of calRecorded(); track $index) {
-              <div class="cal-row cal-row-done">{{ p.ref === 0 ? 'Birth' : p.ref + ' ' + CAL_CONFIG[calMode()!].unit }} → ({{ p.x }}, {{ p.y }})</div>
+              <div class="cal-row cal-row-done">{{ p.ref === 0 ? 'Birth' : p.ref + ' ' + CAL_CONFIG()[calMode()!].unit }} → ({{ p.x }}, {{ p.y }})</div>
             }
           </div>
           <div class="cal-buttons">
@@ -60,7 +60,7 @@
             <button class="cal-cancel-btn" (click)="cancelCalMode()">Cancelar</button>
           </div>
         } @else if (calResult(); as r) {
-          <div class="cal-header">✅ {{ CAL_CONFIG[calMode()!].label }} calibrado</div>
+          <div class="cal-header">✅ {{ CAL_CONFIG()[calMode()!].label }} calibrado</div>
           <div class="cal-result-box">
             <code>y = {{ calResultDisplay()?.intercept }} + x × {{ calResultDisplay()?.slope }}</code>
             <div class="cal-r2">R² = {{ calResultDisplay()?.r2 }} (n = {{ r.count }})</div>

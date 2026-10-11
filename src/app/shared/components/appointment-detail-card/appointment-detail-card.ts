@@ -1,4 +1,4 @@
-import { Component, inject, input, output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, input, output, ChangeDetectionStrategy, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { Appointment } from '../../../core/models/user';
@@ -21,13 +21,13 @@ export class AppointmentDetailCard {
   private authService = inject(AuthService);
   private router = inject(Router);
 
-  protected get isAssistant(): boolean {
+  protected readonly isAssistant = computed(() => {
     return this.authService.currentDoctor?.role === 'assistant';
-  }
+  });
 
-  protected get isPatient(): boolean {
+  protected readonly isPatient = computed(() => {
     return this.authService.isPatient;
-  }
+  });
 
   onReagendar() {
     this.edit.emit(this.appointment());
@@ -39,7 +39,7 @@ export class AppointmentDetailCard {
 
   onVerHistorial() {
     const patientId = this.appointment().patientId;
-    if (this.isPatient) {
+    if (this.isPatient()) {
       this.router.navigate(['/paciente/pacientes/history', patientId]);
     } else {
       this.router.navigate(['/app/patients/history', patientId]);

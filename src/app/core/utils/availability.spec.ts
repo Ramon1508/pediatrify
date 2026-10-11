@@ -13,18 +13,19 @@ const D = (y: number, m: number, d: number, h = 0, min = 0): Date =>
 const seg = (startTime: string, endTime: string): TimeSegment => ({ startTime, endTime });
 
 describe('availability utils', () => {
-  // now = 10 de junio de 2026, 10:00 (hora local)
-  const now = D(2026, 6, 10, 10, 0);
-  const todayKey = weekdayShortOf(now);
+  // Instante actual: 10 de junio de 2026, 10:00 en el consultorio.
+  const now = new Date('2026-06-10T16:00:00Z');
+  const today = D(2026, 6, 10);
+  const todayKey = weekdayShortOf(today);
   const byDay: Record<string, TimeSegment[]> = { [todayKey]: [seg('09:00', '13:00')] };
 
   describe('weekdayShortOf / segmentsForDate', () => {
     it('maps a date to its weekday key', () => {
-      expect(weekdayShortOf(now)).toBe(todayKey);
+      expect(weekdayShortOf(today)).toBe(todayKey);
     });
 
     it('returns the configured segments for the date weekday', () => {
-      expect(segmentsForDate(byDay, now)).toEqual([seg('09:00', '13:00')]);
+      expect(segmentsForDate(byDay, today)).toEqual([seg('09:00', '13:00')]);
     });
 
     it('returns empty when the weekday has no segments', () => {
@@ -49,12 +50,12 @@ describe('availability utils', () => {
     });
 
     it('today with past and future hours → selectable', () => {
-      expect(isDateSelectable(byDay, now, 30, now)).toBe(true);
+      expect(isDateSelectable(byDay, today, 30, now)).toBe(true);
     });
 
     it('today without any future hour → not selectable', () => {
       const onlyPast: Record<string, TimeSegment[]> = { [todayKey]: [seg('08:00', '10:00')] };
-      expect(isDateSelectable(onlyPast, now, 30, now)).toBe(false);
+      expect(isDateSelectable(onlyPast, today, 30, now)).toBe(false);
     });
 
     it('day without calendar configuration → not selectable', () => {
@@ -75,7 +76,7 @@ describe('availability utils', () => {
 
   describe('futureSlotsForDate', () => {
     it('today → only future hours', () => {
-      const slots = futureSlotsForDate(byDay, now, 30, now);
+      const slots = futureSlotsForDate(byDay, today, 30, now);
       expect(slots).not.toContain('09:00');
       expect(slots).not.toContain('10:00');
       expect(slots).toContain('10:30');
@@ -96,5 +97,27 @@ describe('availability utils', () => {
       };
       expect(futureSlotsForDate(map, future, 30, now)).toEqual(['09:00', '09:30', '16:00', '16:30']);
     });
+  });
+
+  it('keeps the clinic day available when the device can already be on the following day (P28)', () => {
+    const selected = D(2026, 10, 9);
+    const map = { [weekdayShortOf(selected)]: [seg('23:00', '00:00')] };
+    const instant = new Date('2026-10-10T05:15:00Z');
+    expect(isDateSelectable(map, selected, 15, instant)).toBe(true);
+    expect(futureSlotsForDate(map, selected, 15, instant)).toEqual(['23:30', '23:45']);
+    expect(futureSlotsForDate(map, D(2026, 10, 8), 15, instant)).toEqual([]);
+  });
+
+  it('changes the eligible day exactly at midnight in Mexico City (P28)', () => {
+    const previous = D(2026, 10, 9);
+    const next = D(2026, 10, 10);
+    const map = { [weekdayShortOf(previous)]: [seg('23:00', '00:00')],
+      [weekdayShortOf(next)]: [seg('00:00', '02:00')] };
+    const before = new Date('2026-10-10T05:59:59Z');
+    const after = new Date('2026-10-10T06:00:00Z');
+    expect(futureSlotsForDate(map, next, 30, before)).toEqual(['00:00', '00:30', '01:00', '01:30']);
+    expect(isDateSelectable(map, previous, 30, after)).toBe(false);
+    expect(futureSlotsForDate(map, previous, 30, after)).toEqual([]);
+    expect(futureSlotsForDate(map, next, 30, after)).toEqual(['00:30', '01:00', '01:30']);
   });
 });

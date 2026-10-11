@@ -1,3 +1,27 @@
+.association-state {
+  max-width: 560px;
+  margin: 32px auto;
+  padding: 24px;
+  color: #49454f;
+
+  h1 {
+    font-size: 24px;
+    line-height: 32px;
+    margin: 0 0 16px;
+  }
+
+  p {
+    line-height: 24px;
+    margin: 16px 0 24px;
+  }
+}
+
+.association-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .calendar-page {
   display: flex;
   flex-direction: column;

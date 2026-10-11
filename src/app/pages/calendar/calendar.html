@@ -1,9 +1,26 @@
+@if (assistantAccessState() === 'checking') {
+  <section class="association-state" role="status" aria-busy="true">
+    <mat-spinner diameter="32" />
+    <p>Verificando el Doctor asociado…</p>
+  </section>
+} @else if (assistantAccessState() === 'blocked' || assistantAccessState() === 'error') {
+  <section class="association-state" role="alert">
+    <h1>No podemos abrir tu calendario</h1>
+    <p>{{ assistantAccessMessage() }}</p>
+    <div class="association-actions">
+      <button type="button" mat-stroked-button class="btn-secondary w-100-mobile"
+        [disabled]="signingOut()" (click)="retryAssistantAccess()">Reintentar</button>
+      <button type="button" mat-unelevated-button class="btn-primary w-100-mobile"
+        [disabled]="signingOut()" (click)="logoutAssistant()">Cerrar sesión</button>
+    </div>
+  </section>
+} @else {
 <div class="calendar-page">
   <div class="calendar-toolbar">
     <div class="toolbar-left">
       <button type="button" class="date-picker-area" (click)="openDatePicker()">
         <input matInput [matDatepicker]="picker" class="datepicker-trigger" (dateChange)="onDateSelected($event)">
-        <mat-datepicker #picker></mat-datepicker>
+        <mat-datepicker #picker [startAt]="selectedDay()"></mat-datepicker>
         <input #dayPicker type="date" class="date-input mobile-only" [value]="selectedDayFormatted()" (change)="onMobileDateChange(dayPicker.value)" />
         <span class="date-label desktop-only">{{ dateLabel() }}</span>
         <span class="date-label mobile-only">{{ mobileDateLabel() }}</span>
@@ -12,25 +29,16 @@
       @if (!isCurrentWeek()) {
         <button mat-stroked-button class="btn-secondary btn-hoy" (click)="goToToday()">Hoy</button>
       }
-      @if (false) {
-        <mat-form-field appearance="outline" class="doctor-selector">
-          <mat-select [value]="selectedDoctorId()" (selectionChange)="onDoctorSelected($event.value)">
-            @for (doc of allDoctors; track doc.uid) {
-              <mat-option [value]="doc.uid">{{ doc.name }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-      }
     </div>
 
     <div class="toolbar-right">
-      @if (!patientMode) {
+      @if (!patientMode()) {
         <button mat-stroked-button class="btn-secondary" (click)="openSettingsDialog()">
           <mat-icon>settings</mat-icon>
           Configuración
         </button>
       }
-      @if (!patientMode || allowScheduling()) {
+      @if (!patientMode() || allowScheduling()) {
         <button mat-unelevated-button class="btn-primary" (click)="openSideAppointment()">
           <mat-icon>add</mat-icon>
           Agendar consulta
@@ -63,10 +71,10 @@
         </div>
       </div>
     } @else if (availableDaysSignal().length) {
-      <div class="calendar-grid-header" [style.grid-template-columns]="gridTemplateColumns">
+      <div class="calendar-grid-header" [style.grid-template-columns]="gridTemplateColumns()">
         <div class="grid-cell corner-cell"></div>
 
-        @for (day of headerDays(); track day.day.getTime()) {
+        @for (day of headerDays(); track day.key) {
           <div class="grid-cell day-header" [class.today]="day.isToday" [class.disabled-header]="!day.isAvailable">
             <span class="day-number">{{ day.date }}</span>
             <span class="day-name">{{ day.name }}</span>
@@ -74,7 +82,7 @@
         }
       </div>
 
-      <div class="calendar-grid-body" [style.grid-template-columns]="gridTemplateColumns">
+      <div class="calendar-grid-body" [style.grid-template-columns]="gridTemplateColumns()">
         @for (row of gridRows(); track row.slot.key) {
           <div class="grid-cell time-label">
             @if (row.slot.label) {
@@ -82,7 +90,7 @@
             }
           </div>
 
-          @for (cell of row.cells; track cell.day.getTime()) {
+          @for (cell of row.cells; track cell.key) {
             <button type="button"
               class="grid-cell data-cell"
               [class.today-cell]="cell.isToday"
@@ -150,14 +158,17 @@
         <app-appointment-detail-card
           [appointment]="item.apt"
           [allowPatientScheduling]="allowScheduling()"
+          (edit)="editAppointment($event)"
           (cancel)="cancelAppointment(item.apt)"
         />
       }
     }
     @if (!mobileDayAppointments().length) {
-      <p class="no-appointments">No tienes consultas agendadas para el día de hoy.</p>
+      <p class="no-appointments">No tienes consultas agendadas para este día.</p>
     }
   </div>
 </div>
+
+}
 
 

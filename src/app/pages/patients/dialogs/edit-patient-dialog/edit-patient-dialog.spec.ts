@@ -7,11 +7,13 @@ import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { EditPatientDialog } from './edit-patient-dialog';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { Sexo } from '../../../../core/models/sexo';
 
 describe('EditPatientDialog', () => {
   const mockPatient = {
     id: 'p1',
+    doctorId: 'doctor-test',
     name: 'Juan',
     lastName: 'Pérez',
     email: 'juan@mail.com',
@@ -31,7 +33,7 @@ describe('EditPatientDialog', () => {
     otpPassword: '123456',
   };
 
-  const patientRepo = { updatePatient: vi.fn().mockResolvedValue(undefined), getAllPatients: vi.fn().mockResolvedValue([]) };
+  const patientRepo = { updatePatient: vi.fn().mockResolvedValue(undefined), getAllPatients: vi.fn(), getPatientsByDoctor: vi.fn().mockResolvedValue([]) };
   const alertService = { success: vi.fn(), error: vi.fn(), warning: vi.fn() };
   const snackBar = { open: vi.fn() };
   const dialogRef = { close: vi.fn() };
@@ -44,6 +46,7 @@ describe('EditPatientDialog', () => {
         { provide: MAT_DATE_LOCALE, useValue: 'es-MX' },
         { provide: PatientRepository, useValue: patientRepo },
         { provide: AlertService, useValue: alertService },
+        { provide: AuthService, useValue: { currentDoctor: { uid: 'doctor-test', role: 'doctor' } } },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: MatDialogRef, useValue: dialogRef },
       ],
@@ -58,6 +61,30 @@ describe('EditPatientDialog', () => {
     component.setPatient(mockPatient);
     component.setMode('view');
   }
+
+  it('scopes referral suggestions to the doctor without unrelated or legacy patients', async () => {
+    patientRepo.getPatientsByDoctor.mockResolvedValueOnce([
+      mockPatient,
+      { ...mockPatient, id: 'foreign', doctorId: 'other-doctor' },
+      { ...mockPatient, id: 'legacy', doctorId: undefined },
+    ]);
+    const { component } = createFixture();
+    initComponent(component);
+    await vi.waitFor(() => expect(component.filteredPatients()).toHaveLength(1));
+    expect(component.filteredPatients()[0].id).toBe('p1');
+    expect(patientRepo.getPatientsByDoctor).toHaveBeenCalledWith('doctor-test');
+    expect(patientRepo.getAllPatients).not.toHaveBeenCalled();
+  });
+
+  it('does not load suggestions for a patient outside the doctor scope', async () => {
+    const { component } = createFixture();
+    patientRepo.getPatientsByDoctor.mockClear();
+    component.setPatient({ ...mockPatient, doctorId: 'other-doctor' });
+    await Promise.resolve();
+    expect(component.filteredPatients()).toEqual([]);
+    expect(patientRepo.getPatientsByDoctor).not.toHaveBeenCalled();
+    expect(patientRepo.getAllPatients).not.toHaveBeenCalled();
+  });
 
   it('renders title', async () => {
     const { fixture, component } = createFixture();
@@ -91,7 +118,7 @@ describe('EditPatientDialog', () => {
   it('starts in readOnly mode', () => {
     const { component } = createFixture();
     initComponent(component);
-    expect(component.readOnly).toBe(true);
+    expect(component.readOnly()).toBe(true);
     expect(component.form.disabled).toBe(true);
   });
 
@@ -99,7 +126,7 @@ describe('EditPatientDialog', () => {
     const { component } = createFixture();
     initComponent(component);
     component.switchToEdit();
-    expect(component.readOnly).toBe(false);
+    expect(component.readOnly()).toBe(false);
     expect(component.form.enabled).toBe(true);
   });
 
@@ -140,7 +167,7 @@ describe('EditPatientDialog', () => {
     component.switchToEdit();
     component.form.patchValue({ fullName: 'Juan Updated Pérez' });
     await component.save();
-    expect(component.saveSuccess).toBe('Cambios del perfil guardados.');
+    expect(component.saveSuccess()).toBe('Cambios del perfil guardados.');
   });
 
   it('switches back to view mode after save', async () => {
@@ -149,7 +176,7 @@ describe('EditPatientDialog', () => {
     component.switchToEdit();
     component.form.patchValue({ fullName: 'Juan Updated Pérez' });
     await component.save();
-    expect(component.readOnly).toBe(true);
+    expect(component.readOnly()).toBe(true);
   });
 
   it('shows error on save failure', async () => {
@@ -208,5 +235,30 @@ describe('EditPatientDialog', () => {
     initComponent(component);
     component.toggleDose('BCG', 'Al nacer');
     expect(component.isVaccineApplied('BCG', 'Al nacer')).toBe(false);
+  });
+
+  it('requires at least one parent when editing and allows removing one (P32)', () => {
+    const { component, fixture } = createFixture();
+    initComponent(component);
+    component.switchToEdit();
+    fixture.detectChanges();
+    component.form.patchValue({ fatherName: '', motherName: '' });
+    expect(component.form.hasError('atLeastOneParent')).toBe(true);
+    component.form.patchValue({ fatherName: 'Carlos', motherName: '' });
+    expect(component.form.hasError('atLeastOneParent')).toBe(false);
+  });
+
+  it('rejects zero birth measures and a future birth date in edit mode (P31)', () => {
+    const { component, fixture } = createFixture();
+    initComponent(component);
+    component.switchToEdit();
+    fixture.detectChanges();
+    component.form.patchValue({ birthWeight: '0', birthHeight: '0', headCircumference: '0' });
+    expect(component.form.get('birthWeight')?.hasError('greaterThanZero')).toBe(true);
+    expect(component.form.get('birthHeight')?.hasError('greaterThanZero')).toBe(true);
+    expect(component.form.get('headCircumference')?.hasError('greaterThanZero')).toBe(true);
+    component.form.patchValue({ birthDate: new Date(2099, 0, 1) });
+    fixture.detectChanges();
+    expect(component.form.get('birthDate')?.hasError('matDatepickerMax')).toBe(true);
   });
 });

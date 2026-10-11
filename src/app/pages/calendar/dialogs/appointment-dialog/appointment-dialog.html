@@ -1,6 +1,6 @@
 @if (!showNewPatient()) {
   <div class="dialog-title-container">
-    <h2 class="dialog-title">{{ editingAppointment ? 'Reagendar consulta' : 'Agendar una consulta' }}</h2>
+    <h2 class="dialog-title">{{ editingAppointment() ? 'Reagendar consulta' : 'Agendar una consulta' }}</h2>
     <button mat-icon-button class="btn-close-dialog" [mat-dialog-close]="false" aria-label="Cerrar">
       <mat-icon>close</mat-icon>
     </button>
@@ -8,10 +8,10 @@
 
   <mat-dialog-content>
     <form [formGroup]="form">
-      @if (patientLocked) {
+      @if (patientLocked()) {
         <div class="patient-readonly">
           <span class="readonly-label">Paciente</span>
-          <span class="readonly-value">{{ lockedPatientName }}</span>
+          <span class="readonly-value">{{ lockedPatientName() }}</span>
         </div>
       } @else {
         <mat-form-field appearance="outline" class="full-width patient-search">
@@ -20,27 +20,27 @@
             matInput
             #patientInput
             [matAutocomplete]="auto"
-            [formControl]="patientSearchControl"
+            formControlName="patientSearch"
             (focus)="onPatientSearchFocus()"
           />
           <mat-icon matSuffix class="search-suffix" (mousedown)="focusPatientSearch($event)">arrow_drop_down</mat-icon>
           <mat-autocomplete
             #auto="matAutocomplete"
-            [displayWith]="displayPatientFn"
+            [displayWith]="displayPatientFn()"
             (optionSelected)="onPatientSelected($event.option.value)"
           >
-            @for (p of filteredPatients; track p.id) {
+            @for (p of filteredPatients(); track p.id) {
               <mat-option [value]="p">{{ p.name }} {{ p.lastName }}</mat-option>
             }
           </mat-autocomplete>
         </mat-form-field>
       }
       <input type="hidden" formControlName="patientId" />
-      @if (form.get('patientId')?.invalid && (form.get('patientId')?.touched || submitted)) {
-        <mat-error>Selecciona un paciente</mat-error>
+      @if (showPatientSelectionError()) {
+        <mat-error>Selecciona un paciente de los resultados de búsqueda.</mat-error>
       }
 
-      @if (!patientLocked && !hideAddPatient) {
+      @if (!patientLocked() && !hideAddPatient()) {
         <button type="button" class="btn-add-patient" (click)="openNewPatient()">
           + Añadir nuevo paciente
         </button>
@@ -52,24 +52,24 @@
           matInput
           [matDatepicker]="dp"
           formControlName="date"
-          [matDatepickerFilter]="dateFilter"
+          [matDatepickerFilter]="dateFilter()"
           (click)="dp.open()"
         />
         <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
         <mat-datepicker #dp></mat-datepicker>
-        @if (form.get('date')?.invalid && (form.get('date')?.touched || submitted)) {
-          <mat-error>Selecciona un día</mat-error>
+        @if (showDateError()) {
+          <mat-error>{{ dateErrorMessage() }}</mat-error>
         }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Hora</mat-label>
         <mat-select formControlName="time">
-          @for (slot of availableTimes; track slot) {
+          @for (slot of availableTimes(); track slot) {
             <mat-option [value]="slot">{{ slot }}</mat-option>
           }
         </mat-select>
-        @if (form.get('time')?.invalid && (form.get('time')?.touched || submitted)) {
+        @if (form.controls['time']?.invalid && (form.controls['time']?.touched || submitted())) {
           <mat-error>Selecciona una hora</mat-error>
         }
       </mat-form-field>
@@ -78,16 +78,16 @@
         <mat-label>Motivo de la consulta (opcional)</mat-label>
         <textarea matInput formControlName="notes" rows="3" maxlength="100"></textarea>
       </mat-form-field>
-      <span class="char-counter">{{ (form.get('notes')?.value || '').length }}/100</span>
+      <span class="char-counter">{{ (form.controls['notes']?.value || '').length }}/100</span>
 
-      @if (error) {
-        <mat-error class="dialog-error">{{ error }}</mat-error>
+      @if (error()) {
+        <mat-error class="dialog-error">{{ error() }}</mat-error>
       }
     </form>
   </mat-dialog-content>
 
-  @if (overlapWarning) {
-    <div class="alert-overlap">{{ overlapWarning }}</div>
+  @if (overlapWarning()) {
+    <div class="alert-overlap">{{ overlapWarning() }}</div>
   }
 
   <mat-dialog-actions align="end">
@@ -95,19 +95,19 @@
       mat-unelevated-button
       class="btn-primary dialog-btn"
       (click)="save()"
-      [disabled]="saving"
+      [disabled]="saveDisabled()"
     >
-      @if (saving) {
+      @if (saving()) {
         <mat-spinner diameter="18" />
       } @else {
-        {{ editingAppointment ? 'Reagendar' : 'Agendar' }}
+        {{ editingAppointment() ? 'Reagendar' : 'Agendar' }}
       }
     </button>
   </mat-dialog-actions>
 } @else {
   <app-new-patient-dialog
     [embedded]="true"
-    [allPatients]="allPatients"
+    [allPatients]="allPatients()"
     (saved)="onPatientCreated($event)"
     (back)="goBackToAppointment()"
   />

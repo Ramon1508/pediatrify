@@ -55,12 +55,13 @@ export interface Patient {
   phone: string;
   secondaryPhone?: string;
   referredBy?: string;
-  otpPassword: string;
+  /** Legacy input only; secure patient summaries never contain a password. */
+  otpPassword?: string;
   profileComplete?: boolean;
   bloodType?: string;
   birthWeight?: number;
   birthHeight?: number;
-  headCircumference?: number;
+  headCircumference?: number | null;
   sex?: Sexo;
   birthMethod?: 'vaginal' | 'cesarean';
   hasAllergies?: boolean;

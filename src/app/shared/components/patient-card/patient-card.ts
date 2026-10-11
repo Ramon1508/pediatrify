@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -13,13 +13,12 @@ import { Patient } from '../../../core/models/user';
   imports: [MatButtonModule, MatIconModule, MatMenuModule],
 })
 export class PatientCard {
-  @Input({ required: true }) patient!: Patient & { ageDisplay: string };
-  @Input({ required: true }) isAdmin!: boolean;
+  readonly patient = input.required<Patient & { ageDisplay: string }>();
 
-  @Output() edit = new EventEmitter<Patient>();
-  @Output() completeProfile = new EventEmitter<Patient>();
-  @Output() viewHistory = new EventEmitter<Patient>();
-  @Output() setCustomOtp = new EventEmitter<Patient>();
-  @Output() regenerateOtp = new EventEmitter<Patient>();
-  @Output() delete = new EventEmitter<Patient>();
+  readonly edit = output<Patient>();
+  readonly completeProfile = output<Patient>();
+  readonly viewHistory = output<Patient>();
+  readonly viewAccess = output<Patient>();
+  readonly regenerateOtp = output<Patient>();
+  readonly delete = output<Patient>();
 }

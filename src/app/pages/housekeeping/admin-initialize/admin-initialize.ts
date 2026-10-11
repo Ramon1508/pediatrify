@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -39,12 +39,12 @@ export class AdminInitialize implements OnInit {
     this.loading.set(false);
   }
 
-  protected get message(): string {
+  protected readonly message = computed(() => {
     const result = this.result();
     return result ? RESULT_MESSAGES[result] : '';
-  }
+  });
 
-  protected get icon(): string {
+  protected readonly icon = computed(() => {
     return this.result() === 'error' ? 'error' : 'check_circle';
-  }
+  });
 }

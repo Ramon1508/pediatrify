@@ -1,75 +1,37 @@
 import { Injectable, inject } from '@angular/core';
-import {
-  Firestore,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  onSnapshot,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
 import { ClinicalRecord } from '../models/clinical-record';
 import { dateStringToLocalDate, dateToString } from '../utils/date-utils';
-import { Observable } from 'rxjs';
+import { Observable, of, switchMap } from 'rxjs';
+import { ClinicGatewayService, clinicFields } from '../services/clinic-gateway.service';
 
-@Injectable({
-  providedIn: 'root',
-})
+const RECORD_FIELDS = ['date', 'weight', 'height', 'headCircumference', 'bmi', 'saturation', 'temperature', 'motivoConsulta', 'diagnosis', 'notas', 'recommendations', 'visibleUntil', 'prescription', 'visibleUntilRx'];
+
+@Injectable({ providedIn: 'root' })
 export class ClinicalRecordRepository {
   private firebase = inject(FirebaseService);
-
-  private get db(): Firestore {
-    return this.firebase.firestore;
-  }
-
-  private get ref() {
-    return collection(this.db, 'clinicalRecords');
-  }
-
-  private docRef(id: string) {
-    return doc(this.db, 'clinicalRecords', id);
-  }
-
-  private mapRecord(data: any): ClinicalRecord {
-    return {
-      ...data,
-      date: dateToString(data.date),
+  private gateway = inject(ClinicGatewayService);
+  private get db() { return this.firebase.firestore; }
+  private mapRecord(snapshot: {id: string; data(): unknown}): ClinicalRecord {
+    const data = snapshot.data() as ClinicalRecord;
+    return { ...data, id: snapshot.id, date: dateToString(data.date),
       visibleUntil: data.visibleUntil ? dateToString(data.visibleUntil) : undefined,
-      visibleUntilRx: data.visibleUntilRx ? dateToString(data.visibleUntilRx) : undefined,
-    } as ClinicalRecord;
+      visibleUntilRx: data.visibleUntilRx ? dateToString(data.visibleUntilRx) : undefined };
   }
-
-  private normalizeRecordDates<T extends Partial<ClinicalRecord>>(data: T): T {
-    const normalized: any = { ...data };
-    if ('date' in normalized) normalized.date = dateToString(normalized.date);
-    if ('visibleUntil' in normalized && normalized.visibleUntil) {
-      normalized.visibleUntil = dateToString(normalized.visibleUntil);
-    }
-    if ('visibleUntilRx' in normalized && normalized.visibleUntilRx) {
-      normalized.visibleUntilRx = dateToString(normalized.visibleUntilRx);
-    }
-    return normalized as T;
+  private changes(data: Partial<ClinicalRecord>) {
+    const clean = clinicFields(data, RECORD_FIELDS);
+    for (const key of ['date', 'visibleUntil', 'visibleUntilRx']) if (clean[key]) clean[key] = dateToString(clean[key]);
+    return clean;
   }
-
   async get(id: string): Promise<ClinicalRecord | null> {
-    const snapshot = await getDoc(this.docRef(id));
-    return snapshot.exists() ? this.mapRecord(snapshot.data()) : null;
+    if (this.gateway.principal()?.role !== 'doctor') throw new Error('Esta cuenta no puede consultar expedientes clínicos.');
+    const snapshot = await getDoc(doc(this.db, 'clinicalRecords', id));
+    return snapshot.exists() ? this.mapRecord(snapshot) : null;
   }
-
   async create(id: string, data: ClinicalRecord): Promise<void> {
-    await setDoc(this.docRef(id), {
-      ...this.normalizeRecordDates(data),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    await this.gateway.mutate('record.create', id, this.changes(data), data.patientId);
   }
-
   async seedTestRecords(patientId: string, birthDate: string): Promise<void> {
     const data: { ageMo: number; weight: number; height: number }[] = [
       { ageMo: 0,  weight: 3.2, height: 50 },
@@ -114,36 +76,31 @@ export class ClinicalRecordRepository {
       });
     }
   }
-
   async update(id: string, data: Partial<ClinicalRecord>): Promise<void> {
-    await updateDoc(this.docRef(id), {
-      ...this.normalizeRecordDates(data),
-      updatedAt: serverTimestamp(),
-    });
+    await this.gateway.mutate('record.update', id, this.changes(data));
   }
-
-  async delete(id: string): Promise<void> {
-    await deleteDoc(this.docRef(id));
-  }
-
-  async deleteMany(ids: string[]): Promise<void> {
-    await Promise.all(ids.map((id) => deleteDoc(this.docRef(id))));
-  }
+  async delete(id: string): Promise<void> { await this.gateway.mutate('record.delete', id); }
+  async deleteMany(ids: string[]): Promise<void> { for (const id of ids) await this.delete(id); }
 
   async getByPatient(patientId: string): Promise<ClinicalRecord[]> {
-    const q = query(this.ref, where('patientId', '==', patientId));
-    const docsSnap = await getDocs(q);
-    return docsSnap.docs.map((d) => this.mapRecord(d.data()));
+    const principal = this.gateway.principal();
+    if (principal?.role === 'patient') {
+      const identity = principal.authUid;
+      const lease = this.gateway.lease()?.id;
+      const result = await this.gateway.call<{records: ClinicalRecord[]}>('getClinicPublications', { patientId });
+      if (identity !== this.gateway.principal()?.authUid || lease !== this.gateway.lease()?.id) return [];
+      return result.records;
+    }
+    if (principal?.role !== 'doctor' || !principal.doctorId) throw new Error('Esta cuenta no puede consultar expedientes clínicos.');
+    const source = query(collection(this.db, 'clinicalRecords'), where('doctorId', '==', principal.doctorId), where('patientId', '==', patientId));
+    return (await getDocs(source)).docs.map(item => this.mapRecord(item));
   }
-
   watchByPatient(patientId: string): Observable<ClinicalRecord[]> {
-    return new Observable((subscriber) => {
-      const q = query(this.ref, where('patientId', '==', patientId));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const items = snapshot.docs.map((d) => this.mapRecord(d.data()));
-        subscriber.next(items);
-      });
-      return { unsubscribe };
-    });
+    return this.gateway.scope$.pipe(switchMap(principal => {
+      if (principal?.role !== 'doctor' || !principal.doctorId) return of([]);
+      const source = query(collection(this.db, 'clinicalRecords'), where('doctorId', '==', principal.doctorId), where('patientId', '==', patientId));
+      return new Observable<ClinicalRecord[]>(subscriber => onSnapshot(source,
+        snapshot => subscriber.next(snapshot.docs.map(item => this.mapRecord(item))), error => subscriber.error(error)));
+    }));
   }
 }

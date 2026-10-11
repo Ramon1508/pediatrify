@@ -3,11 +3,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { FirebaseService } from '../../../core/firebase/firebase.service';
 import { AlertService } from '../../../core/services/alert.service';
+import { createLogoObjectPath } from '../../../core/utils/logo-utils';
 
 export interface UploadResult {
   url: string;
   path: string;
 }
+
+const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml'];
 
 @Component({
   selector: 'app-file-upload',
@@ -22,17 +25,26 @@ export class FileUpload {
   private alert = inject(AlertService);
 
   label = input('Seleccionar archivo');
-  accept = input('.png,.jpg');
-  maxSize = input(200 * 1024);
+  accept = input('.png,.jpg,.jpeg,.svg');
+  maxSize = input(1024 * 1024);
   id = input<string | null>(null);
   initialPreview = input('');
   initialFileName = input('');
 
+  /**
+   * Emite la selección pendiente con una URL de previsualización (object URL) y la
+   * ruta destino; NO sube el archivo. El padre debe llamar a `upload()` al guardar,
+   * de modo que cancelar descarte la selección sin escribir en Storage (P35).
+   */
   uploaded = output<UploadResult | null>();
 
   protected preview = signal<string | null>(null);
   protected uploading = signal(false);
   protected fileName = signal('');
+
+  private pendingFile: File | null = null;
+  private objectUrl: string | null = null;
+  private pendingPath = '';
 
   constructor() {
     effect(() => {
@@ -48,55 +60,76 @@ export class FileUpload {
 
     const file = input.files[0];
 
-    if (!['image/png', 'image/jpeg'].includes(file.type)) {
-      this.alert.error({ message: 'Solo se aceptan archivos .png y .jpg', duration: 5000 });
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      this.alert.error({ message: 'Solo se aceptan archivos .png, .jpg y .svg', duration: 5000 });
       input.value = '';
       return;
     }
 
     if (file.size > this.maxSize()) {
-      this.alert.error({ message: `El archivo no debe superar los ${(this.maxSize() / 1024).toFixed(0)} KB`, duration: 5000 });
+      this.alert.error({ message: `El archivo no debe superar los ${Math.round(this.maxSize() / 1024 / 1024)} MB`, duration: 5000 });
       input.value = '';
       return;
     }
 
+    this.clearPending();
+    this.pendingFile = file;
+    this.pendingPath = createLogoObjectPath(this.id(), file.name);
     this.fileName.set(file.name);
-    this.uploading.set(true);
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.preview.set(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    this.uploadFile(file);
+    this.objectUrl = URL.createObjectURL(file);
+    this.preview.set(this.objectUrl);
+    this.uploaded.emit({ url: this.objectUrl, path: this.pendingPath });
+    input.value = '';
   }
 
-  private async uploadFile(file: File) {
+  /** Sube el archivo seleccionado, si lo hay. Devuelve la referencia final o null. */
+  async upload(): Promise<UploadResult | null> {
+    const file = this.pendingFile;
+    if (!file) return null;
+    this.uploading.set(true);
     try {
-      const idPrefix = this.id() ? `${this.id()}/` : '';
-      // Ruta determinista: re-subir el logo lo guarda en el MISMO archivo (sin timestamp),
-      // de modo que perfil y configuración de impresión apunten al mismo objeto.
-      const bucket = `logos/${idPrefix}${file.name}`;
+      const bucket = this.pendingPath;
       const storageRef = ref(this.firebase.storage, bucket);
-
       const snap = await uploadBytes(storageRef, file, { contentType: file.type });
       const url = await getDownloadURL(snap.ref);
-
       const separator = url.includes('?') ? '&' : '?';
-      this.uploaded.emit({ url: `${url}${separator}v=${Date.now()}`, path: bucket });
-    } catch (e: any) {
+      this.clearPending();
+      const result = { url: `${url}${separator}v=${Date.now()}`, path: bucket };
+      this.preview.set(result.url);
+      return result;
+    } catch {
       this.alert.error({ message: 'Error al subir el archivo', duration: 5000 });
-      this.preview.set(null);
-      this.fileName.set('');
+      return null;
     } finally {
       this.uploading.set(false);
     }
   }
 
+  get hasPending(): boolean {
+    return this.pendingFile !== null;
+  }
+
   remove() {
+    this.clearPending();
     this.preview.set(null);
     this.fileName.set('');
     this.uploaded.emit(null);
+  }
+
+  /** Descarta una selección pendiente sin emitir (p. ej. al cancelar la edición). */
+  reset() {
+    this.clearPending();
+    const url = this.initialPreview();
+    this.preview.set(url || null);
+    this.fileName.set(url ? this.initialFileName() : '');
+  }
+
+  private clearPending() {
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
+    }
+    this.pendingFile = null;
+    this.pendingPath = '';
   }
 }

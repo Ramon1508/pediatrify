@@ -1,88 +1,89 @@
-<div class="profile-content" [class.profile-editing]="!readOnly">
+<div class="profile-content" [class.profile-editing]="!readOnly()">
   <div class="profile-header">
     <h1 class="profile-title">Perfil</h1>
-    @if (!asPage) {
-      <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar">
+    @if (!asPage()) {
+      <button mat-icon-button class="btn-close-dialog" (click)="close()" [disabled]="saving()" aria-label="Cerrar">
         <mat-icon>close</mat-icon>
       </button>
     }
   </div>
 
   <div class="profile-body">
-    <form [formGroup]="form">
-      @if (readOnly && isSimpleProfile) {
+    <form [formGroup]="form()">
+      @if (readOnly() && isSimpleProfile()) {
         <div class="profile-field">
-          <span class="field-label">{{ roleDisplay }}</span>
-          <span class="field-value">{{ doctor?.name }}</span>
+          <span class="field-label">{{ roleDisplay() }}</span>
+          <span class="field-value">{{ doctor()?.name }}</span>
         </div>
         <div class="profile-field">
           <span class="field-label">Correo electrónico</span>
-          <span class="field-value">{{ doctor?.email }}</span>
+          <span class="field-value">{{ doctor()?.email }}</span>
         </div>
-      } @else if (readOnly) {
+      } @else if (readOnly()) {
         <div class="profile-field">
           <span class="field-label">Doctor(a)</span>
-          <span class="field-value">{{ doctor?.name || '—' }}</span>
+          <span class="field-value">{{ doctor()?.name || '—' }}</span>
         </div>
-        @if (doctor?.sexo) {
+        @if (doctor()?.sexo) {
           <div class="profile-field">
             <span class="field-label">Sexo</span>
-            <span class="field-value">{{ SexoLabel[doctor!.sexo!] }}</span>
+            <span class="field-value">{{ sexLabel() }}</span>
           </div>
         }
-        @if(doctor?.phone) {
+        @if(doctor()?.phone) {
           <div class="profile-field">
             <span class="field-label">Teléfono</span>
-            <span class="field-value">{{ doctor?.phone || '—' }}</span>
+            <span class="field-value">{{ doctor()?.phone || '—' }}</span>
           </div>
         }
-        @if (doctor?.especialidad) {
+        @if (doctor()?.especialidad) {
           <div class="profile-field">
             <span class="field-label">Especialidad</span>
-            <span class="field-value">{{ doctor?.especialidad || '—' }}</span>
+            <span class="field-value">{{ doctor()?.especialidad || '—' }}</span>
           </div>
         }
-        @if (doctor?.cedula) {
+        @if (doctor()?.cedula) {
           <div class="profile-field">
             <span class="field-label">Cédula profesional</span>
-            <span class="field-value">{{ doctor?.cedula || '—' }}</span>
+            <span class="field-value">{{ doctor()?.cedula || '—' }}</span>
           </div>
         }
-        @if (doctor?.cedulaEspecialidad) {
+        @if (doctor()?.cedulaEspecialidad) {
           <div class="profile-field">
             <span class="field-label">Cédula de especialidad</span>
-            <span class="field-value">{{ doctor?.cedulaEspecialidad || '—' }}</span>
+            <span class="field-value">{{ doctor()?.cedulaEspecialidad || '—' }}</span>
           </div>
         }
         <div class="profile-field">
           <span class="field-label">Correo electrónico</span>
-          <span class="field-value">{{ doctor?.email || '—' }}</span>
+          <span class="field-value">{{ doctor()?.email || '—' }}</span>
         </div>
-        @if (doctor?.consultorios) {
+        @if (doctor()?.consultorios) {
           <div class="profile-field">
             <span class="field-label">Consultorio</span>
-            <span class="field-value consultorio-value">{{ doctor?.consultorios || '—' }}</span>
+            <span class="field-value consultorio-value">{{ doctor()?.consultorios || '—' }}</span>
           </div>
         }
-        @if (logoFileName) {
+        @if (logoFileName()) {
           <div class="profile-field">
             <span class="field-label">Logotipo</span>
-            <a class="field-value logo-link" [href]="logoUrl" target="_blank" rel="noopener">{{ logoFileName }}</a>
+            <a class="field-value logo-link" [href]="logoUrl()" target="_blank" rel="noopener">{{ logoFileName() }}</a>
           </div>
         }
       } @else {
-        <mat-form-field appearance="outline" class="profile-form-field">
-          <mat-label>Doctor(a)</mat-label>
-          <input matInput formControlName="name" />
-          @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <mat-error>Ingresa el nombre del doctor</mat-error>
+        <mat-form-field appearance="outline" class="profile-form-field profile-name-field">
+          <mat-label>{{ nameLabel() }}</mat-label>
+          <input matInput formControlName="name" [readonly]="!nameEditable() || saving()" />
+          @if (nameError()) {
+            <mat-error>{{ nameErrorMessage() }}</mat-error>
           }
         </mat-form-field>
 
+        @if (!isSimpleProfile()) {
         <mat-form-field appearance="outline" class="profile-form-field">
           <mat-label>Sexo</mat-label>
           <mat-select formControlName="sexo">
-            @for (opt of sexoOptions; track opt.value) {
+            @for (opt of sexoOptions(); track opt.value) {
               <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
             }
           </mat-select>
@@ -107,12 +108,16 @@
           <mat-label>Cédula de especialidad</mat-label>
           <input matInput formControlName="cedulaEspecialidad" />
         </mat-form-field>
+        }
 
-        <mat-form-field appearance="outline" class="profile-form-field">
+        <mat-form-field appearance="outline" class="profile-form-field profile-email-field">
           <mat-label>Correo electrónico</mat-label>
-          <input matInput formControlName="email" readonly />
+          <input matInput formControlName="email" type="email" [readonly]="!emailEditable() || saving()" />
+          @if (emailError()) { <mat-error>Ingresa un correo electrónico válido de hasta 254 caracteres.</mat-error> }
         </mat-form-field>
+        @if (emailChanged()) { <p>Al guardar, iniciarás sesión de nuevo con el nuevo correo y tu contraseña actual.</p> }
 
+        @if (!isSimpleProfile()) {
         <mat-form-field appearance="outline" class="profile-form-field">
           <mat-label>Consultorio</mat-label>
           <textarea matInput formControlName="consultorios" cdkTextareaAutosize cdkAutosizeMinRows="2" cdkAutosizeMaxRows="6"></textarea>
@@ -120,14 +125,15 @@
 
         <div class="profile-field">
           <span class="field-label">Logotipo</span>
-          <app-file-upload (uploaded)="onLogoUploaded($event)" [id]="doctor?.uid ?? null" label="Subir archivo" [initialPreview]="logoUrl" [initialFileName]="logoFileName" />
+          <app-file-upload (uploaded)="onLogoUploaded($event)" [id]="doctor()?.uid ?? null" label="Subir archivo" [initialPreview]="logoUrl()" [initialFileName]="logoFileName()" />
         </div>
+        }
       }
     </form>
   </div>
 
-  <div class="profile-footer" [class.profile-read-actions]="readOnly">
-    @if (showSaved) {
+  <div class="profile-footer" [class.profile-read-actions]="readOnly()">
+    @if (showSaved()) {
       <div class="saved-snackbar">
         <span>Cambios guardados.</span>
         <button mat-icon-button class="saved-close" (click)="dismissSaved()" aria-label="Cerrar">
@@ -137,23 +143,21 @@
     }
     <mat-divider />
     <div class="footer-actions">
-      @if (isSimpleProfile) {
-        <button mat-unelevated-button class="btn-primary profile-btn" (click)="logout()">
-          Cerrar sesión
-        </button>
-      } @else if (readOnly) {
+      @if (readOnly()) {
+        @if (canEditProfile()) {
         <button mat-stroked-button class="btn-secondary profile-btn" (click)="switchToEdit()">
           Editar perfil
         </button>
+        }
         <button mat-unelevated-button class="btn-primary profile-btn" (click)="logout()">
           Cerrar sesión
         </button>
       } @else {
-        <button mat-stroked-button class="btn-secondary profile-btn desktop-dialog-action" (click)="cancelEdit()">
+        <button mat-stroked-button class="btn-secondary profile-btn" [class.desktop-dialog-action]="!isSimpleProfile()" (click)="cancelEdit()" [disabled]="saving()">
           Cancelar
         </button>
-        <button mat-unelevated-button class="btn-primary profile-btn" (click)="save()" [disabled]="saving">
-          @if (saving) {
+        <button mat-unelevated-button class="btn-primary profile-btn" (click)="save()" [disabled]="saveDisabled()">
+          @if (saving()) {
             <mat-spinner diameter="18" />
           } @else {
             Guardar cambios

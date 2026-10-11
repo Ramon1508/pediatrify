@@ -6,10 +6,12 @@ import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { CompleteProfileDialog } from './complete-profile-dialog';
 import { PatientRepository } from '../../../../core/repositories/patient.repository';
 import { AlertService } from '../../../../core/services/alert.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 describe('CompleteProfileDialog', () => {
   const mockPatient = {
     id: 'p1',
+    doctorId: 'doctor-test',
     name: 'Juan',
     lastName: 'Pérez',
     email: 'juan@mail.com',
@@ -23,7 +25,8 @@ describe('CompleteProfileDialog', () => {
   function createFixture() {
     const patientRepo = {
       updatePatient: vi.fn().mockResolvedValue(undefined),
-      getAllPatients: vi.fn().mockResolvedValue([]),
+      getAllPatients: vi.fn(),
+      getPatientsByDoctor: vi.fn().mockResolvedValue([]),
     };
     const alertService = { success: vi.fn(), error: vi.fn() };
     const dialogRef = { close: vi.fn() };
@@ -35,6 +38,7 @@ describe('CompleteProfileDialog', () => {
         { provide: MAT_DATE_LOCALE, useValue: 'es-MX' },
         { provide: PatientRepository, useValue: patientRepo },
         { provide: AlertService, useValue: alertService },
+        { provide: AuthService, useValue: { currentDoctor: { uid: 'doctor-test', role: 'doctor' } } },
         { provide: MatDialogRef, useValue: dialogRef },
       ],
     });
@@ -45,6 +49,30 @@ describe('CompleteProfileDialog', () => {
     fixture.detectChanges();
     return { fixture, component, patientRepo, alertService, dialogRef };
   }
+
+  it('scopes referral suggestions to the doctor without unrelated or legacy patients', async () => {
+    const { component, patientRepo } = createFixture();
+    patientRepo.getPatientsByDoctor.mockResolvedValueOnce([
+      mockPatient,
+      { ...mockPatient, id: 'foreign', doctorId: 'other-doctor' },
+      { ...mockPatient, id: 'legacy', doctorId: undefined },
+    ]);
+    component.setPatient(mockPatient);
+    await vi.waitFor(() => expect(component.filteredPatients()).toHaveLength(1));
+    expect(component.filteredPatients()[0].id).toBe('p1');
+    expect(patientRepo.getPatientsByDoctor).toHaveBeenCalledWith('doctor-test');
+    expect(patientRepo.getAllPatients).not.toHaveBeenCalled();
+  });
+
+  it('does not load suggestions for a patient outside the doctor scope', async () => {
+    const { component, patientRepo } = createFixture();
+    patientRepo.getPatientsByDoctor.mockClear();
+    component.setPatient({ ...mockPatient, doctorId: 'other-doctor' });
+    await Promise.resolve();
+    expect(component.filteredPatients()).toEqual([]);
+    expect(patientRepo.getPatientsByDoctor).not.toHaveBeenCalled();
+    expect(patientRepo.getAllPatients).not.toHaveBeenCalled();
+  });
 
   it('renders title', async () => {
     const { fixture } = createFixture();
@@ -61,7 +89,7 @@ describe('CompleteProfileDialog', () => {
 
   it('shows save button on step 3', async () => {
     const { component, fixture } = createFixture();
-    component.step = 3;
+    component.step.set(3);
     component.cdr.markForCheck();
     fixture.detectChanges();
     await fixture.whenStable();
@@ -100,6 +128,17 @@ describe('CompleteProfileDialog', () => {
     });
     await component.save();
     expect(alertService.error).toHaveBeenCalled();
+  });
+
+  it('rejects zero birth measures and a future birth date (P31)', () => {
+    const { component, fixture } = createFixture();
+    component.form.patchValue({ birthWeight: '0', birthHeight: '0', headCircumference: '0' });
+    expect(component.form.get('birthWeight')?.hasError('greaterThanZero')).toBe(true);
+    expect(component.form.get('birthHeight')?.hasError('greaterThanZero')).toBe(true);
+    expect(component.form.get('headCircumference')?.hasError('greaterThanZero')).toBe(true);
+    component.form.patchValue({ birthDate: new Date(2099, 0, 1) });
+    fixture.detectChanges();
+    expect(component.form.get('birthDate')?.hasError('matDatepickerMax')).toBe(true);
   });
 
   it('closes dialog on close()', () => {

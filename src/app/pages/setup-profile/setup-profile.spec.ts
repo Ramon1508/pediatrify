@@ -1,309 +1,128 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Component, input, output } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { SetupProfile } from './setup-profile';
 import { AuthService } from '../../core/services/auth.service';
-import { InvitationRepository } from '../../core/repositories/invitation.repository';
+import { StaffInvitationService } from '../../core/services/staff-invitation.service';
 import { PrintSettingsRepository } from '../../core/repositories/print-settings.repository';
 import { AlertService } from '../../core/services/alert.service';
-import { MatDialog } from '@angular/material/dialog';
-import { Sexo } from '../../core/models/sexo';
-import { of } from 'rxjs';
+import { Header } from '../../shared/components/header/header';
+import { FileUpload } from '../../shared/components/file-upload/file-upload';
 
-describe('SetupProfile', () => {
-  let fixture: ComponentFixture<SetupProfile>;
-  let component: SetupProfile;
-  let authService: AuthService;
-  let alertService: AlertService;
-  let router: Router;
+@Component({ selector: 'app-header', template: '' }) class HeaderStub {}
+@Component({ selector: 'app-file-upload', template: '' }) class UploadStub {
+  id = input(''); label = input(''); uploaded = output<unknown>();
+}
+const token = 'x'.repeat(43);
+const valid = { sexo: 1, phone: '5512345678', especialidad: '', cedula: '123', cedulaEspecialidad: '',
+  consultorios: 'Consultorio de prueba', password: 'Synthetic123!', confirmPassword: 'Synthetic123!' };
 
-  beforeEach(async () => {
-    const authSpy = {
-      registerFromInvitation: vi.fn(),
-      completeProfile: vi.fn(),
-      session$: of(null),
-    } as any;
-    Object.defineProperty(authSpy, 'currentDoctor', { get: () => null, configurable: true });
-    Object.defineProperty(authSpy, 'isDoctor', { get: () => false });
-    const alertSpy = { success: vi.fn(), error: vi.fn() } as any;
-    const routerSpy = { navigate: vi.fn() } as any;
-    const invitationSpy = { findPendingUserByEmail: vi.fn() } as any;
-
-    await TestBed.configureTestingModule({
-      imports: [SetupProfile, NoopAnimationsModule],
-      providers: [
-        { provide: AuthService, useValue: authSpy },
-        { provide: AlertService, useValue: alertSpy },
-        { provide: Router, useValue: routerSpy },
-        { provide: InvitationRepository, useValue: invitationSpy },
-        { provide: PrintSettingsRepository, useValue: { getSettings: vi.fn().mockResolvedValue({ usePreloadedLogo: true }), updateSettings: vi.fn().mockResolvedValue(undefined) } },
-        { provide: MatDialog, useValue: { open: vi.fn() } },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: { queryParams: {} },
-          },
-        },
-      ],
-    }).compileComponents();
-
-    fixture = TestBed.createComponent(SetupProfile);
-    component = fixture.componentInstance;
-    authService = TestBed.inject(AuthService);
-    alertService = TestBed.inject(AlertService);
-    router = TestBed.inject(Router);
-    fixture.detectChanges();
-    (component as any).mode.set('existing');
-      (component as any).displayEmail.set('doc@test.com');
-    fixture.detectChanges();
-  });
-
-  it('creates the component', () => {
-    expect(component).toBeTruthy();
-  });
-
-  it('renders form fields', () => {
-    const el = fixture.nativeElement;
-    expect(el.textContent).toContain('Registro');
-    expect(el.textContent).toContain('Sexo');
-    expect(el.textContent).toContain('Teléfono');
-    expect(el.textContent).toContain('Cédula profesional');
-    expect(el.textContent).toContain('Consultorio(s)');
-  });
-
-  describe('form validation', () => {
-    it('is invalid when required fields are empty', () => {
-      expect((component as any).form.invalid).toBe(true);
-    });
-
-    it('is valid when all required fields are filled', () => {
-      (component as any).form.setValue({
-        sexo: Sexo.Masculino,
-        phone: '5512345678',
-        especialidad: '',
-        cedula: '12345678',
-        cedulaEspecialidad: '',
-        consultorios: 'Consultorio 1',
-        password: 'Pass1234!',
-        confirmPassword: 'Pass1234!',
-      });
-      expect((component as any).form.valid).toBe(true);
-    });
-
-    it('validates phone pattern (10 digits)', () => {
-      const phone = (component as any).form.get('phone')!;
-      phone.setValue('12345');
-      expect(phone.hasError('pattern')).toBe(true);
-
-      phone.setValue('5512345678');
-      expect(phone.valid).toBe(true);
-    });
-
-    it('requires sexo field', () => {
-      const sexo = (component as any).form.get('sexo')!;
-      expect(sexo.hasError('required')).toBe(true);
-
-      sexo.setValue(Sexo.Femenino);
-      expect(sexo.valid).toBe(true);
-    });
-
-    it('password requires min 8 chars with uppercase, lowercase, number, symbol', () => {
-      (component as any).passwordControl.setValue('Ab1!');
-      expect((component as any).passwordControl.hasError('minlength')).toBe(true);
-
-      (component as any).passwordControl.setValue('Pass123!');
-      expect((component as any).passwordControl.valid).toBe(true);
-    });
-  });
-
-  describe('finish()', () => {
-    function fillValidForm() {
-      (component as any).form.setValue({
-        sexo: Sexo.Masculino,
-        phone: '5512345678',
-        especialidad: 'Pediatría',
-        cedula: '12345678',
-        cedulaEspecialidad: '',
-        consultorios: 'Consultorio A',
-        password: 'Pass1234!',
-        confirmPassword: 'Pass1234!',
-      });
-    }
-
-    it('does not call auth service when form invalid', async () => {
-      await (component as any).finish();
-      expect(authService.completeProfile).not.toHaveBeenCalled();
-      expect(authService.registerFromInvitation).not.toHaveBeenCalled();
-    });
-
-    it('does not proceed when passwords do not match', async () => {
-      fillValidForm();
-      (component as any).passwordControl.setValue('Pass1234!');
-      (component as any).confirmPasswordControl.setValue('OtherPa$$1');
-
-      await (component as any).finish();
-      expect(authService.completeProfile).not.toHaveBeenCalled();
-    });
-
-    it('calls completeProfile in existing mode', async () => {
-      (component as any).mode.set('existing');
-    (component as any).displayEmail.set('doc@test.com');
-      fillValidForm();
-      (authService.completeProfile as any).mockResolvedValue(undefined);
-
-      await (component as any).finish();
-
-      expect(authService.completeProfile).toHaveBeenCalled();
-      expect(router.navigate).toHaveBeenCalledWith(['/login'], {
-        queryParams: { registered: 'true' },
-      });
-    });
-
-    it('sets finishing to false after error', async () => {
-      (component as any).mode.set('existing');
-      fillValidForm();
-      (authService.completeProfile as any).mockRejectedValue({ code: 'auth/weak-password' });
-
-      await (component as any).finish();
-
-      expect((component as any).finishing()).toBe(false);
-      expect(alertService.error).toHaveBeenCalled();
-    });
-  });
-
-  describe('sexoOptions', () => {
-    it('contains all three options', () => {
-      expect((component as any).sexoOptions.length).toBe(3);
-      expect((component as any).sexoOptions[0].value).toBe(Sexo.Masculino);
-      expect((component as any).sexoOptions[1].value).toBe(Sexo.Femenino);
-      expect((component as any).sexoOptions[2].value).toBe(Sexo.Otro);
-    });
-  });
-
-  it('onLogoUploaded sets logoPath', () => {
-    (component as any).onLogoUploaded({ url: 'http://img', path: 'logos/file.png' });
-    expect((component as any).logoPath()).toBe('logos/file.png');
-
-    (component as any).onLogoUploaded(null);
-    expect((component as any).logoPath()).toBeNull();
-  });
-
-  it('persists one doctor logo and enables the preloaded logo setting', async () => {
-    Object.defineProperty(authService, 'currentDoctor', { get: () => ({ uid: 'd1', role: 'doctor' }), configurable: true });
-    (component as any).mode.set('existing');
-    (component as any).displayEmail.set('doc@test.com');
-    (component as any).form.patchValue({
-      sexo: Sexo.Masculino,
-      phone: '6141234567',
-      especialidad: 'Pediatría',
-      cedula: '12345',
-      cedulaEspecialidad: '',
-      consultorios: 'Consultorio A',
-      password: 'Pass1234!',
-      confirmPassword: 'Pass1234!',
-    });
-    (component as any).onLogoUploaded({ url: 'http://img', path: 'logos/d1/logo.png' });
-
-    await (component as any).finish();
-
-    expect(authService.completeProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ logoPath: 'logos/d1/logo.png' }),
-      'Pass1234!'
-    );
-    expect(TestBed.inject(PrintSettingsRepository).updateSettings).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({ usePreloadedLogo: true })
-    );
-  });
-});
-
-describe('SetupProfile invitation by role', () => {
-  async function createInvitationFixture(role: 'admin' | 'assistant' | 'doctor') {
-    TestBed.resetTestingModule();
-    const authSpy = {
-      registerFromInvitation: vi.fn(),
-      completeProfile: vi.fn(),
-      session$: of(null),
-    } as any;
-    Object.defineProperty(authSpy, 'currentDoctor', { get: () => null });
-    Object.defineProperty(authSpy, 'isDoctor', { get: () => false });
-    const alertSpy = { success: vi.fn(), error: vi.fn() } as any;
-    const routerSpy = { navigate: vi.fn() } as any;
-    const invitationSpy = {
-      findPendingUserByEmail: vi.fn().mockResolvedValue({
-        uid: 'u1',
-        email: 'user@test.com',
-        name: 'Test User',
-        role,
-      }),
-    } as any;
-
-    await TestBed.configureTestingModule({
-      imports: [SetupProfile, NoopAnimationsModule],
-      providers: [
-        { provide: AuthService, useValue: authSpy },
-        { provide: AlertService, useValue: alertSpy },
-        { provide: Router, useValue: routerSpy },
-        { provide: InvitationRepository, useValue: invitationSpy },
-        { provide: PrintSettingsRepository, useValue: { getSettings: vi.fn().mockResolvedValue({ usePreloadedLogo: true }), updateSettings: vi.fn().mockResolvedValue(undefined) } },
-        { provide: MatDialog, useValue: { open: vi.fn() } },
-        {
-          provide: ActivatedRoute,
-          useValue: { snapshot: { queryParams: { email: 'user@test.com' } } },
-        },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(SetupProfile);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    return fixture;
+describe('SetupProfile secure invitation', () => {
+  async function setup(options: { role?: string; fragment?: string | null; email?: string; existing?: any; failure?: any } = {}) {
+    const invitations = { inspect: vi.fn().mockResolvedValue({ userId: 'pending', name: 'Nombre ficticio',
+      email: 'invited@example.test', role: options.role ?? 'doctor', expiresAt: 123456789 }) };
+    if (options.failure) invitations.inspect.mockRejectedValue(options.failure);
+    const auth = { registerFromInvitation: vi.fn().mockResolvedValue(undefined), completeProfile: vi.fn().mockResolvedValue(undefined),
+      currentDoctor: options.existing ?? null, isDoctor: !!options.existing };
+    const print = { getSettings: vi.fn().mockResolvedValue({}), updateSettings: vi.fn().mockResolvedValue(undefined) };
+    const alert = { error: vi.fn() }; const router = { navigate: vi.fn().mockResolvedValue(true) };
+    TestBed.configureTestingModule({ imports: [SetupProfile, NoopAnimationsModule], providers: [
+      { provide: AuthService, useValue: auth }, { provide: StaffInvitationService, useValue: invitations },
+      { provide: PrintSettingsRepository, useValue: print }, { provide: AlertService, useValue: alert },
+      { provide: Router, useValue: router }, { provide: ActivatedRoute, useValue: { snapshot: {
+        fragment: options.fragment === undefined ? 'invitation=' + token : options.fragment,
+        queryParams: options.email ? { email: options.email } : {} } } },
+    ] }).overrideComponent(SetupProfile, { remove: { imports: [Header, FileUpload] }, add: { imports: [HeaderStub, UploadStub] } });
+    const fixture = TestBed.createComponent(SetupProfile); const component = fixture.componentInstance as any;
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    return { fixture, component, auth, print, alert, router, invitations };
   }
+  function fill(component: any, values = valid) { component.form().setValue(values); component.form().markAsDirty(); }
 
-  it('admin sees only password fields', async () => {
-    const fixture = await createInvitationFixture('admin');
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Bienvenido');
-    expect(el.textContent).not.toContain('Sexo');
-    expect(el.textContent).not.toContain('Cédula profesional');
-    expect(el.textContent).not.toContain('Consultorio(s)');
-    expect(el.textContent).toContain('Contraseña');
+  it('validates the capability before showing readonly identity and professional fields', async () => {
+    const { fixture, component, invitations } = await setup();
+    expect(invitations.inspect).toHaveBeenCalledExactlyOnceWith(token);
+    expect(component.mode()).toBe('invitation'); expect(component.displayEmail()).toBe('invited@example.test');
+    expect(fixture.nativeElement.querySelector('input[formControlName="email"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-file-upload')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Puedes agregar tu logotipo desde Perfil');
+    expect(component.saveDisabled()).toBe(true);
   });
-
-  it('assistant sees only password fields', async () => {
-    const fixture = await createInvitationFixture('assistant');
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).not.toContain('Sexo');
-    expect(el.textContent).not.toContain('Cédula profesional');
-    expect(el.textContent).not.toContain('Consultorio(s)');
-    expect(el.textContent).toContain('Contraseña');
+  it.each(['email', 'bad-fragment', 'missing'])('rejects %s without an email-based fallback', async kind => {
+    const { component, invitations, auth } = await setup({ fragment: kind === 'bad-fragment' ? 'invitation=invalid' : null,
+      email: kind === 'email' ? 'invited@example.test' : undefined });
+    expect(component.mode()).toBe('invalid'); expect(invitations.inspect).not.toHaveBeenCalled();
+    await component.finish(); expect(auth.registerFromInvitation).not.toHaveBeenCalled();
   });
-
-  it('doctor sees the full form', async () => {
-    const fixture = await createInvitationFixture('doctor');
-    const el = fixture.nativeElement as HTMLElement;
-    expect(el.textContent).toContain('Registro');
-    expect(el.textContent).toContain('Sexo');
-    expect(el.textContent).toContain('Cédula profesional');
-    expect(el.textContent).toContain('Consultorio(s)');
+  it('an old email link cannot fall through to an existing incomplete profile', async () => {
+    const { component } = await setup({ fragment: null, email: 'invited@example.test', existing: { role: 'admin', profileComplete: false } });
+    expect(component.mode()).toBe('invalid');
   });
-
-  it('admin finishes with empty doctor fields', async () => {
-    const fixture = await createInvitationFixture('admin');
-    const component = fixture.componentInstance as any;
-    component.passwordControl.setValue('Pass1234!');
-    component.confirmPasswordControl.setValue('Pass1234!');
-    const authService = TestBed.inject(AuthService);
-    (authService.registerFromInvitation as any).mockResolvedValue(undefined);
-
+  it.each(['functions/deadline-exceeded', 'functions/failed-precondition', 'functions/resource-exhausted'])
+  ('shows rejected invitation %s and a login action, without a form', async code => {
+    const { fixture, component, router } = await setup({ failure: { code, message: 'Solicita una nueva invitación.' } });
+    expect(component.mode()).toBe('invalid'); expect(fixture.nativeElement.querySelector('form')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeTruthy();
+    component.goToLogin(); expect(router.navigate).toHaveBeenCalledWith(['/login']);
+  });
+  it('doctor submits only capability, password and professional data; does not write print settings anonymously', async () => {
+    const { component, auth, print, router } = await setup(); fill(component);
     await component.finish();
-
-    expect(authService.registerFromInvitation).toHaveBeenCalledWith(
-      'user@test.com',
-      'Pass1234!',
-      expect.objectContaining({ role: 'admin', phone: '', cedula: '', consultorios: '' }),
-      'u1'
-    );
+    const { password, confirmPassword, ...profile } = valid;
+    expect(auth.registerFromInvitation).toHaveBeenCalledExactlyOnceWith(token, password, profile, expect.any(String));
+    expect(auth.completeProfile).not.toHaveBeenCalled(); expect(print.updateSettings).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { registered: 'true' } });
+  });
+  it('distinguishes an expired invitation from a network request timeout', async () => {
+    const { component } = await setup({ failure: { code: 'functions/deadline-exceeded', details: { reason: 'invitation-expired' } } });
+    expect(component.invalidMessage()).toContain('caducó');
+    TestBed.resetTestingModule();
+    const timeout = await setup({ failure: { code: 'functions/deadline-exceeded' } });
+    expect(timeout.component.invalidMessage()).toContain('Reintenta');
+    expect(timeout.component.invalidMessage()).not.toContain('caducó');
+  });
+  it('assistant completes only password and ignores injected professional values', async () => {
+    const { fixture, component, auth } = await setup({ role: 'assistant' });
+    expect(fixture.nativeElement.querySelector('input[formControlName="phone"]')).toBeNull();
+    fill(component); await component.finish();
+    expect(auth.registerFromInvitation).toHaveBeenCalledWith(token, valid.password, { sexo: 3, phone: '', especialidad: '',
+      cedula: '', cedulaEspecialidad: '', consultorios: '' }, expect.any(String));
+  });
+  it.each([
+    { ...valid, password: 'weak', confirmPassword: 'weak' }, { ...valid, confirmPassword: 'Different123!' },
+    { ...valid, phone: '123' }, { ...valid, cedula: '   ' }, { ...valid, consultorios: '' },
+    { ...valid, especialidad: 'x'.repeat(301) }, { ...valid, consultorios: 'x'.repeat(5001) },
+  ])('invalid form cannot register', async values => {
+    const { component, fixture, auth } = await setup(); fill(component, values); await component.finish(); fixture.detectChanges();
+    expect(component.saveDisabled()).toBe(true); expect(auth.registerFromInvitation).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('mat-error')).toBeTruthy();
+  });
+  it('guards duplicate submits and retries a failure using the same operation ID', async () => {
+    const { component, auth, alert } = await setup(); fill(component);
+    let reject!: (error: unknown) => void;
+    auth.registerFromInvitation.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail; }));
+    const first = component.finish(); await component.finish(); expect(auth.registerFromInvitation).toHaveBeenCalledOnce();
+    reject({ code: 'functions/aborted', message: 'Reintenta con los mismos datos.' }); await first;
+    expect(alert.error).toHaveBeenCalled(); expect(component.finishing()).toBe(false);
+    await component.finish(); expect(auth.registerFromInvitation.mock.calls[0]).toEqual(auth.registerFromInvitation.mock.calls[1]);
+  });
+  it('existing Admin remains password-only and does not update print settings', async () => {
+    const { component, auth, print } = await setup({ fragment: null, existing: {
+      uid: 'admin', name: 'Admin ficticio', email: 'admin@example.test', role: 'admin', profileComplete: false } });
+    expect(component.mode()).toBe('existing'); expect(component.pendingRole()).toBe('admin');
+    fill(component); await component.finish(); expect(auth.completeProfile).toHaveBeenCalledOnce();
+    expect(auth.registerFromInvitation).not.toHaveBeenCalled(); expect(print.getSettings).not.toHaveBeenCalled();
+  });
+  it('existing Doctor delegates profile and print defaults to the server before clearing the active session', async () => {
+    const { component, auth, print } = await setup({ fragment: null, existing: {
+      uid: 'doctor', name: 'Doctor ficticio', email: 'doctor@example.test', role: 'doctor', profileComplete: false } });
+    auth.completeProfile.mockImplementation(async () => {
+    expect(print.updateSettings).not.toHaveBeenCalled();
+    expect(auth.completeProfile).toHaveBeenCalledOnce();
+      auth.currentDoctor = null;
+    }); fill(component); await component.finish();
+    expect(print.updateSettings).not.toHaveBeenCalled();
+    expect(auth.completeProfile).toHaveBeenCalledOnce();
   });
 });

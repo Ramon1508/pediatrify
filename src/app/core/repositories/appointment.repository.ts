@@ -1,164 +1,95 @@
 import { Injectable, inject } from '@angular/core';
-import {
-  Firestore,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  collection,
-  onSnapshot,
-  query,
-  where,
-  getDocs,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { doc, getDoc, collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { FirebaseService } from '../firebase/firebase.service';
 import { Appointment } from '../models/user';
 import { dateToString } from '../utils/date-utils';
-import { Observable } from 'rxjs';
+import { Observable, of, switchMap, map } from 'rxjs';
+import { ClinicGatewayService, clinicFields } from '../services/clinic-gateway.service';
 
-@Injectable({
-  providedIn: 'root',
-})
+export interface AppointmentOccupancy { id: string; doctorId: string; date: string; time: string; }
+
+@Injectable({ providedIn: 'root' })
 export class AppointmentRepository {
   private firebase = inject(FirebaseService);
-
-  private get db(): Firestore {
-    return this.firebase.firestore;
+  private gateway = inject(ClinicGatewayService);
+  private get db() { return this.firebase.firestore; }
+  private get ref() { return collection(this.db, 'appointments'); }
+  private mapAppointment(snapshot: { id: string; data(): unknown }): Appointment {
+    const data = snapshot.data() as Appointment;
+    return { ...data, id: snapshot.id, date: dateToString(data.date), patientBirthDate: dateToString(data.patientBirthDate) };
   }
-
-  private get appointmentRef() {
-    return collection(this.db, 'appointments');
-  }
-
-  private docRef(id: string) {
-    return doc(this.db, 'appointments', id);
-  }
-
-  private mapAppointment(data: any): Appointment {
-    return {
-      ...data,
-      date: dateToString(data.date),
-      patientBirthDate: dateToString(data.patientBirthDate),
-    } as Appointment;
-  }
-
-  private normalizeAppointmentDates<T extends Partial<Appointment>>(data: T): T {
-    const normalized: any = { ...data };
-    if ('date' in normalized) normalized.date = dateToString(normalized.date);
-    if ('patientBirthDate' in normalized) normalized.patientBirthDate = dateToString(normalized.patientBirthDate);
-    return normalized as T;
+  private changes(data: Partial<Appointment>) {
+    const clean = clinicFields(data, ['patientId', 'date', 'time', 'notes', 'status', 'disabled']);
+    if ('date' in clean) clean['date'] = dateToString(data.date);
+    return clean;
   }
 
   async getAppointment(id: string): Promise<Appointment | null> {
-    const snapshot = await getDoc(this.docRef(id));
-    return snapshot.exists() ? this.mapAppointment(snapshot.data()) : null;
+    if (this.gateway.principal()?.role === 'patient') return this.gateway.patientRead('appointment', { id });
+    const snapshot = await getDoc(doc(this.db, 'appointments', id));
+    return snapshot.exists() ? this.mapAppointment(snapshot) : null;
   }
-
   async createAppointment(id: string, data: Appointment): Promise<void> {
-    await setDoc(this.docRef(id), {
-      ...this.normalizeAppointmentDates(data),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+    await this.gateway.mutate('appointment.create', id, this.changes(data));
   }
-
   async updateAppointment(id: string, data: Partial<Appointment>): Promise<void> {
-    await updateDoc(this.docRef(id), {
-      ...this.normalizeAppointmentDates(data),
-      updatedAt: serverTimestamp(),
-    });
+    await this.gateway.mutate('appointment.update', id, this.changes(data));
   }
-
-  async deleteAppointment(id: string): Promise<void> {
-    await deleteDoc(this.docRef(id));
-  }
-
-  async deleteAppointments(ids: string[]): Promise<void> {
-    await Promise.all(ids.map((id) => deleteDoc(this.docRef(id))));
-  }
+  async deleteAppointment(id: string): Promise<void> { await this.gateway.mutate('appointment.delete', id); }
+  async deleteAppointments(ids: string[]): Promise<void> { for (const id of ids) await this.deleteAppointment(id); }
 
   async getByPatient(patientId: string): Promise<Appointment[]> {
-    const q = query(this.appointmentRef, where('patientId', '==', patientId));
-    const docsSnap = await getDocs(q);
-    return docsSnap.docs.map((d) => this.mapAppointment(d.data()));
+    if (this.gateway.principal()?.role === 'patient') return this.gateway.patientRead('appointments', { patientId });
+    const doctorId = this.gateway.principal()?.doctorId;
+    if (!doctorId) return [];
+    const source = query(this.ref, where('doctorId', '==', doctorId), where('patientId', '==', patientId));
+    return (await getDocs(source)).docs.map(item => this.mapAppointment(item));
   }
-
   async getAllByDoctor(doctorId: string): Promise<Appointment[]> {
-    const q = query(this.appointmentRef, where('doctorId', '==', doctorId));
-    const docsSnap = await getDocs(q);
-    return docsSnap.docs.map((d) => this.mapAppointment(d.data()));
+    const principal = this.gateway.principal();
+    if (!doctorId || principal?.doctorId !== doctorId) return [];
+    if (principal.role === 'patient') {
+      const children = await this.gateway.getFamily();
+      return (await Promise.all(children.map(child => this.getByPatient(child.id)))).flat();
+    }
+    return (await getDocs(query(this.ref, where('doctorId', '==', doctorId)))).docs.map(item => this.mapAppointment(item));
   }
-
   async getAllAppointments(): Promise<Appointment[]> {
-    const docsSnap = await getDocs(this.appointmentRef);
-    return docsSnap.docs.map((d) => this.mapAppointment(d.data()));
+    const doctorId = this.gateway.principal()?.doctorId;
+    return doctorId ? this.getAllByDoctor(doctorId) : [];
   }
-
   async getAppointmentsByDoctor(doctorId: string): Promise<Appointment[]> {
-    const q = query(
-      this.appointmentRef,
-      where('doctorId', '==', doctorId),
-      where('disabled', '==', false),
-    );
-    const docsSnap = await getDocs(q);
-    return docsSnap.docs.map((d) => this.mapAppointment(d.data()));
+    return (await this.getAllByDoctor(doctorId)).filter(item => item.disabled !== true);
   }
-
   watchOneAppointment(id: string): Observable<Appointment | null> {
-    return new Observable((subscriber) => {
-      const unsubscribe = onSnapshot(this.docRef(id), (snapshot) => {
-        subscriber.next(snapshot.exists() ? this.mapAppointment(snapshot.data()) : null);
-      });
-      return { unsubscribe };
-    });
+    return this.gateway.scope$.pipe(switchMap(principal => !principal ? of(null) : principal.role === 'patient' ? this.gateway.watchPatient<Appointment | null>('appointment', {id}) :
+      new Observable<Appointment | null>(subscriber => onSnapshot(doc(this.db, 'appointments', id),
+        snapshot => subscriber.next(snapshot.exists() ? this.mapAppointment(snapshot) : null), error => subscriber.error(error)))));
   }
-
   watchAllAppointments(): Observable<Appointment[]> {
-    return new Observable((subscriber) => {
-      const q = query(this.appointmentRef, where('disabled', '==', false));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const items = snapshot.docs.map((doc) => this.mapAppointment(doc.data()));
-        subscriber.next(items);
-      });
-      return { unsubscribe };
-    });
+    return this.gateway.scope$.pipe(switchMap(principal => principal?.doctorId ?
+      this.watchAppointmentsByDoctor(principal.doctorId) : of([])));
   }
-
   watchAppointmentsByDoctor(doctorId: string): Observable<Appointment[]> {
-    return new Observable((subscriber) => {
-      const q = query(
-        this.appointmentRef,
-        where('doctorId', '==', doctorId),
-      );
-      const unsubscribe = onSnapshot(q,
-        (snapshot) => {
-          const items = snapshot.docs
-            .map((doc) => this.mapAppointment(doc.data()))
-            .filter((a) => a.disabled !== true);
-          subscriber.next(items);
-        },
-        (error) => {
-          console.error('watchAppointmentsByDoctor error:', error);
-          subscriber.error(error);
-        },
-      );
-      return { unsubscribe };
-    });
+    return this.gateway.scope$.pipe(switchMap(principal => {
+      if (!doctorId || principal?.doctorId !== doctorId || principal.role === 'admin') return of([]);
+      if (principal.role === 'patient') {
+        return this.gateway.watchPatient<Appointment[]>('appointments', { doctorId }).pipe(map(items => items.filter(item => item.disabled !== true)));
+      }
+      return this.watchPatientAppointments(doctorId);
+    }));
   }
-
-  watchAppointmentsByUpdatedBy(email: string): Observable<Appointment[]> {
-    return new Observable((subscriber) => {
-      const q = query(
-        this.appointmentRef,
-        where('updatedBy', '==', email),
-      );
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const items = snapshot.docs.map((doc) => this.mapAppointment(doc.data()));
-        subscriber.next(items);
-      });
-      return { unsubscribe };
-    });
+  private watchPatientAppointments(doctorId: string, patientId?: string): Observable<Appointment[]> {
+    const source = query(this.ref, where('doctorId', '==', doctorId), ...(patientId ? [where('patientId', '==', patientId)] : []));
+    return new Observable<Appointment[]>(subscriber => onSnapshot(source,
+      snapshot => subscriber.next(snapshot.docs.map(item => this.mapAppointment(item)).filter(item => item.disabled !== true)), error => subscriber.error(error)));
+  }
+  watchOccupiedSlots(doctorId: string): Observable<AppointmentOccupancy[]> {
+    return this.gateway.scope$.pipe(switchMap(principal => principal?.doctorId !== doctorId || principal.role !== 'patient' ? of([]) :
+      this.gateway.watchPatient<AppointmentOccupancy[]>('slots', { doctorId })));
+  }
+  watchAppointmentsByUpdatedBy(_email: string): Observable<Appointment[]> {
+    const doctorId = this.gateway.principal()?.doctorId;
+    return doctorId ? this.watchAppointmentsByDoctor(doctorId) : of([]);
   }
 }

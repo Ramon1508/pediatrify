@@ -1,4 +1,4 @@
-import { Component, input, computed, signal, effect, ContentChild, TemplateRef, ViewChild, ElementRef, ChangeDetectionStrategy, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, input, computed, signal, effect, contentChild, TemplateRef, ViewChild, ElementRef, ChangeDetectionStrategy, AfterViewInit, OnDestroy } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -14,13 +14,14 @@ export class Carousel<T> implements AfterViewInit, OnDestroy {
   readonly items = input.required<T[]>();
   readonly slotWidth = input(376);
 
-  @ContentChild(TemplateRef) itemTemplate?: TemplateRef<{ $implicit: T }>;
+  readonly itemTemplate = contentChild<TemplateRef<{ $implicit: T }>>(TemplateRef);
   @ViewChild('trackWrapper', { static: false }) trackWrapper?: ElementRef<HTMLElement>;
 
   protected page = signal(0);
   protected containerWidth = signal(0);
   protected pageSize = computed(() => Math.max(1, Math.floor((this.containerWidth() + 16) / this.slotWidth())));
   protected totalPages = computed(() => Math.max(1, Math.ceil(this.items().length / this.pageSize())));
+  protected readonly pageIndices = computed(() => Array.from({ length: this.totalPages() }, (_, index) => index));
   protected paginatedItems = computed(() => {
     const all = this.items();
     const size = this.pageSize();

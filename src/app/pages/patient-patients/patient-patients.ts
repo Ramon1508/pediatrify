@@ -1,4 +1,4 @@
-import { Component, inject, signal, ChangeDetectionStrategy, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -7,6 +7,7 @@ import { PatientRepository } from '../../core/repositories/patient.repository';
 import { AuthService } from '../../core/services/auth.service';
 import { Patient } from '../../core/models/user';
 import { calcAge } from '../../core/utils/calc-age';
+import { ClinicClockService } from '../../core/services/clinic-clock.service';
 
 @Component({
   selector: 'app-patient-patients',
@@ -20,11 +21,27 @@ export class PatientPatients implements OnInit {
   private patientRepo = inject(PatientRepository);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private readonly clock = inject(ClinicClockService);
 
   protected children = signal<Patient[]>([]);
+  protected readonly childrenForDisplay = computed(() => {
+    this.clock.now();
+    return this.children().map(child => ({ ...child, ageDisplay: calcAge(child.birthDate) }));
+  });
   protected loading = signal(true);
+  protected error = signal(false);
+
+  private initialized = false;
 
   async ngOnInit() {
+    if (this.initialized) return;
+    this.initialized = true;
+    await this.load();
+  }
+
+  async load() {
+    this.loading.set(true);
+    this.error.set(false);
     try {
       const me = this.auth.currentPatient;
       if (!me) {
@@ -36,6 +53,7 @@ export class PatientPatients implements OnInit {
       this.children.set(group);
     } catch {
       this.children.set([]);
+      this.error.set(true);
     } finally {
       this.loading.set(false);
     }

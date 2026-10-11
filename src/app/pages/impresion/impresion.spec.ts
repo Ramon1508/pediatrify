@@ -70,7 +70,7 @@ describe('Impresion', () => {
 
     fixture = TestBed.createComponent(Impresion);
     component = fixture.componentInstance as any;
-    component.doctor = doctor;
+    component.doctor.set(doctor);
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -181,7 +181,7 @@ describe('Impresion', () => {
     (sheet().querySelector('.print-settings-save') as HTMLButtonElement).click();
     await vi.waitFor(() => expect(component.isEditing()).toBe(false));
     await render();
-    expect(printRepo.updateSettings).toHaveBeenCalledWith('d1', expect.objectContaining({ marginTop: 2.5 }));
+    expect(userRepo.updateUser).toHaveBeenCalledWith('d1', expect.objectContaining({ printSettings: expect.objectContaining({ marginTop: 2.5 }) }));
     expect(component.settings().marginTop).toBe(2.5);
     expect(component.savedSettings().marginTop).toBe(2.5);
     expect(component.isEditing()).toBe(false);
@@ -190,7 +190,7 @@ describe('Impresion', () => {
 
   it('keeps the draft open after a failed save and allows cancellation', async () => {
     await editOnMobile();
-    printRepo.updateSettings.mockRejectedValueOnce(new Error('save failed'));
+    userRepo.updateUser.mockRejectedValueOnce(new Error('save failed'));
     component.updateSetting('marginTop', 2.5);
     await component.save();
     await render();
@@ -205,7 +205,7 @@ describe('Impresion', () => {
   it('prevents duplicate saves and dismissal while a save is in flight', async () => {
     await editOnMobile();
     let finishSave!: () => void;
-    printRepo.updateSettings.mockImplementationOnce(() => new Promise<void>((resolve) => finishSave = resolve));
+    userRepo.updateUser.mockImplementationOnce(() => new Promise<void>((resolve) => finishSave = resolve));
     const saving = component.save();
     await render();
     expect((sheet().querySelector('.btn-close-dialog') as HTMLButtonElement).disabled).toBe(true);
@@ -213,7 +213,7 @@ describe('Impresion', () => {
     (sheet().querySelector('.cdk-overlay-backdrop') as HTMLElement).click();
     await component.save();
     expect(component.isEditing()).toBe(true);
-    expect(printRepo.updateSettings).toHaveBeenCalledTimes(1);
+    expect(userRepo.updateUser).toHaveBeenCalledTimes(1);
     finishSave();
     await saving;
     await render();
@@ -228,11 +228,11 @@ describe('Impresion', () => {
     await component.save();
 
     expect(uploadBytes).toHaveBeenCalledWith(expect.anything(), file, { contentType: 'image/png' });
-    expect(userRepo.updateUser).toHaveBeenCalledWith('d1', { logoPath: 'logos/d1/new.png' });
-    expect(auth.updateCurrentDoctor).toHaveBeenCalledWith({ logoPath: 'logos/d1/new.png' });
-    expect(printRepo.updateSettings).toHaveBeenCalledWith(
+    expect(userRepo.updateUser).toHaveBeenCalledWith('d1', expect.objectContaining({ logoPath: expect.stringMatching(/^logos\/d1\/[a-f0-9-]{36}_new\.png$/) }));
+    expect(auth.updateCurrentDoctor).toHaveBeenCalledWith(expect.objectContaining({ logoPath: expect.stringMatching(/^logos\/d1\/[a-f0-9-]{36}_new\.png$/) }));
+    expect(userRepo.updateUser).toHaveBeenCalledWith(
       'd1',
-      expect.objectContaining({ usePreloadedLogo: true })
+      expect.objectContaining({ printSettings: expect.objectContaining({ usePreloadedLogo: false }) })
     );
   });
 
@@ -255,8 +255,12 @@ describe('Impresion', () => {
 
     await component.save();
 
-    expect(userRepo.updateUser).toHaveBeenCalledWith('d1', { logoPath: '' });
-    expect(auth.updateCurrentDoctor).toHaveBeenCalledWith({ logoPath: '' });
+    expect(userRepo.updateUser).toHaveBeenCalledWith('d1', expect.objectContaining({ logoPath: '' }));
+    expect(auth.updateCurrentDoctor).toHaveBeenCalledWith(expect.objectContaining({ logoPath: '' }));
+    expect(userRepo.updateUser).toHaveBeenCalledWith(
+      'd1',
+      expect.objectContaining({ printSettings: expect.objectContaining({ usePreloadedLogo: true }) })
+    );
   });
 
   it('does not allow a non-doctor to change the logo', async () => {
@@ -267,5 +271,25 @@ describe('Impresion', () => {
 
     expect(userRepo.updateUser).not.toHaveBeenCalled();
     expect(printRepo.updateSettings).not.toHaveBeenCalled();
+  });
+
+  it('keeps the committed logo for retry after a metadata failure, without a second upload or partial settings save (P50)', async () => {
+    const file = new File(['synthetic'], 'old.png', {type: 'image/png'});
+    await component.onLogoSelected({target: {files: [file], value: 'old.png'}} as any);
+    const stagedPath = component.pendingLogoPath;
+    expect(stagedPath).not.toBe(doctor.logoPath);
+    userRepo.updateUser.mockRejectedValueOnce(new Error('synthetic denied'));
+    await component.save();
+    expect(uploadBytes).toHaveBeenCalledTimes(1);
+    expect(component.pendingLogoFile).toBeUndefined();
+    expect(component.pendingLogoPath).toBe(stagedPath);
+    expect(component.logoUrl()).toBe('https://example.com/new.png');
+    expect(printRepo.updateSettings).not.toHaveBeenCalled();
+    expect(auth.updateCurrentDoctor).not.toHaveBeenCalled();
+    await component.save();
+    expect(uploadBytes).toHaveBeenCalledTimes(1);
+    expect(userRepo.updateUser).toHaveBeenLastCalledWith('d1', expect.objectContaining({logoPath: stagedPath,
+      printSettings: expect.objectContaining({usePreloadedLogo: false})}));
+    expect(component.pendingLogoPath).toBe('');
   });
 });

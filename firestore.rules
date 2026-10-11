@@ -1,19 +1,107 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function principal() { return get(/databases/$(database)/documents/securityPrincipals/$(request.auth.uid)).data; }
+    function lease() { return get(/databases/$(database)/documents/clinicSessions/$(request.auth.token.clinicSessionId)).data; }
+    function validLease() {
+      return signedIn() && request.auth.token.clinicSessionId is string
+        && lease().authUid == request.auth.uid && lease().active == true
+        && lease().expiresAt is timestamp && lease().expiresAt > request.time;
+    }
+    function base() {
+      return validLease() && principal().active == true && principal().authUid == request.auth.uid
+        && lease().role == principal().role;
+    }
+    function ownUser() { return get(/databases/$(database)/documents/users/$(principal().userId)).data; }
+    function staff(complete) {
+      return base() && principal().role in ['admin', 'doctor', 'assistant']
+        && ownUser().uid == principal().userId && ownUser().firebaseUid == request.auth.uid
+        && ownUser().role == principal().role
+        && !exists(/databases/$(database)/documents/staffDeletionJobs/$(principal().userId))
+        && (!complete || (ownUser().pending != true && ownUser().profileComplete == true))
+        && (principal().role != 'doctor' || principal().doctorId == principal().userId)
+        && (principal().role != 'assistant' || ownUser().createdBy == principal().doctorId)
+        && (principal().role != 'admin' || !('doctorId' in principal()));
+    }
+    function liveDoctor(doctorId) {
+      let profile = get(/databases/$(database)/documents/users/$(doctorId)).data;
+      let authority = get(/databases/$(database)/documents/securityPrincipals/$(profile.firebaseUid)).data;
+      return profile.uid == doctorId && profile.role == 'doctor' && profile.profileComplete == true
+        && profile.pending != true && authority.active == true && authority.role == 'doctor'
+        && authority.authUid == profile.firebaseUid && authority.userId == doctorId && authority.doctorId == doctorId
+        && !exists(/databases/$(database)/documents/staffDeletionJobs/$(doctorId));
+    }
+    function team(doctorId) {
+      return staff(true) && principal().role in ['doctor', 'assistant'] && principal().doctorId == doctorId
+        && liveDoctor(doctorId);
+    }
+    function agenda(doctorId) { return team(doctorId); }
+    function inbox(data) {
+      return team(data.doctorId) && data.recipientId == principal().userId && data.recipientType == principal().role;
+    }
+    function validReadNotification(data, id) {
+      return data.keys().hasOnly(['id', 'type', 'title', 'description', 'appointmentId', 'doctorId', 'createdAt', 'originatorId', 'originatorName', 'recipientId', 'recipientType', 'read'])
+        && data.keys().hasAll(['id', 'type', 'title', 'description', 'doctorId', 'createdAt', 'originatorId', 'originatorName', 'recipientId', 'recipientType', 'read'])
+        && data.id == id && data.id is string && data.id.size() <= 128
+        && data.type in ['appointment-created', 'appointment-cancelled', 'appointment-rescheduled']
+        && data.title is string && data.title.size() <= 262144
+        && data.description is string && data.description.size() <= 262144
+        && (!('appointmentId' in data) || (data.appointmentId is string && data.appointmentId.size() <= 128))
+        && data.doctorId is string && data.doctorId.size() <= 128
+        && data.createdAt is timestamp && data.originatorId is string && data.originatorId.size() <= 128
+        && data.originatorName is string && data.originatorName.size() <= 262144
+        && data.recipientId is string && data.recipientId.size() <= 128
+        && data.recipientType in ['doctor', 'assistant', 'patient'] && data.read == true;
+    }
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
+    match /securityPrincipals/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid && resource.data.role in ['admin', 'doctor', 'assistant'];
+    }
+    match /clinicSessions/{id} {
+      allow get: if signedIn() && request.auth.token.clinicSessionId == id && resource.data.authUid == request.auth.uid && resource.data.role in ['admin', 'doctor', 'assistant'];
+    }
+    match /patientSessionStatus/{patientId} { allow read, write: if false; }
+    match /users/{uid} {
+      allow get: if staff(false) && principal().userId == uid;
+    }
+    match /staffDirectory/{uid} {
+      allow read: if staff(true) && ((principal().role == 'admin' && resource.data.role in ['admin', 'doctor'])
+        || (principal().role == 'doctor' && resource.data.role == 'assistant' && resource.data.createdBy == principal().userId));
+    }
+    match /doctorProfiles/{doctorId} {
+      allow get: if agenda(doctorId);
+    }
+    match /schedules/{doctorId} {
+      allow get: if agenda(doctorId);
+    }
+    match /patients/{patientId} {
+      allow read: if team(resource.data.doctorId) && principal().role == 'doctor';
+    }
+    match /patientDirectory/{patientId} {
+      allow read: if team(resource.data.doctorId);
+    }
+    match /patientPortal/{patientId} { allow read, write: if false; }
+    match /appointments/{id} {
+      allow read: if team(resource.data.doctorId)
+        || (signedIn() && resource.data.doctorId == principal().doctorId && family(resource.data.patientId));
+    }
+    match /appointmentSlots/{id} {
+      allow read: if agenda(resource.data.doctorId);
+    }
+    match /clinicalRecords/{id} {
+      allow read: if team(resource.data.doctorId) && principal().role == 'doctor';
+    }
+    match /notifications/{id} {
+      allow read: if inbox(resource.data);
+      allow update: if inbox(resource.data) && validReadNotification(request.resource.data, id)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+    }
+    match /auditLog/{id} {
+      allow read: if staff(true) && principal().role == 'admin';
+    }
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

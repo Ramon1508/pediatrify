@@ -5,16 +5,21 @@
 
   @if (loading()) {
     <mat-progress-bar mode="indeterminate" />
+  } @else if (error()) {
+    <div class="empty-state">
+      <span class="empty-text">No fue posible cargar tus pacientes. Intenta nuevamente.</span>
+      <button mat-stroked-button class="btn-secondary" (click)="load()">Reintentar</button>
+    </div>
   } @else if (children().length === 0) {
     <div class="empty-state">
       <span class="empty-text">No tienes pacientes asociados.</span>
     </div>
   } @else {
     <div class="children-grid">
-      @for (child of children(); track child.id) {
+      @for (child of childrenForDisplay(); track child.id) {
         <div class="child-card">
           <div class="child-name">{{ child.name }} {{ child.lastName }}</div>
-          <div class="child-age">Edad: {{ age(child) }}</div>
+          <div class="child-age">Edad: {{ child.ageDisplay }}</div>
           <div class="parents-section">
             <div class="parents-title">Padres o tutores:</div>
             <div class="parents-list">

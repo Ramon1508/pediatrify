@@ -45,6 +45,12 @@ mat-dialog-actions {
 }
 
 @media (max-width: 768px) {
+  mat-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
   .invitation-row {
     align-items: stretch;
   }

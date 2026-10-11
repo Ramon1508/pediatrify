@@ -1,10 +1,10 @@
 <div class="doctors-container">
   <div class="header-actions">
-    <span class="page-title">{{ pageTitle }}</span>
+    <span class="page-title">{{ pageTitle() }}</span>
     @if (doctors().length > 0) {
       <button mat-unelevated-button class="btn-primary" (click)="openNewDoctor()">
         <mat-icon>add</mat-icon>
-        {{ addLabel }}
+        {{ addLabel() }}
       </button>
     }
   </div>
@@ -16,10 +16,10 @@
   @if (doctors().length === 0 && !loading()) {
     <div class="empty-state-wrapper">
       <div class="empty-state-content">
-        <span class="empty-text">{{ emptyLabel }}</span>
+        <span class="empty-text">{{ emptyLabel() }}</span>
         <button mat-unelevated-button class="btn-primary" (click)="openNewDoctor()">
           <mat-icon>add</mat-icon>
-          {{ addLabel }}
+          {{ addLabel() }}
         </button>
       </div>
     </div>
@@ -31,7 +31,8 @@
     </mat-form-field>
 
     <div class="doctors-grid">
-      @for (doctor of filteredDoctors(); track doctor.uid) {
+      @for (row of directoryRows(); track row.user.uid) {
+        @let doctor = row.user;
         <mat-card class="doctor-card" [class.empty]="filteredDoctors().length === 0">
           <div class="card-header">
             <span class="title-large card-name" [matTooltip]="doctor.name">{{ doctor.name }}</span>
@@ -39,19 +40,19 @@
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #doctorMenu="matMenu">
-              <button mat-menu-item (click)="openEditDoctor(doctor)">
+              <button mat-menu-item [disabled]="row.ownAdmin" [matTooltip]="row.ownAdmin ? 'Edita tu correo desde tu perfil.' : ''" (click)="openEditDoctor(doctor)">
                 <mat-icon>edit</mat-icon>
-                <span>{{ editLabel }}</span>
+                <span>{{ editLabel() }}</span>
               </button>
-              @if (!doctor.profileComplete) {
+              @if (doctor.pending === true) {
                 <button mat-menu-item (click)="resendInvitation(doctor)">
                   <mat-icon>email</mat-icon>
                   <span>Reenviar invitaci&oacute;n</span>
                 </button>
               }
-              <button mat-menu-item (click)="deleteDoctor(doctor)">
+              <button mat-menu-item [disabled]="row.ownAdmin" (click)="deleteDoctor(doctor)">
                 <mat-icon>delete</mat-icon>
-                <span>{{ deleteLabel }}</span>
+                <span>{{ deleteLabel() }}</span>
               </button>
             </mat-menu>
           </div>

@@ -47,7 +47,7 @@
                 <mat-form-field appearance="outline" class="margin-input">
                   <mat-label>Tamaño</mat-label>
                 <mat-select [value]="settings().paperSize" (valueChange)="updateSetting('paperSize', $event)">
-                  @for (s of paperSizes; track s.value) {
+                  @for (s of paperSizes(); track s.value) {
                     <mat-option [value]="s.value">{{ s.label }}</mat-option>
                   }
                   <mat-option value="custom">Personalizado</mat-option>
@@ -58,7 +58,7 @@
                 <mat-form-field appearance="outline" class="margin-input">
                   <mat-label>Orientación</mat-label>
                   <mat-select [value]="settings().orientation" (valueChange)="updateSetting('orientation', $event)">
-                    @for (o of orientations; track o.value) {
+                    @for (o of orientations(); track o.value) {
                       <mat-option [value]="o.value">{{ o.label }}</mat-option>
                     }
                   </mat-select>
@@ -151,7 +151,7 @@
             @if (editing) {
               @if (!settings().usePreloadedLogo) {
                 <div class="logo-upload-area" (click)="logoInput.click()" (keydown.enter)="logoInput.click()" tabindex="0" role="button" aria-label="Subir logo">
-                  @if (pendingLogoUrl() || doctor?.logoPath) {
+                  @if (pendingLogoUrl() || doctor()?.logoPath) {
                     <img [src]="pendingLogoUrl() || logoUrl()" class="logo-preview" alt="Logo preview" />
                     <br />
                     <button mat-button color="warn" (click)="$event.stopPropagation(); removeLogo()" type="button">Eliminar</button>
@@ -266,11 +266,11 @@
             }
 
             <div class="preview-doctor-info" [style.fontSize]="fontSize12()">
-            @if (settings().showDoctorName && doctor) {
-              <div class="preview-doctor-name" [style.fontSize]="fontSize16()">{{ doctor.sexo === Sexo.Femenino ? 'DRA.' : 'DR.' }} {{ doctor.name | uppercase }}</div>
+            @if (settings().showDoctorName && doctor(); as previewDoctor) {
+              <div class="preview-doctor-name" [style.fontSize]="fontSize16()">{{ previewDoctor.sexo === Sexo().Femenino ? 'DRA.' : 'DR.' }} {{ previewDoctor.name | uppercase }}</div>
             }
             @if (settings().showSpecialty) {
-              <div class="preview-field">{{ doctor?.especialidad || 'Pediatría' }}</div>
+              <div class="preview-field">{{ doctor()?.especialidad || 'Pediatría' }}</div>
             }
             @if (settings().showProfessionalId) {
               <div class="preview-field">CED. PROF. 1234567</div>
@@ -279,15 +279,15 @@
               <div class="preview-field">CED. ESP. 9876543</div>
             }
             @if (settings().showDoctorPhone) {
-              <div class="preview-field">TEL. {{ doctor?.phone || '555-0000' }}</div>
+              <div class="preview-field">TEL. {{ doctor()?.phone || '555-0000' }}</div>
             }
             @if (settings().showDoctorOffice) {
-              <div class="preview-field">CONSULTORIO: {{ doctor?.consultorios || 'Consultorio A' }}</div>
+              <div class="preview-field">CONSULTORIO: {{ doctor()?.consultorios || 'Consultorio A' }}</div>
             }
           </div>
           </div>
 
-          <div class="preview-gap-32" [style.height]="gapPx(32)"></div>
+          <div class="preview-gap-32" [style.height]="previewGaps()[32]"></div>
 
           <div class="preview-body-text" [style.fontSize]="fontSize12()">
             <div class="preview-patient-row">
@@ -299,7 +299,7 @@
               }
             </div>
 
-            <div class="preview-gap-16" [style.height]="gapPx(16)"></div>
+            <div class="preview-gap-16" [style.height]="previewGaps()[16]"></div>
 
             <div class="preview-patient-row">
               @if (settings().showPatientAge) {
@@ -319,7 +319,7 @@
               }
             </div>
 
-            <div class="preview-gap-12" [style.height]="gapPx(12)"></div>
+            <div class="preview-gap-12" [style.height]="previewGaps()[12]"></div>
           </div>
         </div>
       </div>

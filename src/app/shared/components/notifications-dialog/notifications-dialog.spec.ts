@@ -8,6 +8,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { AppointmentRepository } from '../../../core/repositories/appointment.repository';
 import { Router } from '@angular/router';
 import { CalendarFocusService } from '../../../core/services/calendar-focus.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { AppNotification } from '../../../core/models/notification';
 import { AlertService } from '../../../core/services/alert.service';
 
@@ -40,6 +41,7 @@ describe('NotificationsDialog', () => {
       appointments?: any[];
       recipient?: string | null;
       initialLoading?: boolean;
+      patient?: boolean;
       getAppointment?: (id: string) => any;
     } = {}
   ) {
@@ -87,6 +89,7 @@ describe('NotificationsDialog', () => {
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: CalendarFocusService, useValue: focusMock },
         { provide: AlertService, useValue: alertMock },
+        { provide: AuthService, useValue: { currentPatient: options.patient ? { id: 'p1' } : null } },
       ],
     });
 
@@ -349,6 +352,20 @@ describe('NotificationsDialog', () => {
     expect(focus.peek()).toEqual({ date: '2026-08-08', time: '10:00', appointmentId: 'apt1' });
     expect(router.navigate).toHaveBeenCalledWith(['/app/calendar']);
     expect(dialogRef.close).toHaveBeenCalled();
+  });
+
+  it('sends a patient session to the portal calendar when opening details (P39)', async () => {
+    const { router } = createFixture(
+      [baseNotification],
+      { patient: true, appointments: [{ id: 'apt1', patientId: 'p1', date: '2026-08-08', time: '10:00', disabled: false }] }
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    fixture.detectChanges();
+
+    await component.openDetails(baseNotification);
+    expect(serviceMock.markAsRead).toHaveBeenCalledWith('n1');
+    expect(router.navigate).toHaveBeenCalledWith(['/paciente/calendario']);
+    expect(router.navigate).not.toHaveBeenCalledWith(['/app/calendar']);
   });
 
   it('resolves the appointment on demand when clicking details before the fetch resolved', async () => {

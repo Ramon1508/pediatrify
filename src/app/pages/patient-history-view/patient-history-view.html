@@ -7,55 +7,68 @@
 
   @if (loading()) {
     <mat-progress-bar mode="indeterminate" />
+  } @else if (error()) {
+    <p class="empty-message">No fue posible cargar el historial. Intenta nuevamente.</p>
+    <button mat-stroked-button class="btn-secondary" (click)="load()">Reintentar</button>
   } @else {
     @if (patient(); as p) {
       <div class="patient-card">
         <span class="card-title">{{ p.name }} {{ p.lastName }}</span>
-        <span class="card-meta">Edad: {{ age(p) }}</span>
+        <span class="card-meta">Edad: {{ patientAge() }}</span>
         <div class="parents-section">
           <span class="parents-title">Padres o tutores:</span>
-          <span class="parents-list">{{ parentsDisplay(p) }}</span>
+          <span class="parents-list">{{ patientParents() }}</span>
         </div>
       </div>
 
       <div class="consultas-section">
-        @if (hasConsultable) {
+        @if (hasConsultable()) {
           <div class="consultas-header">
             <h2 class="consultas-title">Recomendaciones y recetas</h2>
           </div>
 
           <mat-tab-group>
-            @if (hasRecommendations) {
+            @if (hasRecommendations()) {
               <mat-tab label="Recomendaciones">
                 <div class="tab-content">
-                  <div class="entry-actions">
-                    <button class="btn-tertiary" (click)="print('recommendations')" aria-label="Imprimir recomendaciones">
-                      <mat-icon>print</mat-icon> Imprimir
-                    </button>
-                  </div>
-                  @if (record()?.visibleUntil) {
-                    <div class="visible-until">
-                      Visible para el paciente hasta el: <span>{{ formatCivilDate(record()?.visibleUntil) }}</span>
-                    </div>
+                  @for (entry of recommendationEntries(); track entry.id) {
+                    <article class="entry">
+                      <div class="entry-header">
+                        <h3 class="entry-title">Recomendaciones · {{ entry.dateLabel }}</h3>
+                        <button class="btn-tertiary" (click)="print('recommendations', entry.id)" aria-label="Imprimir estas recomendaciones">
+                          <mat-icon>print</mat-icon> Imprimir
+                        </button>
+                      </div>
+                      @if (entry.expiryLabel) {
+                        <div class="visible-until">
+                          Visible para el paciente hasta el: <span>{{ entry.expiryLabel }}</span>
+                        </div>
+                      }
+                      <div class="rich-content" [innerHTML]="entry.content"></div>
+                    </article>
                   }
-                  <div class="rich-content" [innerHTML]="recommendationsHtml()"></div>
                 </div>
               </mat-tab>
             }
-            @if (hasPrescription) {
+            @if (hasPrescription()) {
               <mat-tab label="Receta">
                 <div class="tab-content">
-                  <div class="entry-actions">
-                    <button class="btn-tertiary" (click)="print('prescription')" aria-label="Imprimir receta">
-                      <mat-icon>print</mat-icon> Imprimir
-                    </button>
-                  </div>
-                  @if (record()?.visibleUntilRx) {
-                    <div class="visible-until">
-                      Visible para el paciente hasta el: <span>{{ formatCivilDate(record()?.visibleUntilRx) }}</span>
-                    </div>
+                  @for (entry of prescriptionEntries(); track entry.id) {
+                    <article class="entry">
+                      <div class="entry-header">
+                        <h3 class="entry-title">Receta · {{ entry.dateLabel }}</h3>
+                        <button class="btn-tertiary" (click)="print('prescription', entry.id)" aria-label="Imprimir esta receta">
+                          <mat-icon>print</mat-icon> Imprimir
+                        </button>
+                      </div>
+                      @if (entry.expiryLabel) {
+                        <div class="visible-until">
+                          Visible para el paciente hasta el: <span>{{ entry.expiryLabel }}</span>
+                        </div>
+                      }
+                      <div class="rich-content" [innerHTML]="entry.content"></div>
+                    </article>
                   }
-                  <div class="rich-content" [innerHTML]="prescriptionHtml()"></div>
                 </div>
               </mat-tab>
             }

@@ -1,0 +1,9 @@
+{
+  "firestore": { "rules": "security/p01/maintenance.firestore.rules" },
+  "storage": { "rules": "security/p01/maintenance.storage.rules" },
+  "hosting": {
+    "public": "security/p01/maintenance-hosting",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [{ "source": "**", "destination": "/index.html" }]
+  }
+}

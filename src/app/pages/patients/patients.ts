@@ -16,7 +16,10 @@ import { AppointmentRepository } from '../../core/repositories/appointment.repos
 import { AuditRepository } from '../../core/repositories/audit.repository';
 import { CascadeService } from '../../core/services/cascade.service';
 import { EmailService } from '../../core/services/email.service';
+import { PatientAccessService, PatientAccessRenewal } from '../../core/services/patient-access.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ClinicClockService } from '../../core/services/clinic-clock.service';
+import { formatLocalDate } from '../../core/utils/date-utils';
 
 function calcAge(birthDate: unknown): string {
   let d: Date | null = null;
@@ -75,6 +78,8 @@ import { ConfirmDialog, ConfirmDialogData } from '../../shared/components/confir
   ],
 })
 export class Patients implements OnInit, OnDestroy {
+  private readonly patientAccess = inject(PatientAccessService);
+  private readonly renewalAttempts = new Map<string, { request: PatientAccessRenewal; renewed: boolean; busy: boolean }>();
   private router = inject(Router);
   private dialog = inject(MatDialog);
   private patientRepo = inject(PatientRepository);
@@ -86,6 +91,7 @@ export class Patients implements OnInit, OnDestroy {
   private cascade = inject(CascadeService);
   private emailService = inject(EmailService);
   private notifications = inject(NotificationService);
+  private readonly clock = inject(ClinicClockService);
 
   protected patients = signal<Patient[]>([]);
   protected patientsWithAge = signal<(Patient & { ageDisplay: string })[]>([]);
@@ -94,8 +100,10 @@ export class Patients implements OnInit, OnDestroy {
   protected searchControl = new FormControl('');
   protected searchTerm = signal('');
 
-  protected todayAppointments = signal<Appointment[]>([]);
-  protected todayDateLabel = signal('');
+  private readonly agendaAppointments = signal<Appointment[]>([]);
+  protected readonly todayAppointments = computed(() => this.agendaAppointments().filter(
+    appointment => appointment.date === this.clock.now().date && appointment.status === 'scheduled'));
+  protected readonly todayDateLabel = computed(() => formatLocalDate(this.clock.now().date));
 
   protected filteredPatients = computed(() => {
     const term = this.searchTerm().toLowerCase();
@@ -115,6 +123,13 @@ export class Patients implements OnInit, OnDestroy {
     this.isAdmin.set(this.authService.currentDoctor?.role === 'admin');
     const doctor = this.authService.currentDoctor;
     const currentDoctorUid = doctor?.uid;
+    if (doctor?.role !== 'doctor' || !currentDoctorUid) {
+      this.patients.set([]);
+      this.patientsWithAge.set([]);
+      this.agendaAppointments.set([]);
+      this.loading.set(false);
+      return;
+    }
 
     this.subs.push(
       this.searchControl.valueChanges.subscribe((val) => {
@@ -122,44 +137,36 @@ export class Patients implements OnInit, OnDestroy {
       })
     );
 
-    this.patientRepo.watchAllPatients().subscribe((patients) => {
-      const doctor = this.authService.currentDoctor;
-      const isAdmin = doctor?.role === 'admin';
-      const doctorUid = doctor?.uid;
-      const filtered = isAdmin || !doctorUid
-        ? patients
-        : patients.filter((p) => !p.doctorId || p.doctorId === doctorUid);
-      this.patients.set(filtered);
-      this.patientsWithAge.set(filtered.map((p) => ({ ...p, ageDisplay: calcAge(p.birthDate) })));
-      this.loading.set(false);
-    });
+    this.subs.push(this.patientRepo.watchPatientsByDoctor(currentDoctorUid).subscribe({
+      next: (patients) => {
+        const current = this.authService.currentDoctor;
+        const filtered = current?.role === 'doctor' && current.uid === currentDoctorUid
+          ? patients.filter((p) => p.doctorId === currentDoctorUid)
+          : [];
+        this.patients.set(filtered);
+        this.patientsWithAge.set(filtered.map((p) => ({ ...p, ageDisplay: calcAge(p.birthDate) })));
+        this.loading.set(false);
+      },
+      error: () => {
+        this.patients.set([]);
+        this.patientsWithAge.set([]);
+        this.loading.set(false);
+        this.alert.error({ message: 'No fue posible cargar tus pacientes. Intenta abrir la página nuevamente.', duration: 5000 });
+      },
+    }));
 
     if (currentDoctorUid) {
       this.subs.push(
         this.appointmentRepo.watchAppointmentsByDoctor(currentDoctorUid).subscribe((appts) => {
-          const today = new Date();
-          const todayStr = this.formatDateStr(today);
-          const filtered = appts.filter((a) => a.date === todayStr && a.status === 'scheduled');
-          this.todayAppointments.set(filtered);
-          this.todayDateLabel.set(today.toLocaleDateString('es-MX', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-          }));
+          this.agendaAppointments.set(appts);
         })
       );
     }
   }
 
   ngOnDestroy() {
+    this.renewalAttempts.clear();
     for (const s of this.subs) s.unsubscribe();
-  }
-
-  private formatDateStr(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
   }
 
   protected scheduleAppointment() {
@@ -176,17 +183,6 @@ export class Patients implements OnInit, OnDestroy {
 
     const result = await dialogRef.afterClosed().toPromise();
     if (result) {
-      const currentUser = this.authService.currentDoctor;
-      await this.auditRepo.log({
-        id: crypto.randomUUID(),
-        action: 'create',
-        entityType: 'patient',
-        entityId: result.id,
-        performedBy: currentUser?.email ?? '',
-        performedByUid: currentUser?.uid ?? '',
-        timestamp: new Date() as any,
-        newValues: { name: result.name, lastName: result.lastName, email: result.email, phone: result.phone, fatherName: result.fatherName, motherName: result.motherName },
-      });
       this.alert.success({ message: 'Paciente agregado', duration: 3000 });
     }
   }
@@ -211,21 +207,7 @@ export class Patients implements OnInit, OnDestroy {
     dialogRef.componentInstance.setPatient(patient);
     dialogRef.componentInstance.switchToEdit();
 
-    const result = await dialogRef.afterClosed().toPromise();
-    if (result) {
-      const currentUser = this.authService.currentDoctor;
-      await this.auditRepo.log({
-        id: crypto.randomUUID(),
-        action: 'update',
-        entityType: 'patient',
-        entityId: patient.id,
-        performedBy: currentUser?.email ?? '',
-        performedByUid: currentUser?.uid ?? '',
-        timestamp: new Date() as any,
-        oldValues: { name: patient.name, lastName: patient.lastName, email: patient.email, phone: patient.phone, fatherName: patient.fatherName, motherName: patient.motherName },
-        newValues: { name: result.name, lastName: result.lastName, email: result.email, phone: result.phone, fatherName: result.fatherName, motherName: result.motherName },
-      });
-    }
+    await dialogRef.afterClosed().toPromise();
   }
 
   async cancelAppointment(appt: Appointment) {
@@ -247,18 +229,8 @@ export class Patients implements OnInit, OnDestroy {
 
     try {
       await this.appointmentRepo.updateAppointment(appt.id, { status: 'cancelled' });
-      await this.notifications.notifyAppointmentCancelled(appt);
-      await this.auditRepo.log({
-        id: crypto.randomUUID(),
-        action: 'update',
-        entityType: 'appointment',
-        entityId: appt.id,
-        performedBy: this.authService.currentDoctor?.email ?? '',
-        performedByUid: this.authService.currentDoctor?.uid ?? '',
-        timestamp: new Date() as any,
-        oldValues: { status: appt.status },
-        newValues: { status: 'cancelled' },
-      });
+
+
       this.alert.success({ message: 'Cita cancelada', duration: 3000 });
     } catch (e: any) {
       this.alert.error({ message: 'Error al cancelar la cita', duration: 5000 });
@@ -273,23 +245,43 @@ export class Patients implements OnInit, OnDestroy {
   }
 
   async regenerateOtp(patient: Patient) {
-    const newOtp = this.generateOtpPassword();
-    await this.patientRepo.updatePatient(patient.id, { otpPassword: newOtp });
+    const actor = this.authService.currentDoctor;
+    if (actor?.role !== 'doctor' || actor.uid !== patient.doctorId) return;
+    const key = actor.uid + ':' + patient.id;
+    let attempt = this.renewalAttempts.get(key);
+    if (attempt?.busy) return;
     try {
+      if (!attempt) {
+        // Reserve the local attempt before awaiting so a double click cannot rotate twice.
+        attempt = { request: { patientId: patient.id, operationId: crypto.randomUUID(), expectedVersion: 0, expectedEpoch: '' }, renewed: false, busy: true };
+        this.renewalAttempts.set(key, attempt);
+        const current = await this.patientAccess.read(patient.id);
+        if (this.authService.currentDoctor?.uid !== actor.uid || this.authService.currentDoctor?.role !== 'doctor' || this.renewalAttempts.get(key) !== attempt) return;
+        attempt.request.expectedVersion = current.credentialVersion;
+        attempt.request.expectedEpoch = current.credentialEpoch;
+      }
+      attempt.busy = true;
+      if (!attempt.renewed) {
+        await this.patientAccess.renew(attempt.request);
+        if (this.authService.currentDoctor?.uid !== actor.uid || this.authService.currentDoctor?.role !== 'doctor' || this.renewalAttempts.get(key) !== attempt) return;
+        attempt.renewed = true;
+      }
       await this.emailService.sendPatientAccessEmail({
-        email: patient.email,
-        otpPassword: newOtp,
-        patientName: `${patient.name} ${patient.lastName}`.trim(),
-        doctorName: this.authService.currentDoctor?.name ?? '',
-        isRegenerate: true,
+        patientId: patient.id, operationId: attempt.request.operationId,
       });
-      this.alert.success({ message: `Nueva contraseña de acceso: ${newOtp}`, duration: 5000 });
-    } catch {
-      this.alert.error({ message: 'No se pudo enviar el correo de acceso', duration: 5000 });
+      this.renewalAttempts.delete(key);
+      if (this.authService.currentDoctor?.uid === actor.uid) this.alert.success({ message: 'Contraseña renovada. Acceso enviado a los correos guardados.', duration: 5000 });
+    } catch (failure) {
+      if (!attempt?.request.expectedVersion || (failure as { code?: string }).code === 'functions/aborted') this.renewalAttempts.delete(key);
+      if (this.authService.currentDoctor?.uid === actor.uid) this.alert.error({ message: attempt?.renewed
+        ? 'Contraseña renovada, pero faltan envíos por confirmar. Vuelve a pulsar Regenerar para reintentar el envío sin cambiarla.'
+        : 'No se pudo confirmar la renovación. Reintenta la operación.', duration: 5000 });
+    } finally {
+      if (attempt) attempt.busy = false;
     }
   }
 
-  async setCustomOtp(patient: Patient) {
+  async viewPatientAccess(patient: Patient) {
     const dialogRef = this.dialog.open(ViewOtpDialog, {
       width: '400px',
       disableClose: false,
@@ -325,13 +317,5 @@ export class Patients implements OnInit, OnDestroy {
     this.alert.success({ message: 'Copiado al portapapeles', duration: 2000 });
   }
 
-  private generateOtpPassword(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let pwd = '';
-    for (let i = 0; i < 6; i++) {
-      pwd += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return pwd;
-  }
 
 }

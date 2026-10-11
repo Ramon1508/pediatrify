@@ -8,6 +8,7 @@ import { PatientRepository } from '../../../../core/repositories/patient.reposit
 import { AlertService } from '../../../../core/services/alert.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { EmailService } from '../../../../core/services/email.service';
+import { ClinicEmailDeliveryError } from '../../../../core/services/email.service';
 import { Patient } from '../../../../core/models/user';
 
 describe('NewPatientDialog', () => {
@@ -15,7 +16,7 @@ describe('NewPatientDialog', () => {
 
   function createFixture(patients: Patient[] = [], editData?: Patient) {
     const patientRepo = {
-      createPatient: vi.fn().mockResolvedValue(undefined),
+      createPatient: vi.fn().mockImplementation(async (_operationId, data) => ({ status: 'created', patient: { ...data, id: 'created', doctorId: 'd1' } })),
       updatePatient: vi.fn().mockResolvedValue(undefined),
       getAllPatients: vi.fn().mockResolvedValue([]),
     };
@@ -52,11 +53,51 @@ describe('NewPatientDialog', () => {
     expect(el.querySelector('input[formcontrolname="email"]')).toBeTruthy();
   });
 
+  it('keeps the patient after a partial email failure and retries only the original delivery', async () => {
+    const { component, patientRepo, emailService, dialogRef, fixture } = createFixture();
+    component.form.setValue({ fullName: 'Paciente Ficticio', birthDate: '2020-01-01', email: 'family@example.test', secondaryEmail: 'secondary@example.test', fatherName: 'Tutor', motherName: 'Tutora', phone: '5555555555' });
+    emailService.sendPatientAccessEmail.mockRejectedValueOnce(new ClinicEmailDeliveryError([{ destination: 'primary', sent: true }, { destination: 'secondary', sent: false }]));
+    await component.save(); fixture.detectChanges();
+    const original = emailService.sendPatientAccessEmail.mock.calls[0][0];
+    expect(patientRepo.createPatient).toHaveBeenCalledOnce(); expect(dialogRef.close).not.toHaveBeenCalled();
+    expect(component.form.disabled).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Correo secundario: envío no confirmado.');
+    await component.save(); await component.retryEmail();
+    expect(patientRepo.createPatient).toHaveBeenCalledOnce();
+    expect(emailService.sendPatientAccessEmail.mock.calls[1][0]).toEqual(original);
+    expect(dialogRef.close).toHaveBeenCalledWith(expect.objectContaining({ id: 'created' }));
+  });
+
+  it('reuses the creation operation after an uncertain outcome while unchanged data is retried', async () => {
+    const { component, patientRepo } = createFixture();
+    component.form.setValue({ fullName: 'Paciente Ficticio', birthDate: '2020-01-01', email: 'family@example.test', secondaryEmail: '', fatherName: 'Tutor', motherName: 'Tutora', phone: '5555555555' });
+    patientRepo.createPatient.mockRejectedValueOnce(new Error('Resultado de red incierto'));
+    await component.save(); await component.save();
+    expect(patientRepo.createPatient.mock.calls[0][0]).toBe(patientRepo.createPatient.mock.calls[1][0]);
+  });
+
+  it('shows a server-detected duplicate and sends separate confirmation on the same creation operation', async () => {
+    const { component, patientRepo } = createFixture();
+    component.form.setValue({ fullName: 'Paciente Ficticio', birthDate: '2020-01-01', email: 'family@example.test', secondaryEmail: '', fatherName: 'Tutor', motherName: 'Tutora', phone: '5555555555' });
+    patientRepo.createPatient.mockResolvedValueOnce({ status: 'confirmation-required', warnings: ['email'] });
+    await component.save(); expect(component.alertMsg()).not.toBe('');
+    await component.continueWithExisting();
+    expect(patientRepo.createPatient.mock.calls[0][0]).toBe(patientRepo.createPatient.mock.calls[1][0]);
+    expect(patientRepo.createPatient.mock.calls[1][2]).toEqual(['email']);
+  });
+
   it('shows validation errors when submitted empty', () => {
     const { component } = createFixture();
-    component.submitted = true;
+    component.submitted.set(true);
     component.form.patchValue({ fullName: '', email: '', birthDate: '', fatherName: '', motherName: '', phone: '' });
     expect(component.form.invalid).toBe(true);
+  });
+
+  it('rejects a future birth date (P31)', () => {
+    const { component, fixture } = createFixture();
+    component.form.patchValue({ birthDate: new Date(2099, 0, 1) });
+    fixture.detectChanges();
+    expect(component.form.get('birthDate')?.hasError('matDatepickerMax')).toBe(true);
   });
 
   it('calls createPatient on save for new patient', async () => {
@@ -67,9 +108,36 @@ describe('NewPatientDialog', () => {
     });
     await component.save();
     expect(patientRepo.createPatient).toHaveBeenCalled();
-    expect(emailService.sendPatientAccessEmail).toHaveBeenCalledWith(expect.objectContaining({ email: 'ana@mail.com' }));
+    expect(emailService.sendPatientAccessEmail).toHaveBeenCalledWith(expect.objectContaining({ patientId: 'created', creationOperationId: expect.any(String), operationId: expect.any(String) }));
     expect(alertService.success).toHaveBeenCalled();
     expect(dialogRef.close).toHaveBeenCalled();
+  });
+
+  it('creates an assistant patient under the assigned doctor rather than the assistant identity', async () => {
+    const { component, patientRepo, alertService } = createFixture();
+    (TestBed.inject(AuthService) as any).currentDoctor = { uid: 'assistant-test', role: 'assistant', createdBy: 'doctor-owner' };
+    component.form.setValue({
+      fullName: 'Paciente Sintético', birthDate: '2025-01-01',
+      email: 'family@example.test', secondaryEmail: '', fatherName: 'Tutor', motherName: 'Tutora', phone: '5555555555',
+    });
+    await component.save();
+    expect(patientRepo.createPatient).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ name: 'Paciente' }), []);
+    expect(patientRepo.createPatient.mock.calls[0][1]).not.toHaveProperty('otpPassword');
+    expect(patientRepo.createPatient.mock.calls[0][1]).not.toHaveProperty('doctorId');
+    expect(alertService.success).toHaveBeenCalledWith({ message: 'Paciente creado. Se envió el acceso a los correos guardados.', duration: 5000 });
+  });
+
+  it('does not create a patient or send access email for an assistant without a doctor', async () => {
+    const { component, patientRepo, emailService, alertService } = createFixture();
+    (TestBed.inject(AuthService) as any).currentDoctor = { uid: 'assistant-test', role: 'assistant' };
+    component.form.setValue({
+      fullName: 'Paciente Sintético', birthDate: '2025-01-01',
+      email: 'family@example.test', secondaryEmail: '', fatherName: 'Tutor', motherName: 'Tutora', phone: '5555555555',
+    });
+    await component.save();
+    expect(patientRepo.createPatient).not.toHaveBeenCalled();
+    expect(emailService.sendPatientAccessEmail).not.toHaveBeenCalled();
+    expect(alertService.error).toHaveBeenCalled();
   });
 
   it('does not send access email when creating fails', async () => {
@@ -91,7 +159,7 @@ describe('NewPatientDialog', () => {
       email: 'juan@mail.com', secondaryEmail: '', fatherName: 'Luis', motherName: 'María', phone: '5555555555',
     });
     await component.save();
-    expect(component.alertMsg).toContain('correos electrónicos');
+    expect(component.alertMsg()).toContain('correos electrónicos');
   });
 
   it('does not alert when duplicate email belongs to another doctor', async () => {
@@ -102,7 +170,7 @@ describe('NewPatientDialog', () => {
       email: 'juan@mail.com', secondaryEmail: '', fatherName: 'Luis', motherName: 'María', phone: '5555555555',
     });
     await component.save();
-    expect(component.alertMsg).toBe('');
+    expect(component.alertMsg()).toBe('');
     expect(patientRepo.createPatient).toHaveBeenCalled();
   });
 
@@ -167,5 +235,207 @@ describe('NewPatientDialog', () => {
     const { fixture } = createFixture();
     expect(fixture.nativeElement.querySelector('.btn-close-dialog')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('.btn-back-dialog')).toBeNull();
+  });
+
+  describe('explicit duplicate confirmation (P23)', () => {
+    const familyPatient: Patient = { ...basePatient, doctorId: 'd1', email: 'family@example.test', secondaryEmail: 'other@example.test',
+      birthDate: '2020-01-01', fatherName: 'Tutor ficticio', motherName: 'Tutora ficticia', phone: '5555555555' };
+    const fields = { fullName: 'Paciente Nuevo', birthDate: '2024-01-01', email: 'family@example.test', secondaryEmail: '',
+      fatherName: 'Tutor ficticio', motherName: 'Tutora ficticia', phone: '5555555555' };
+
+    it.each([{ role: 'doctor', embedded: false }, { role: 'assistant', embedded: true }])(
+      'creates a sibling once after clicking the actual Continue button: %j', async ({ role, embedded }) => {
+        const { fixture, component, patientRepo, dialogRef, emailService } = createFixture([familyPatient]);
+        (TestBed.inject(AuthService) as any).currentDoctor = role === 'doctor'
+          ? { uid: 'd1', role } : { uid: 'synthetic-assistant', role, createdBy: 'd1' };
+        component.embedded = embedded;
+        const saved = vi.fn();
+        component.saved.subscribe(saved);
+        component.form.setValue(fields);
+        component.form.markAsDirty();
+        await component.save();
+        fixture.detectChanges();
+        expect(component.alertMsg()).toContain('correos electrónicos');
+        expect(fixture.nativeElement.querySelector('.btn-primary').disabled).toBe(true);
+        expect(patientRepo.createPatient).not.toHaveBeenCalled();
+        expect(emailService.sendPatientAccessEmail).not.toHaveBeenCalled();
+        fixture.nativeElement.querySelector('.alert-continue-btn').click();
+        await vi.waitFor(() => expect(component.saving()).toBe(false));
+        expect(patientRepo.createPatient).toHaveBeenCalledExactlyOnceWith(expect.any(String),
+          expect.objectContaining({ email: fields.email, name: 'Paciente', lastName: 'Nuevo' }), ['email']);
+        expect(emailService.sendPatientAccessEmail).toHaveBeenCalledTimes(1);
+        expect(embedded ? saved : dialogRef.close).toHaveBeenCalledTimes(1);
+        expect(embedded ? dialogRef.close : saved).not.toHaveBeenCalled();
+      }
+    );
+
+    it('confirms a coincident name without requiring email confirmation', async () => {
+      const { component, patientRepo } = createFixture([familyPatient]);
+      component.form.setValue({ ...fields, fullName: 'Juan Pérez', email: 'new@example.test' });
+      await component.save();
+      expect(component.alertMsg()).toContain('ese nombre');
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).toHaveBeenCalledTimes(1);
+    });
+
+    it('requires separate email and name confirmations and cannot bypass either with the save action', async () => {
+      const { component, patientRepo } = createFixture([familyPatient]);
+      component.form.setValue({ ...fields, fullName: 'Juan Pérez' });
+      await component.save();
+      await component.save();
+      expect(component.alertMsg()).toContain('correos electrónicos');
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      await component.continueWithExisting();
+      expect(component.alertMsg()).toContain('ese nombre');
+      await component.save();
+      expect(component.alertMsg()).toContain('ese nombre');
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).toHaveBeenCalledTimes(1);
+      expect(component.alertMsg()).toBe('');
+    });
+
+    it.each([
+      { email: 'family@example.test', secondaryEmail: '' },
+      { email: 'other@example.test', secondaryEmail: '' },
+      { email: 'new@example.test', secondaryEmail: 'family@example.test' },
+      { email: 'new@example.test', secondaryEmail: 'other@example.test' },
+    ])('checks shared primary/secondary emails in either position: %j', async emails => {
+      const { component, patientRepo } = createFixture([familyPatient]);
+      component.form.setValue({ ...fields, ...emails });
+      await component.save();
+      expect(component.alertMsg()).toContain('correos electrónicos');
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      { field: 'email', value: 'other@example.test' },
+      { field: 'secondaryEmail', value: 'other@example.test' },
+      { field: 'fullName', value: 'Ana López' },
+    ])('invalidates acceptance when a checked field changes: %j', async ({ field, value }) => {
+      const { component, patientRepo } = createFixture([familyPatient, { ...familyPatient, id: 'synthetic-sibling', name: 'Ana', lastName: 'López' }]);
+      component.form.setValue({ ...fields, fullName: 'Juan Pérez' });
+      await component.save();
+      await component.continueWithExisting();
+      expect(component.alertMsg()).toContain('ese nombre');
+      component.form.patchValue({ [field]: value });
+      expect(component.alertMsg()).toBe('');
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      await component.save();
+      expect(component.alertMsg()).toContain('correos electrónicos');
+      await component.continueWithExisting();
+      expect(component.alertMsg()).toContain('ese nombre');
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not reset acceptance when only an unrelated field changes', async () => {
+      const { component, patientRepo } = createFixture([familyPatient]);
+      component.form.setValue({ ...fields, fullName: 'Juan Pérez' });
+      await component.save();
+      await component.continueWithExisting();
+      component.form.patchValue({ phone: '5555555556' });
+      expect(component.alertMsg()).toContain('ese nombre');
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).toHaveBeenCalledExactlyOnceWith(expect.any(String), expect.objectContaining({ phone: '5555555556' }), ['email', 'name']);
+    });
+
+    it('does not accept a stale warning when a checked field changes without emitting a form event', async () => {
+      const { component, patientRepo } = createFixture([familyPatient]);
+      component.form.setValue({ ...fields, fullName: 'Juan Pérez' });
+      await component.save();
+      await component.continueWithExisting();
+      component.form.patchValue({ email: 'other@example.test' }, { emitEvent: false });
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      await component.save();
+      expect(component.alertMsg()).toContain('correos electrónicos');
+    });
+
+    it('checks email normalization when matching existing accounts', async () => {
+      const { component, patientRepo } = createFixture([{ ...familyPatient, email: ' FAMILY@EXAMPLE.TEST ' }]);
+      component.form.setValue({ ...fields, email: 'FAMILY@example.test' });
+      await component.save();
+      expect(component.alertMsg()).toContain('correos electrónicos');
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).toHaveBeenCalledExactlyOnceWith(expect.any(String), expect.objectContaining({ email: 'family@example.test' }), ['email']);
+    });
+
+    it('invalidates acceptance when the supplied patient list changes', async () => {
+      const { component, patientRepo } = createFixture([familyPatient]);
+      component.form.setValue({ ...fields, fullName: 'Juan Pérez' });
+      await component.save();
+      await component.continueWithExisting();
+      component.setPatients([familyPatient, { ...familyPatient, id: 'another-sibling' }]);
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      await component.save();
+      expect(component.alertMsg()).toContain('correos electrónicos');
+    });
+
+    it('invalidates acceptance when the doctor scope changes', async () => {
+      const { component, patientRepo } = createFixture([familyPatient, { ...familyPatient, id: 'other-doctor-child', doctorId: 'd2' }]);
+      component.form.setValue({ ...fields, fullName: 'Juan Pérez' });
+      await component.save();
+      await component.continueWithExisting();
+      (TestBed.inject(AuthService) as any).currentDoctor = { uid: 'd2', role: 'doctor' };
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      await component.save();
+      expect(component.alertMsg()).toContain('correos electrónicos');
+    });
+
+    it('requires a valid form before accepting a warning', async () => {
+      const { component, patientRepo } = createFixture([familyPatient]);
+      component.form.setValue(fields);
+      await component.save();
+      component.form.patchValue({ phone: '' });
+      expect(component.continueDisabled()).toBe(true);
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).not.toHaveBeenCalled();
+      component.form.patchValue({ phone: fields.phone });
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows a save error without a Continue action and retries only on explicit save', async () => {
+      const { fixture, component, patientRepo } = createFixture([familyPatient]);
+      component.form.setValue(fields);
+      patientRepo.createPatient.mockRejectedValueOnce(new Error('Fallo sintético de guardado'));
+      await component.save();
+      await component.continueWithExisting();
+      fixture.detectChanges();
+      expect(component.alertMsg()).toBe('');
+      expect(component.saveError()).toBe('Fallo sintético de guardado');
+      expect(fixture.nativeElement.textContent).toContain('Fallo sintético de guardado');
+      expect(fixture.nativeElement.querySelector('.alert-continue-btn')).toBeNull();
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).toHaveBeenCalledTimes(1);
+      await component.save();
+      expect(patientRepo.createPatient).toHaveBeenCalledTimes(2);
+      expect(component.saveError()).toBe('');
+    });
+
+    it('prevents repeated creation while a request is in flight', async () => {
+      const { component, patientRepo, emailService } = createFixture();
+      component.form.setValue({ ...fields, email: 'new@example.test' });
+      let resolveCreate!: (result: any) => void;
+      patientRepo.createPatient.mockReturnValueOnce(new Promise(resolve => { resolveCreate = resolve; }));
+      const firstSave = component.save();
+      expect(component.saving()).toBe(true);
+      expect(component.saveDisabled()).toBe(true);
+      await component.save();
+      await component.continueWithExisting();
+      expect(patientRepo.createPatient).toHaveBeenCalledTimes(1);
+      resolveCreate({ status: 'created', patient: { id: 'created', doctorId: 'd1', name: 'Paciente', lastName: 'Ejemplo' } });
+      await firstSave;
+      expect(component.saving()).toBe(false);
+      expect(emailService.sendPatientAccessEmail).toHaveBeenCalledTimes(1);
+    });
   });
 });

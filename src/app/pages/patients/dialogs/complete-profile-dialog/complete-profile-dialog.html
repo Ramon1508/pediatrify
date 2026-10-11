@@ -8,30 +8,33 @@
 <mat-dialog-content>
   <p class="step-label d-flex justify-content-between">
     <span>
-      @if (step === 1) { Datos generales }
-      @else if (step === 2) { Datos de contacto }
+      @if (step() === 1) { Datos generales }
+      @else if (step() === 2) { Datos de contacto }
       @else { Esquema de vacunación }
     </span>
-    <span class="step-indicator">{{ step }}/3</span>
+    <span class="step-indicator">{{ step() }}/3</span>
   </p>
 
-  @if (step === 1) {
+  @if (step() === 1) {
     <form [formGroup]="form">
       <div class="form-row desktop-2col form-gap-40">
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Nombre completo</mat-label>
           <input matInput formControlName="fullName" />
-          @if (form.get('fullName')?.invalid && (form.get('fullName')?.touched || submittedSteps[0])) {
+          @if (form.controls['fullName']?.invalid && (form.controls['fullName']?.touched || submittedSteps()[0])) {
             <mat-error>Ingresa el nombre completo del paciente</mat-error>
           }
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Fecha de nacimiento</mat-label>
-          <input matInput [matDatepicker]="dp" formControlName="birthDate" (click)="dp.open()" />
+          <input matInput [matDatepicker]="dp" formControlName="birthDate" [max]="maxBirthDate()" (click)="dp.open()" />
           <mat-datepicker #dp></mat-datepicker>
           <mat-icon matSuffix (click)="dp.open()">calendar_today</mat-icon>
-          @if (form.get('birthDate')?.invalid && (form.get('birthDate')?.touched || submittedSteps[0])) {
+          @if (form.controls['birthDate']?.errors?.['matDatepickerMax'] && (form.controls['birthDate']?.touched || submittedSteps()[0])) {
+            <mat-error>La fecha de nacimiento no puede ser futura</mat-error>
+          }
+          @if (form.controls['birthDate']?.invalid && !form.controls['birthDate']?.errors?.['matDatepickerMax'] && (form.controls['birthDate']?.touched || submittedSteps()[0])) {
             <mat-error>Selecciona la fecha de nacimiento</mat-error>
           }
         </mat-form-field>
@@ -41,11 +44,11 @@
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Grupo sangu&iacute;neo</mat-label>
           <mat-select formControlName="bloodType">
-            @for (bt of bloodTypes; track bt) {
+            @for (bt of bloodTypes(); track bt) {
               <mat-option [value]="bt">{{ bt }}</mat-option>
             }
           </mat-select>
-          @if (form.get('bloodType')?.invalid && (form.get('bloodType')?.touched || submittedSteps[0])) {
+          @if (form.controls['bloodType']?.invalid && (form.controls['bloodType']?.touched || submittedSteps()[0])) {
             <mat-error>Selecciona el grupo sangu&iacute;neo</mat-error>
           }
         </mat-form-field>
@@ -54,7 +57,7 @@
           <mat-label>Peso al nacer</mat-label>
           <input matInput type="text" inputmode="decimal" formControlName="birthWeight" />
           <mat-hint>En kilogramos</mat-hint>
-          @if (form.get('birthWeight')?.invalid && (form.get('birthWeight')?.touched || submittedSteps[0])) {
+          @if (form.controls['birthWeight']?.invalid && (form.controls['birthWeight']?.touched || submittedSteps()[0])) {
             <mat-error>Ingresa un peso v&aacute;lido (n&uacute;mero positivo)</mat-error>
           }
         </mat-form-field>
@@ -65,7 +68,7 @@
           <mat-label>Talla al nacer</mat-label>
           <input matInput type="text" inputmode="decimal" formControlName="birthHeight" />
           <mat-hint>En cent&iacute;metros</mat-hint>
-          @if (form.get('birthHeight')?.invalid && (form.get('birthHeight')?.touched || submittedSteps[0])) {
+          @if (form.controls['birthHeight']?.invalid && (form.controls['birthHeight']?.touched || submittedSteps()[0])) {
             <mat-error>Ingresa una talla v&aacute;lida (n&uacute;mero positivo)</mat-error>
           }
         </mat-form-field>
@@ -74,6 +77,9 @@
           <mat-label>Per&iacute;metro cef&aacute;lico al nacer (opcional)</mat-label>
           <input matInput type="text" inputmode="decimal" formControlName="headCircumference" />
           <mat-hint>En cent&iacute;metros</mat-hint>
+          @if (form.controls['headCircumference']?.invalid && (form.controls['headCircumference']?.touched || submittedSteps()[0])) {
+            <mat-error>Ingresa un per&iacute;metro cef&aacute;lico v&aacute;lido (n&uacute;mero positivo)</mat-error>
+          }
         </mat-form-field>
       </div>
 
@@ -84,7 +90,7 @@
             <mat-radio-button [value]="1">Masculino</mat-radio-button>
             <mat-radio-button [value]="2">Femenino</mat-radio-button>
           </mat-radio-group>
-          @if (form.get('sex')?.invalid && submittedSteps[0]) {
+          @if (form.controls['sex']?.invalid && submittedSteps()[0]) {
             <span class="radio-error">Selecciona el sexo del paciente</span>
           }
         </div>
@@ -95,7 +101,7 @@
             <mat-radio-button value="vaginal">Parto</mat-radio-button>
             <mat-radio-button value="cesarean">Ces&aacute;rea</mat-radio-button>
           </mat-radio-group>
-          @if (form.get('birthMethod')?.invalid && submittedSteps[0]) {
+          @if (form.controls['birthMethod']?.invalid && submittedSteps()[0]) {
             <span class="radio-error">Selecciona el m&eacute;todo de nacimiento</span>
           }
         </div>
@@ -107,17 +113,17 @@
           <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
           <mat-radio-button [value]="false">No</mat-radio-button>
         </mat-radio-group>
-        @if (form.get('hasAllergies')?.invalid && submittedSteps[0]) {
+        @if (form.controls['hasAllergies']?.invalid && submittedSteps()[0]) {
           <span class="radio-error">Selecciona si el paciente tiene alergias</span>
         }
       </div>
 
-      @if (form.get('hasAllergies')?.value) {
+      @if (form.controls['hasAllergies']?.value) {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Alergias del paciente</mat-label>
           <textarea matInput formControlName="allergies" rows="3"></textarea>
           <mat-hint>Ej. Penicilina, Polen, Lactosa</mat-hint>
-          @if (form.get('allergies')?.hasError('required') && (form.get('allergies')?.touched || submittedSteps[0])) {
+          @if (form.controls['allergies']?.errors?.['required'] && (form.controls['allergies']?.touched || submittedSteps()[0])) {
             <mat-error>Describe las alergias del paciente</mat-error>
           }
         </mat-form-field>
@@ -129,16 +135,16 @@
           <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
           <mat-radio-button [value]="false">No</mat-radio-button>
         </mat-radio-group>
-        @if (form.get('hasBeenHospitalized')?.invalid && submittedSteps[0]) {
+        @if (form.controls['hasBeenHospitalized']?.invalid && submittedSteps()[0]) {
           <span class="radio-error">Selecciona si el paciente ha sido hospitalizado</span>
         }
       </div>
 
-      @if (form.get('hasBeenHospitalized')?.value) {
+      @if (form.controls['hasBeenHospitalized']?.value) {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Motivo de hospitalizaci&oacute;n</mat-label>
           <textarea matInput formControlName="hospitalizationReason" rows="3"></textarea>
-          @if (form.get('hospitalizationReason')?.hasError('required') && (form.get('hospitalizationReason')?.touched || submittedSteps[0])) {
+          @if (form.controls['hospitalizationReason']?.errors?.['required'] && (form.controls['hospitalizationReason']?.touched || submittedSteps()[0])) {
             <mat-error>Describe el motivo de hospitalizaci&oacute;n</mat-error>
           }
         </mat-form-field>
@@ -150,16 +156,16 @@
           <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
           <mat-radio-button [value]="false">No</mat-radio-button>
         </mat-radio-group>
-        @if (form.get('hasDisease')?.invalid && submittedSteps[0]) {
+        @if (form.controls['hasDisease']?.invalid && submittedSteps()[0]) {
           <span class="radio-error">Selecciona si el paciente tiene alguna enfermedad</span>
         }
       </div>
 
-      @if (form.get('hasDisease')?.value) {
+      @if (form.controls['hasDisease']?.value) {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Enfermedad que padece el paciente</mat-label>
           <textarea matInput formControlName="diseaseDescription" rows="3"></textarea>
-          @if (form.get('diseaseDescription')?.hasError('required') && (form.get('diseaseDescription')?.touched || submittedSteps[0])) {
+          @if (form.controls['diseaseDescription']?.errors?.['required'] && (form.controls['diseaseDescription']?.touched || submittedSteps()[0])) {
             <mat-error>Describe la enfermedad del paciente</mat-error>
           }
         </mat-form-field>
@@ -171,16 +177,16 @@
           <mat-radio-button [value]="true">S&iacute;</mat-radio-button>
           <mat-radio-button [value]="false">No</mat-radio-button>
         </mat-radio-group>
-        @if (form.get('takesMedication')?.invalid && submittedSteps[0]) {
+        @if (form.controls['takesMedication']?.invalid && submittedSteps()[0]) {
           <span class="radio-error">Selecciona si el paciente toma medicamentos</span>
         }
       </div>
 
-      @if (form.get('takesMedication')?.value) {
+      @if (form.controls['takesMedication']?.value) {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Medicamentos que toma el paciente</mat-label>
           <textarea matInput formControlName="medicationDescription" rows="3"></textarea>
-          @if (form.get('medicationDescription')?.hasError('required') && (form.get('medicationDescription')?.touched || submittedSteps[0])) {
+          @if (form.controls['medicationDescription']?.errors?.['required'] && (form.controls['medicationDescription']?.touched || submittedSteps()[0])) {
             <mat-error>Describe los medicamentos que toma el paciente</mat-error>
           }
         </mat-form-field>
@@ -188,7 +194,7 @@
     </form>
   }
 
-  @if (step === 2) {
+  @if (step() === 2) {
     <form [formGroup]="form">
       <p class="info-message">Mediante los correos electr&oacute;nicos proporcionados, se crear&aacute;n el o los usuarios de consulta de los padres o tutores.</p>
 
@@ -196,7 +202,7 @@
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Correo electr&oacute;nico principal</mat-label>
           <input matInput type="email" formControlName="email" />
-          @if (form.get('email')?.invalid && submittedSteps[1]) {
+          @if (form.controls['email']?.invalid && submittedSteps()[1]) {
             <mat-error>Ingresa un correo electr&oacute;nico v&aacute;lido</mat-error>
           }
         </mat-form-field>
@@ -211,7 +217,7 @@
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Nombre del padre</mat-label>
           <input matInput formControlName="fatherName" />
-          @if (form.get('fatherName')?.invalid && submittedSteps[1]) {
+          @if (form.controls['fatherName']?.invalid && submittedSteps()[1]) {
             <mat-error>Ingresa el nombre del padre</mat-error>
           }
         </mat-form-field>
@@ -219,7 +225,7 @@
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Nombre de la madre</mat-label>
           <input matInput formControlName="motherName" />
-          @if (form.get('motherName')?.invalid && submittedSteps[1]) {
+          @if (form.controls['motherName']?.invalid && submittedSteps()[1]) {
             <mat-error>Ingresa el nombre de la madre</mat-error>
           }
         </mat-form-field>
@@ -229,7 +235,7 @@
         <mat-form-field appearance="outline" class="flex-field">
           <mat-label>Tel&eacute;fono principal</mat-label>
           <input matInput type="tel" formControlName="phone" />
-          @if (form.get('phone')?.invalid && submittedSteps[1]) {
+          @if (form.controls['phone']?.invalid && submittedSteps()[1]) {
             <mat-error>Ingresa el tel&eacute;fono</mat-error>
           }
         </mat-form-field>
@@ -243,8 +249,8 @@
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Recomendado por (opcional)</mat-label>
         <input matInput [matAutocomplete]="referredByAuto" [formControl]="referredBySearchControl" (input)="filterReferredBy($any($event.target).value)" (blur)="onReferredByBlur()" />
-        <mat-autocomplete #referredByAuto="matAutocomplete" [displayWith]="displayReferredBy" (optionSelected)="onReferredBySelected($event.option.value)">
-          @for (p of filteredPatients; track p.id) {
+        <mat-autocomplete #referredByAuto="matAutocomplete" [displayWith]="displayReferredBy()" (optionSelected)="onReferredBySelected($event.option.value)">
+          @for (p of filteredPatients(); track p.id) {
             <mat-option [value]="p">{{ p.name }} {{ p.lastName }}</mat-option>
           }
         </mat-autocomplete>
@@ -252,7 +258,7 @@
     </form>
   }
 
-  @if (step === 3) {
+  @if (step() === 3) {
     <div class="vac-content">
       <!-- Mobile: bloques verticales por vacuna (sin tabla) -->
       <div class="vac-mobile">
@@ -285,7 +291,7 @@
           <thead>
             <tr>
               <th class="vac-th vac-th-name">Vacuna</th>
-              @for (age of ages; track age) {
+              @for (age of ages(); track age) {
                 <th class="vac-th">{{ age }}</th>
               }
             </tr>
@@ -308,7 +314,7 @@
                 }
               </tr>
               @if (!last) {
-                <tr class="vac-sep-row"><td [attr.colspan]="ages.length + 1" class="vac-sep-td"><div class="vac-sep"></div></td></tr>
+                <tr class="vac-sep-row"><td [attr.colspan]="ages().length + 1" class="vac-sep-td"><div class="vac-sep"></div></td></tr>
               }
             }
           </tbody>
@@ -319,15 +325,15 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  @if (step > 1) {
+  @if (step() > 1) {
     <button mat-stroked-button class="btn-secondary dialog-btn" (click)="prevStep()">Anterior</button>
   }
-  @if (step < 3) {
+  @if (step() < 3) {
     <button mat-unelevated-button class="btn-primary dialog-btn" (click)="nextStep()">Siguiente</button>
   }
-  @if (step === 3) {
-    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="submitting">
-      @if (submitting) {
+  @if (step() === 3) {
+    <button mat-unelevated-button class="btn-primary dialog-btn" (click)="save()" [disabled]="submitting()">
+      @if (submitting()) {
         <mat-spinner diameter="18" />
       } @else {
         Guardar perfil

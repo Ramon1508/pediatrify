@@ -158,6 +158,19 @@
   width: 100%;
 }
 
+.schedule-validation {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #f9dedc;
+  color: #b3261e;
+  font: 400 14px/20px Roboto, sans-serif;
+  overflow-wrap: anywhere;
+
+  p { margin: 0 0 8px; }
+  ul { margin: 0; padding-inline-start: 20px; }
+}
+
 mat-dialog-actions {
   padding: 0 24px 16px !important;
   gap: 8px;

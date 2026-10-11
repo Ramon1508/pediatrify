@@ -1,7 +1,7 @@
 <div class="notif-dialog">
   <header class="notif-header">
     <h1 class="notif-title">Notificaciones</h1>
-    @if (!asPage) {
+    @if (!asPage()) {
       <button mat-icon-button class="btn-close-dialog" (click)="close()" aria-label="Cerrar notificaciones">
         <mat-icon>close</mat-icon>
       </button>
@@ -34,7 +34,7 @@
 
   @if (isInitialLoading()) {
     <div class="notif-skeleton" aria-hidden="true">
-      @for (_ of skeletonItems; track $index) {
+      @for (_ of skeletonItems(); track $index) {
         <div class="skeleton-item">
           <span class="skeleton-dot"></span>
           <div class="skeleton-lines">

@@ -1,15 +1,4 @@
-import {
-  Component,
-  inject,
-  Input,
-  signal,
-  computed,
-  effect,
-  viewChild,
-  ElementRef,
-  OnDestroy,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, inject, input, signal, computed, effect, viewChild, ElementRef, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,6 +12,7 @@ import { Subscription } from 'rxjs';
 import { NotificationService } from '../../../core/services/notification.service';
 import { AppointmentRepository } from '../../../core/repositories/appointment.repository';
 import { CalendarFocusService } from '../../../core/services/calendar-focus.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Appointment } from '../../../core/models/user';
 import { AppNotification } from '../../../core/models/notification';
 import { AlertService } from '../../../core/services/alert.service';
@@ -37,7 +27,7 @@ const MAX_AUTOFILL_PAGES = 2;
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    '[class.page-mode]': 'asPage',
+    '[class.page-mode]': 'asPage()',
   },
   imports: [
     CommonModule,
@@ -57,9 +47,10 @@ export class NotificationsDialog implements OnDestroy {
   private dialogRef = inject(MatDialogRef<NotificationsDialog>, { optional: true });
   private focusService = inject(CalendarFocusService);
   private alert = inject(AlertService);
+  private auth = inject(AuthService);
 
   /** Cuando se renderiza como página (mobile) en vez de modal: sin X ni estilos de drawer. */
-  @Input() asPage = false;
+  readonly asPage = input(false);
 
   protected notifications = this.notificationsService.notifications;
   protected activeFilter = this.notificationsService.activeFilter;
@@ -70,7 +61,7 @@ export class NotificationsDialog implements OnDestroy {
   protected isMarkingAllRead = this.notificationsService.isMarkingAllRead;
 
   protected appointments = signal<Record<string, Appointment | null>>({});
-  protected skeletonItems = [0, 1, 2];
+  protected skeletonItems = signal([0, 1, 2]);
   private resolvedByAppointment = new Map<string, Appointment | null>();
   private inFlightAppointments = new Map<string, Promise<Appointment | null>>();
 
@@ -204,6 +195,11 @@ export class NotificationsDialog implements OnDestroy {
     return value;
   }
 
+  /** P39: calendario del portal del Paciente o del personal. */
+  private get calendarRoute(): string {
+    return this.auth.currentPatient ? '/paciente/calendario' : '/app/calendar';
+  }
+
   protected async openDetails(n: AppNotification) {
     const appointment = await this.resolveAppointment(n);
     if (!appointment) return;
@@ -213,13 +209,13 @@ export class NotificationsDialog implements OnDestroy {
       time: appointment.time,
       appointmentId: appointment.id,
     });
-    this.router.navigate(['/app/calendar']);
+    this.router.navigate([this.calendarRoute]);
     this.dialogRef?.close();
   }
 
   protected close() {
-    if (this.asPage) {
-      this.router.navigate(['/app/calendar']);
+    if (this.asPage()) {
+      this.router.navigate([this.calendarRoute]);
       return;
     }
     this.dialogRef?.close();

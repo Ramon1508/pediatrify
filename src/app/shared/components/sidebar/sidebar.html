@@ -1,53 +1,15 @@
 <nav class="sidebar-nav">
-  <a
-    class="nav-item"
-    routerLink="/app/calendar"
-    routerLinkActive="active"
-    [routerLinkActiveOptions]="{ exact: false }"
-  >
-    <div class="icon-wrapper">
-      <mat-icon>access_time</mat-icon>
-    </div>
-    <span class="nav-label">Calendario</span>
-  </a>
-
-  <a
-    class="nav-item"
-    routerLink="/app/patients"
-    routerLinkActive="active"
-    [routerLinkActiveOptions]="{ exact: false }"
-  >
-    <div class="icon-wrapper">
-      <mat-icon>groups</mat-icon>
-    </div>
-    <span class="nav-label">Pacientes</span>
-  </a>
-
-  @if (isDoctor) {
+  @for (item of navItems(); track item.path) {
     <a
       class="nav-item"
-      routerLink="/app/doctors"
+      [routerLink]="item.path"
       routerLinkActive="active"
       [routerLinkActiveOptions]="{ exact: false }"
     >
       <div class="icon-wrapper">
-        <mat-icon>group</mat-icon>
+        <mat-icon>{{ item.icon }}</mat-icon>
       </div>
-      <span class="nav-label">Asistentes</span>
-    </a>
-  }
-
-  @if (isDoctor) {
-    <a
-      class="nav-item"
-      routerLink="/app/impresion"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: false }"
-    >
-      <div class="icon-wrapper">
-        <mat-icon>settings</mat-icon>
-      </div>
-      <span class="nav-label">Impresión</span>
+      <span class="nav-label">{{ item.label }}</span>
     </a>
   }
 </nav>

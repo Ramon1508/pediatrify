@@ -1,43 +1,28 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { ClinicGatewayService } from './clinic-gateway.service';
 
-const FUNCTIONS_BASE = 'https://us-central1-lilcare-afdf5.cloudfunctions.net';
-
-export interface PatientAccessEmailData {
-  email: string;
-  otpPassword: string;
-  patientName: string;
-  doctorName: string;
-  isRegenerate?: boolean;
+export interface PatientAccessEmailData { patientId: string; operationId: string; creationOperationId?: string; }
+export interface InvitationEmailData { userId: string; token: string; operationId: string; }
+export interface EmailDelivery { destination: 'primary' | 'secondary'; sent: boolean; }
+export class ClinicEmailDeliveryError extends Error {
+  constructor(readonly deliveries: EmailDelivery[]) { super('No se pudo confirmar el envío a todos los destinatarios.'); }
 }
 
-export interface InvitationEmailData {
-  email: string;
-  inviteeName: string;
-  doctorName: string;
-  link: string;
-}
-
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class EmailService {
+  private gateway = inject(ClinicGatewayService);
   async sendPatientAccessEmail(data: PatientAccessEmailData): Promise<void> {
-    const response = await fetch(`${FUNCTIONS_BASE}/sendPatientAccessEmail`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data }),
-    });
-    const result = await response.json();
-    if (result.error) throw new Error(result.error.message);
+    await this.send({ kind: 'patient-access', patientId: data.patientId, operationId: data.operationId,
+      ...(data.creationOperationId ? { creationOperationId: data.creationOperationId } : {}) });
   }
-
   async sendInvitationEmail(data: InvitationEmailData): Promise<void> {
-    const response = await fetch(`${FUNCTIONS_BASE}/sendInvitationEmail`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data }),
-    });
-    const result = await response.json();
-    if (result.error) throw new Error(result.error.message);
+    await this.send({ kind: 'invitation', userId: data.userId, token: data.token, operationId: data.operationId });
+  }
+  private async send(data: unknown): Promise<void> {
+    const result = await this.gateway.call<{success: boolean; deliveries: EmailDelivery[]}>('sendClinicEmail', data);
+    if (!result || !Array.isArray(result.deliveries) || !result.deliveries.length ||
+        result.success !== true || result.deliveries.some(item => item.sent !== true)) {
+      throw new ClinicEmailDeliveryError(result?.deliveries ?? []);
+    }
   }
 }

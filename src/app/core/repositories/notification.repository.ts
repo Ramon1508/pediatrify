@@ -4,7 +4,6 @@ import {
   writeBatch,
   doc,
   getDocs,
-  setDoc,
   updateDoc,
   collection,
   onSnapshot,
@@ -14,36 +13,37 @@ import {
   where,
   startAfter,
   QueryDocumentSnapshot,
-  serverTimestamp,
+  QueryConstraint,
 } from 'firebase/firestore';
 import { Observable } from 'rxjs';
 import { FirebaseService } from '../firebase/firebase.service';
+import { ClinicGatewayService } from '../services/clinic-gateway.service';
 import {
   AppNotification,
   NotificationFilter,
-  NotificationRecipient,
 } from '../models/notification';
 
 export interface NotificationPage {
   items: AppNotification[];
-  lastVisible: QueryDocumentSnapshot | null;
+  lastVisible: NotificationCursor;
 }
-
-/** Contenido compartido de una notificación, sin el estado por destinatario. */
-export interface NotificationPayload {
-  type: AppNotification['type'];
-  title: string;
-  description: string;
-  appointmentId?: string;
-  originatorId: string;
-  originatorName: string;
-}
+export type NotificationCursor = QueryDocumentSnapshot | string | null;
 
 @Injectable({
   providedIn: 'root',
 })
 export class NotificationRepository {
   private firebase = inject(FirebaseService);
+  private gateway = inject(ClinicGatewayService);
+
+  private recipientScope(recipientId: string): QueryConstraint[] {
+    const principal = this.gateway.principal();
+    const ownId = principal?.role === 'patient' ? principal.patientId : principal?.userId;
+    if (!principal?.doctorId || principal.role === 'admin' || recipientId !== ownId) {
+      throw new Error('Esta cuenta no puede consultar esa bandeja.');
+    }
+    return [where('doctorId', '==', principal.doctorId), where('recipientId', '==', recipientId), where('recipientType', '==', principal.role)];
+  }
 
   private get db(): Firestore {
     return this.firebase.firestore;
@@ -58,32 +58,6 @@ export class NotificationRepository {
   }
 
   /**
-   * Crea UNA notificación por destinatario (fan-out) en un único `writeBatch`.
-   * Cada doc trae el contenido compartido + su `recipientId`/`recipientType`
-   * y `read: false`. 1 round-trip para N destinatarios.
-   */
-  async createMany(
-    payload: NotificationPayload,
-    recipients: NotificationRecipient[]
-  ): Promise<void> {
-    if (!recipients.length) return;
-    const batch = writeBatch(this.db);
-    for (const recipient of recipients) {
-      const ref = doc(this.db, 'notifications', crypto.randomUUID());
-      const notification: AppNotification = {
-        id: ref.id,
-        ...payload,
-        createdAt: serverTimestamp() as any,
-        recipientId: recipient.recipientId,
-        recipientType: recipient.recipientType,
-        read: false,
-      };
-      batch.set(ref, notification);
-    }
-    await batch.commit();
-  }
-
-  /**
    * Pagina las notificaciones de un destinatario (bandeja).
    * - `all`: `where(recipientId == me) + orderBy(createdAt desc)`.
    * - `unread`: `where(recipientId == me) + where(read == false) + orderBy(createdAt desc)`.
@@ -94,11 +68,18 @@ export class NotificationRepository {
     recipientId: string,
     filter: NotificationFilter,
     pageSize: number,
-    lastVisible: QueryDocumentSnapshot | null = null
+    lastVisible: NotificationCursor = null
   ): Promise<NotificationPage> {
+    if (this.gateway.principal()?.role === 'patient') {
+      const result = await this.gateway.patientOperation<{value: AppNotification[]; cursor: string | null}>('notifications.page', {
+        recipientId, filter, pageSize, cursor: typeof lastVisible === 'string' ? lastVisible : null,
+      });
+      return {items: result.value, lastVisible: result.cursor};
+    }
+    if (typeof lastVisible === 'string') throw new Error('La página pertenece a otra sesión.');
     let q = query(
       this.notificationRef,
-      where('recipientId', '==', recipientId),
+      ...this.recipientScope(recipientId),
       orderBy('createdAt', 'desc'),
       limit(pageSize)
     );
@@ -121,10 +102,11 @@ export class NotificationRepository {
    * `snapshot.size` — cada usuario mira solo SUS docs.
    */
   watchUnreadCount(recipientId: string): Observable<number> {
+    if (this.gateway.principal()?.role === 'patient') return this.gateway.watchPatient('notifications.count', {recipientId});
     return new Observable<number>((subscriber) => {
       const q = query(
         this.notificationRef,
-        where('recipientId', '==', recipientId),
+        ...this.recipientScope(recipientId),
         where('read', '==', false),
         orderBy('createdAt', 'desc')
       );
@@ -142,10 +124,11 @@ export class NotificationRepository {
 
   /** Realtime de las notificaciones MÁS RECIENTES del destinatario (para prepend). */
   watchForRecipient(recipientId: string, limitCount = 100): Observable<AppNotification[]> {
+    if (this.gateway.principal()?.role === 'patient') return this.gateway.watchPatient('notifications.latest', {recipientId, pageSize: limitCount});
     return new Observable((subscriber) => {
       const q = query(
         this.notificationRef,
-        where('recipientId', '==', recipientId),
+        ...this.recipientScope(recipientId),
         orderBy('createdAt', 'desc'),
         limit(limitCount),
       );
@@ -163,14 +146,18 @@ export class NotificationRepository {
 
   /** Marca UNA notificación del destinatario como leída. */
   async markRead(notificationId: string): Promise<void> {
+    if (this.gateway.principal()?.role === 'patient') {
+      await this.gateway.patientOperation('notification.read', {id: notificationId}); return;
+    }
     await updateDoc(this.docRef(notificationId), { read: true });
   }
 
   /** Marca toda la bandeja pendiente del destinatario, incluida la no cargada en la UI. */
   async markAllRead(recipientId: string): Promise<string[]> {
+    if (this.gateway.principal()?.role === 'patient') return this.markPatientBatch('notifications.read-all', recipientId);
     const pageSize = 100;
     const marked: string[] = [];
-    let cursor: QueryDocumentSnapshot | null = null;
+    let cursor: NotificationCursor = null;
 
     for (;;) {
       const page = await this.getPage(recipientId, 'unread', pageSize, cursor);
@@ -194,6 +181,7 @@ export class NotificationRepository {
    * where(read == false)`. Devuelve los ids marcados.
    */
   async markAllCancelledRead(recipientId: string): Promise<string[]> {
+    if (this.gateway.principal()?.role === 'patient') return this.markPatientBatch('notifications.read-cancelled', recipientId);
     const PAGE = 100;
     const marked: string[] = [];
     let lastVisible: QueryDocumentSnapshot | null = null;
@@ -201,7 +189,7 @@ export class NotificationRepository {
     for (;;) {
       let q = query(
         this.notificationRef,
-        where('recipientId', '==', recipientId),
+        ...this.recipientScope(recipientId),
         where('type', '==', 'appointment-cancelled'),
         where('read', '==', false),
         limit(PAGE)
@@ -225,5 +213,14 @@ export class NotificationRepository {
     }
 
     return marked;
+  }
+
+  private async markPatientBatch(action: string, recipientId: string): Promise<string[]> {
+    const marked: string[] = [];
+    for (;;) {
+      const result = await this.gateway.patientRead<string[]>(action, {recipientId});
+      marked.push(...result);
+      if (result.length < 400) return marked;
+    }
   }
 }

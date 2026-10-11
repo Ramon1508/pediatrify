@@ -24,6 +24,7 @@ import { AlertService } from '../../../core/services/alert.service';
 })
 export class AlertOverlay implements OnDestroy {
   protected alertService = inject(AlertService);
+  protected readonly alerts = this.alertService.alerts;
   protected inRightPanel = signal(false);
 
   private observer: MutationObserver | null = null;
