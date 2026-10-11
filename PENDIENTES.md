@@ -964,3 +964,15 @@ Reporte nuevo preparado solo por lectura: **cinco perfiles listos, cero bloquead
 | P37 / D11 — curvas y vacunación | CERRADO POR CONFIRMACIÓN DEL DOCTOR COMUNICADA POR EL USUARIO | El usuario comunica «el doctor confirma la curva de crecimiento y esquema de vacunación». Se conserva la implementación; no se inventa referencia bibliográfica ni certificación independiente del agente. |
 
 **No quedan pendientes abiertos de la lista actual.** Este cierre no afirma que nunca puedan aparecer incidencias nuevas. No se modificaron código de producción, reglas, configuración ni despliegues para registrar estas confirmaciones.
+
+## P53 — Calendario en tiempo real y selección de hoy
+
+**Decisión del usuario:** confirma que las citas parecen actualizarse en tiempo real y acepta mantener la configuración de horarios cargada al entrar al calendario, sin añadir sincronización en vivo de dicha configuración. No se modifica ese comportamiento ni se reabre P22.
+
+**CONFIRMADO EN CÓDIGO:** las citas de Doctor y Asistente se reciben mediante `onSnapshot`; el Paciente recibe cambios mediante streaming del servidor con listeners `onSnapshot`, sin Firebase Authentication del Paciente. Esta revisión no equivale a una prueba nueva de esos tres transportes en producción.
+
+**Selección de hoy:** el usuario pide habilitar hoy para agendar/reagendar cuando el día tenga segmentos abiertos. La condición anterior lo deshabilitaba cuando no quedaban horas futuras. Se elimina únicamente esa condición del filtro de fecha; las horas siguen filtrándose por el reloj del consultorio en `America/Mexico_City`. No se habilitan horas pasadas ni días cerrados/pasados. Se conserva la excepción P20 para mantener la fecha/hora original de una cita vigente.
+
+**Estado:** RESUELTO LOCALMENTE; configuración sin sincronización en vivo aceptada por el usuario. Pruebas específicas **83/83**; suite Angular completa **891/891 en 73 archivos**. Regresiones de selección de hoy y rechazo de horas pasadas para alta/reagenda de Doctor, Asistente y Paciente; cambio de día a medianoche del consultorio y conservación de fecha/hora original cubiertos. `git diff --check` sin errores. Se mantienen los avisos previos de CSS en JSDOM. No se desplegó este ajuste; la selección de hoy en el sitio publicado conserva su comportamiento anterior hasta publicar el cliente actualizado.
+
+Fuentes: `src/app/core/utils/availability.ts`, `availability.spec.ts`; `src/app/pages/calendar/dialogs/appointment-dialog/appointment-dialog.ts`, `appointment-dialog.spec.ts`; `src/app/pages/calendar/calendar.ts`; `src/app/core/repositories/appointment.repository.ts`; `src/app/core/services/clinic-gateway.service.ts`; `functions/src/clinic-patient-portal.ts`.

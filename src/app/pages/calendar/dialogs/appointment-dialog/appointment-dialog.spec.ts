@@ -481,7 +481,7 @@ describe('AppointmentDialog', () => {
       }
     });
 
-    it('revalidates the date input and shows an instruction after the last clinic hour passes (P28)', () => {
+    it('keeps today selectable after the last hour and rejects the date at clinic midnight (P28)', () => {
       vi.useFakeTimers({ toFake: ['Date'] });
       const clock = TestBed.inject(ClinicClockService);
       try {
@@ -497,6 +497,12 @@ describe('AppointmentDialog', () => {
         expect(form.controls.date.valid).toBe(true);
         expect((component as any).saveDisabled()).toBe(false);
         vi.setSystemTime(new Date('2026-10-10T05:45:00Z'));
+        clock.refresh();
+        fixture.detectChanges();
+        expect(form.controls.date.valid).toBe(true);
+        expect((component as any).availableTimes()).toEqual([]);
+        expect((component as any).dateFilter()(selected)).toBe(true);
+        vi.setSystemTime(new Date('2026-10-10T06:00:00Z'));
         clock.refresh();
         fixture.detectChanges();
         expect(form.controls.date.hasError('matDatepickerFilter')).toBe(true);
@@ -675,13 +681,37 @@ describe('AppointmentDialog', () => {
       expect((component as any).dateFilter()(new Date(2099, 0, 5))).toBe(false);
     });
 
-    it('dateFilter: today without future hours → disabled', () => {
-      const today = clinicTodayDate();
-      const key = weekdayShortOf(today);
-      const pastSeg = [seg('00:00', '00:01')];
-      component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1', timeSegmentsByDay: { [key]: pastSeg }, consultationDuration: 60 });
-      expect((component as any).dateFilter()(today)).toBe(false);
-    });
+    it.each(['doctor', 'assistant', 'patient'].flatMap(role => ['create', 'edit'].map(mode => ({ role, mode }))))(
+      'allows selecting an open today without future hours but prevents booking a past hour: %j', async ({ role, mode }) => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        const clock = TestBed.inject(ClinicClockService);
+        try {
+          vi.setSystemTime(new Date('2026-10-10T20:00:00Z'));
+          clock.refresh();
+          useRole(role);
+          const today = new Date(2026, 9, 10);
+          component.setData({ allPatients: mockPatients, selectedDoctorId: 'd1',
+            timeSegmentsByDay: { [weekdayShortOf(today)]: [seg('09:00', '12:00')] },
+            consultationDuration: 30, patientScheduling: role === 'patient',
+            editingAppointment: mode === 'edit' ? { id: 'synthetic-appointment', doctorId: 'd1', patientId: 'p1',
+              patientName: 'Paciente ficticio', date: '2026-10-12', time: '10:00', status: 'scheduled' } as any : null });
+          const form = (component as any).form;
+          form.patchValue({ patientId: 'p1', date: today, time: '10:00' });
+          fixture.detectChanges();
+          expect((component as any).dateFilter()(today)).toBe(true);
+          expect(form.controls.date.valid).toBe(true);
+          expect((component as any).availableTimes()).toEqual([]);
+          await component.save();
+          expect(TestBed.inject(AppointmentRepository).createAppointment).not.toHaveBeenCalled();
+          expect(TestBed.inject(AppointmentRepository).updateAppointment).not.toHaveBeenCalled();
+          expect(dialogRef.close).not.toHaveBeenCalled();
+          expect((component as any).error()).toContain('Selecciona una hora disponible');
+        } finally {
+          vi.useRealTimers();
+          clock.refresh();
+        }
+      }
+    );
 
     it('selecting a valid future date loads only its valid hours', () => {
       const future = new Date(2099, 0, 5);

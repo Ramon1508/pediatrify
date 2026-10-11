@@ -97,20 +97,18 @@ export function futureSlotsForDate(
 
 /**
  * ¿La fecha se puede seleccionar para agendar?
- * No si: ya pasó, el día no tiene segmentos (cerrado/sin configurar), o es HOY sin horarios futuros.
+ * No si: ya pasó o el día no tiene segmentos (cerrado/sin configurar).
+ * Hoy permanece seleccionable aunque ya no queden horas futuras; las horas se filtran por separado.
  */
 export function isDateSelectable(
   byDay: Record<string, TimeSegment[]>,
   date: Date,
-  duration: number,
+  _duration: number,
   now: Date = new Date()
 ): boolean {
   const selectedDate = dateToString(date);
   const today = clinicTimeAt(now).date;
   if (!selectedDate || selectedDate < today) return false;
   if (!segmentsForDate(byDay, date).length) return false;
-  if (selectedDate === today) {
-    return futureSlotsForDate(byDay, date, duration, now).length > 0;
-  }
   return true;
 }

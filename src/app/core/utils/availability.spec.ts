@@ -53,9 +53,10 @@ describe('availability utils', () => {
       expect(isDateSelectable(byDay, today, 30, now)).toBe(true);
     });
 
-    it('today without any future hour → not selectable', () => {
+    it('today without any future hour remains selectable but offers no hours', () => {
       const onlyPast: Record<string, TimeSegment[]> = { [todayKey]: [seg('08:00', '10:00')] };
-      expect(isDateSelectable(onlyPast, today, 30, now)).toBe(false);
+      expect(isDateSelectable(onlyPast, today, 30, now)).toBe(true);
+      expect(futureSlotsForDate(onlyPast, today, 30, now)).toEqual([]);
     });
 
     it('day without calendar configuration → not selectable', () => {
